@@ -44,7 +44,7 @@ app.use(cookieParser(process.env.JWT_SECRET));
 // app.use(fileUpload());
 // routes
 app.get('/', (req, res) => {
-  res.send('<h1>Forever App</h1>');
+  res.send('<h1>ITC App</h1>');
 });
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/admin', AdminRouter);
