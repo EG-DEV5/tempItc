@@ -47,6 +47,7 @@ app.get('/', (req, res) => {
   res.send('<h1>Forever App</h1>');
 });
 app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/admin', AdminRouter);
 app.use(notFoundMiddleware);
 app.use(errorHandlerMiddleware);
 

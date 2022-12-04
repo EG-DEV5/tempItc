@@ -57,13 +57,11 @@ const UserSchema = new mongoose.Schema({
   idNumber: { type: String },
   IMEINumber: { type: String },
   itcCenter: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: String,
     required: true,
-    ref: 'ITC',
   },
   groupId: {
     type: mongoose.Schema.Types.ObjectId,
-    required: true,
     ref: 'Group',
   },
   image: {

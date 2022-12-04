@@ -5,10 +5,10 @@ const groupSchema = new mongoose.Schema({
 
     groupName : {type: String,required:true},
     trainerIds : [{ type : mongoose.Types.ObjectId, ref: 'User' }],
-    itcId : {
-        type: mongoose.Schema.Types.ObjectId,
+    TeamLeader : { type : mongoose.Types.ObjectId, ref: 'User' },
+    itcCenter : {
+        type: String,
         required: true,
-        ref: 'ITC',
     }
 })
 
