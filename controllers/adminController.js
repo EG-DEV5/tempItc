@@ -82,8 +82,27 @@ const addGroup = async (req, res, next) => {
     });
   }
 };
+const getAllUsers = async (req,res,next)=>{
+    try {
+        const users = await User.find();
+        res.status(StatusCodes.OK).json({ users });
+      } catch (error) {
+        next(error);
+      }
+}
+const getusersGroup = async (req,res,next)=>{
+    try {
+        const {groupName} = req.body
+        const group = await Group.find({groupName:groupName}).populate('trainerIds').populate('TeamLeader');
+        res.status(StatusCodes.OK).json({ group });
+      } catch (error) {
+        next(error);
+      }
+}
 
 module.exports = {
   addUser,
   addGroup,
+  getAllUsers,
+  getusersGroup
 };
