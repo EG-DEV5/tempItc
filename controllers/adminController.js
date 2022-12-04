@@ -90,11 +90,43 @@ const getAllUsers = async (req,res,next)=>{
         next(error);
       }
 }
-const getusersGroup = async (req,res,next)=>{
+
+const getallGroups = async (req,res,next)=>{
     try {
-        const {groupName} = req.body
-        const group = await Group.find({groupName:groupName}).populate('trainerIds').populate('TeamLeader');
+        const group = await Group.find({}).populate('trainerIds').populate('TeamLeader');
         res.status(StatusCodes.OK).json({ group });
+      } catch (error) {
+        next(error);
+      }
+}
+const getAllTrainers = async (req,res,next)=>{
+    try {
+        const users = await User.find({role:'trainer'});
+        res.status(StatusCodes.OK).json({ users });
+      } catch (error) {
+        next(error);
+      }
+}
+const getAllSafetyAdvisor = async (req,res,next)=>{
+    try {
+        const users = await User.find({role:'safety-advisor'});
+        res.status(StatusCodes.OK).json({ users });
+      } catch (error) {
+        next(error);
+      }
+}
+const groupDetails = async (req,res,next)=>{
+    try {
+        const groupDetails = await Group.find({groupName:req.body.groupName}).populate('trainerIds').populate('TeamLeader');
+        res.status(StatusCodes.OK).json({ groupDetails });
+      } catch (error) {
+        next(error);
+      }
+}
+const getGroupByItc = async (req,res,next)=>{
+    try {
+        const getGroupByItc = await Group.find({itcCenter:req.body.itcCenter});
+        res.status(StatusCodes.OK).json({ getGroupByItc });
       } catch (error) {
         next(error);
       }
@@ -104,5 +136,9 @@ module.exports = {
   addUser,
   addGroup,
   getAllUsers,
-  getusersGroup
+  getAllTrainers,
+  getAllSafetyAdvisor,
+  groupDetails,
+  getGroupByItc,
+  getallGroups
 };
