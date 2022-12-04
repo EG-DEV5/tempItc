@@ -15,9 +15,8 @@ const helmet = require('helmet');
 const xss = require('xss-clean');
 const cors = require('cors');
 const mongoSanitize = require('express-mongo-sanitize');
-const authRouter = require('./routes/authRoutes');
+const authRouter = require('./routes/auth');
 const AdminRouter = require('./routes/admin');
-const matchRouter = require('./routes/matchRoutes');
 
 // database
 const connectDB = require('./db/connect');
@@ -48,7 +47,6 @@ app.get('/', (req, res) => {
   res.send('<h1>Forever App</h1>');
 });
 app.use('/api/v1/auth', authRouter);
-app.use('/api/v1/users', AdminRouter);
 app.use(notFoundMiddleware);
 app.use(errorHandlerMiddleware);
 

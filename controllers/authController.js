@@ -117,7 +117,6 @@ const register = async (req, res, next) => {
     register,
     login,
     logout,
-    verifyAccount,
     //   forgotPassword,
     //   resetPassword,
   };

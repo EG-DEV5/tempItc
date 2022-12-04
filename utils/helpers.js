@@ -1,5 +1,4 @@
 /** @format */
-const Match = require('../models/match');
 const cloudinary = require('./cloudainary');
 const path = require('path');
 const sharp = require('sharp');
