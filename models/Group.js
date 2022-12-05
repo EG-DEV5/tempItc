@@ -9,7 +9,11 @@ const groupSchema = new mongoose.Schema({
     itcCenter : {
         type: String,
         required: true,
-    }
+    },
+    image: {
+        url: { type: String },
+        public_id: { type: String },
+      },
 })
 
 module.exports = mongoose.model('Group', groupSchema);

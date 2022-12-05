@@ -64,16 +64,20 @@ const addUser = async (req, res, next) => {
 };
 const addGroup = async (req, res, next) => {
   const { groupName, itcCenter, TeamLeader } = req.body;
+  let image = {};
   if (typeof req.body.trainerIds == 'string') {
     req.body.trainerIds = JSON.parse(req.body.trainerIds);
   } 
-  
+  if (req.file) {
+    image = await extractUrl(req.file);
+  }
   else {
     const group = await Group.create({
       groupName,
       trainerIds:req.body.trainerIds,
       itcCenter,
       TeamLeader,
+      image: image,
     });
     await User.updateMany({ _id: req.body.trainerIds }, { groupId: group._id });
     res.status(StatusCodes.CREATED).json({
