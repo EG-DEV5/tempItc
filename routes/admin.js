@@ -15,11 +15,12 @@ const {
   getAllTrainers,
   getAllSafetyAdvisor,
   groupDetails,
-  getGroupByItc,getallGroups
+  getGroupByItc,getallGroups,updateGroup
 } = require('../controllers/adminController');
 
 router.post('/addUser', uploadPhoto.single('image'), addUser);
-router.post('/addGroup', addGroup);
+router.post('/addGroup', uploadPhoto.single('image'),addGroup);
+router.put('/updateGroup/:id', uploadPhoto.single('image'), updateGroup);
 router.get(
   '/getAllUsers',
   authenticateUser,

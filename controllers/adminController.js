@@ -43,7 +43,7 @@ const addUser = async (req, res, next) => {
       groupId,
       image: image,
       phoneNumber,
-      email
+      email,
     });
     // const newOrigin = 'https://react-node-user-workflow-front-end.netlify.app';
 
@@ -67,74 +67,121 @@ const addGroup = async (req, res, next) => {
   let image = {};
   if (typeof req.body.trainerIds == 'string') {
     req.body.trainerIds = JSON.parse(req.body.trainerIds);
-  } 
+  }
   if (req.file) {
     image = await extractUrl(req.file);
-  }
-  else {
+  } else {
     const group = await Group.create({
       groupName,
-      trainerIds:req.body.trainerIds,
+      trainerIds: req.body.trainerIds,
       itcCenter,
       TeamLeader,
       image: image,
     });
-    await User.updateMany({ _id: req.body.trainerIds }, { groupId: group._id });
+    let updateUserTogroup = [];
+    updateUserTogroup = req.body.trainerIds;
+    updateUserTogroup.push(TeamLeader);
+    await User.updateMany({ _id: updateUserTogroup }, { groupId: group._id });
     res.status(StatusCodes.CREATED).json({
       msg: 'add Group successfully',
       group,
     });
   }
 };
-const getAllUsers = async (req,res,next)=>{
-    try {
-        const users = await User.find();
-        res.status(StatusCodes.OK).json({ users });
-      } catch (error) {
-        next(error);
-      }
-}
+const updateGroup = async (req, res) => {
+  try {
+    const { groupName, itcCenter, TeamLeader } = req.body;
+    const group = await Group.findOne({ id: req.params.id });
 
-const getallGroups = async (req,res,next)=>{
-    try {
-        const group = await Group.find({}).populate('trainerIds').populate('TeamLeader');
-        res.status(StatusCodes.OK).json({ group });
-      } catch (error) {
-        next(error);
-      }
-}
-const getAllTrainers = async (req,res,next)=>{
-    try {
-        const users = await User.find({role:'trainer'});
-        res.status(StatusCodes.OK).json({ users });
-      } catch (error) {
-        next(error);
-      }
-}
-const getAllSafetyAdvisor = async (req,res,next)=>{
-    try {
-        const users = await User.find({role:'safety-advisor'});
-        res.status(StatusCodes.OK).json({ users });
-      } catch (error) {
-        next(error);
-      }
-}
-const groupDetails = async (req,res,next)=>{
-    try {
-        const groupDetails = await Group.find({groupName:req.body.groupName}).populate('trainerIds').populate('TeamLeader');
-        res.status(StatusCodes.OK).json({ groupDetails });
-      } catch (error) {
-        next(error);
-      }
-}
-const getGroupByItc = async (req,res,next)=>{
-    try {
-        const getGroupByItc = await Group.find({itcCenter:req.body.itcCenter});
-        res.status(StatusCodes.OK).json({ getGroupByItc });
-      } catch (error) {
-        next(error);
-      }
-}
+    if (typeof req.body.trainerIds == 'string') {
+      req.body.trainerIds = JSON.parse(req.body.trainerIds);
+    }
+    //update image and delete old from database
+    let image = {};
+    if (req.file) {
+      image = await extractUrl(req.file);
+    } else {
+      image.url = group.image.url;
+      image.public_id = group.image.public_id;
+    }
+    const updatedGroup = await Group.findOneAndUpdate(
+      { id: req.params.id },
+      {
+        groupName,
+        trainerIds: req.body.trainerIds,
+        itcCenter,
+        TeamLeader,
+        image: image,
+      },
+      { new: true, runValidators: true }
+    );
+    let oldtrainers = group.trainerIds;
+
+    let difference = oldtrainers.filter(
+      (x) => !req.body.trainerIds.toString().includes(x.toString())
+    );
+
+    await User.updateMany({ _id: req.body.trainerIds }, { groupId: group._id });
+    await User.updateMany({ _id: difference }, { groupId: null });
+    return res.status(200).json({ updatedGroup });
+  } catch (error) {
+    return res.status(500).send({ message: error.message });
+  }
+};
+
+const getAllUsers = async (req, res, next) => {
+  try {
+    const users = await User.find();
+    res.status(StatusCodes.OK).json({ users });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getallGroups = async (req, res, next) => {
+  try {
+    const group = await Group.find({})
+      .populate('trainerIds')
+      .populate('TeamLeader');
+    res.status(StatusCodes.OK).json({ group });
+  } catch (error) {
+    next(error);
+  }
+};
+const getAllTrainers = async (req, res, next) => {
+  try {
+    const users = await User.find({ role: 'trainer' });
+    res.status(StatusCodes.OK).json({ users });
+  } catch (error) {
+    next(error);
+  }
+};
+const getAllSafetyAdvisor = async (req, res, next) => {
+  try {
+    const users = await User.find({ role: 'safety-advisor' });
+    res.status(StatusCodes.OK).json({ users });
+  } catch (error) {
+    next(error);
+  }
+};
+const groupDetails = async (req, res, next) => {
+  try {
+    const groupDetails = await Group.find({ groupName: req.body.groupName })
+      .populate('trainerIds')
+      .populate('TeamLeader');
+    res.status(StatusCodes.OK).json({ groupDetails });
+  } catch (error) {
+    next(error);
+  }
+};
+const getGroupByItc = async (req, res, next) => {
+  try {
+    const getGroupByItc = await Group.find({ itcCenter: req.body.itcCenter });
+    res.status(StatusCodes.OK).json({ getGroupByItc });
+  } catch (error) {
+    next(error);
+  }
+};
 
 module.exports = {
   addUser,
@@ -144,5 +191,6 @@ module.exports = {
   getAllSafetyAdvisor,
   groupDetails,
   getGroupByItc,
-  getallGroups
+  getallGroups,
+  updateGroup,
 };
