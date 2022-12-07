@@ -16,7 +16,8 @@ const {
   getAllSafetyAdvisor,
   CustodyDetails,
   getsafteyAdvisorCustody,
-  getCustodyByCity,getallCustodys,updateCustody
+  getCustodyByCity,getallCustodys,updateCustody,
+  getProfile
 } = require('../controllers/userController');
 
 router.post('/addUser',  authenticateUser, uploadPhoto.single('image'), addUser);
@@ -62,6 +63,11 @@ router.get(
     '/saftey-custody',
     authenticateUser,
     getsafteyAdvisorCustody
+  );
+router.get(
+    '/profile',
+    authenticateUser,
+    getProfile
   );
 // router.post('/reset-password', resetPassword);
 // router.post('/forgot-password', forgotPassword);

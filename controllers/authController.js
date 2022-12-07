@@ -57,7 +57,7 @@ const login = async (req, res, next) => {
       }
       const tokenUser = createTokenUser(safety);
       const token = createJWT({ payload: tokenUser });
-      res.status(StatusCodes.OK).json({ safety: tokenUser, safety, token });
+      res.status(StatusCodes.OK).json({ data:safety, token });
     } else if (admin) {
       const isPasswordCorrect = await admin.comparePassword(password);
       if (!isPasswordCorrect) {
@@ -65,7 +65,7 @@ const login = async (req, res, next) => {
       }
       const tokenUser = createTokenUser(admin);
       const token = createJWT({ payload: tokenUser });
-      res.status(StatusCodes.OK).json({ admin, token });
+      res.status(StatusCodes.OK).json({ data:admin, token });
     } else {
       throw new CustomError.UnauthenticatedError('Invalid Credentials');
     }

@@ -265,6 +265,22 @@ const getsafteyAdvisorCustody = async (req, res, next) => {
     next(error);
   }
 };
+const getProfile = async (req, res, next) => {
+  try {
+    const data = await User.find({ _id: req.user.userId });
+    res.status(StatusCodes.OK).json({ data });
+  } catch (error) {
+    next(error);
+  }
+};
+const getHomeStatistics = async (req, res, next) => {
+  try {
+    const data = await Custody.find({ _id: req.user.userId });
+    res.status(StatusCodes.OK).json({ data });
+  } catch (error) {
+    next(error);
+  }
+};
 
 module.exports = {
   addUser,
@@ -276,5 +292,6 @@ module.exports = {
   getCustodyByCity,
   getallCustodys,
   updateCustody,
-  getsafteyAdvisorCustody
+  getsafteyAdvisorCustody,
+  getProfile
 };
