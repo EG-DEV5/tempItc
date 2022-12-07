@@ -33,6 +33,7 @@ const UserSchema = new mongoose.Schema({
   custodyId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Group',
+    default:null,
   },
   image: {
     url: { type: String },
