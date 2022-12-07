@@ -256,6 +256,15 @@ const getCustodyByCity = async (req, res, next) => {
     next(error);
   }
 };
+const getsafteyAdvisorCustody = async (req, res, next) => {
+  try {
+    console.log(req.user)
+    const data = await Custody.find({ _id: req.user.custodyId });
+    res.status(StatusCodes.OK).json({ data });
+  } catch (error) {
+    next(error);
+  }
+};
 
 module.exports = {
   addUser,
@@ -267,4 +276,5 @@ module.exports = {
   getCustodyByCity,
   getallCustodys,
   updateCustody,
+  getsafteyAdvisorCustody
 };

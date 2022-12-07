@@ -15,6 +15,7 @@ const {
   getAllTrainers,
   getAllSafetyAdvisor,
   CustodyDetails,
+  getsafteyAdvisorCustody,
   getCustodyByCity,getallCustodys,updateCustody
 } = require('../controllers/userController');
 
@@ -24,7 +25,7 @@ router.put('/updateCustody/:id', uploadPhoto.single('image'), updateCustody);
 router.get(
   '/getAllUsers',
   authenticateUser,
-  authorizeRoles('admin'),
+  authorizeRoles('admin',),
   getAllUsers
 );
 router.get(
@@ -42,7 +43,7 @@ router.get(
 router.get(
     '/CustodyDetails',
     authenticateUser,
-    authorizeRoles('admin'),
+    authorizeRoles('admin',),
     CustodyDetails
   );
 router.get(
@@ -56,6 +57,11 @@ router.get(
     authenticateUser,
     authorizeRoles('admin'),
     getallCustodys
+  );
+router.get(
+    '/saftey-custody',
+    authenticateUser,
+    getsafteyAdvisorCustody
   );
 // router.post('/reset-password', resetPassword);
 // router.post('/forgot-password', forgotPassword);
