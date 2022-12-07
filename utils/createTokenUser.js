@@ -1,7 +1,7 @@
 /** @format */
 
 const createTokenUser = (user) => {
-  return { name: user.firstName, userId: user._id, role: user.role,gender: user.gender};
+  return { username: user.username, userId: user._id, role: user.role,custodyId:user.custodyId};
 };
 
 module.exports = createTokenUser;

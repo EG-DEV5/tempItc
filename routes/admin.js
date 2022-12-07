@@ -5,57 +5,57 @@ const router = express.Router();
 const uploadPhoto = require('../utils/multer');
 const {
   authenticateUser,
-  authorizePermissions,
+  authorizeRoles,
 } = require('../middleware/authentication');
 
 const {
   addUser,
-  addGroup,
+  addCustody,
   getAllUsers,
   getAllTrainers,
   getAllSafetyAdvisor,
-  groupDetails,
-  getGroupByItc,getallGroups,updateGroup
-} = require('../controllers/adminController');
+  CustodyDetails,
+  getCustodyByCity,getallCustodys,updateCustody
+} = require('../controllers/userController');
 
-router.post('/addUser', uploadPhoto.single('image'), addUser);
-router.post('/addGroup', uploadPhoto.single('image'),addGroup);
-router.put('/updateGroup/:id', uploadPhoto.single('image'), updateGroup);
+router.post('/addUser',  authenticateUser, uploadPhoto.single('image'), addUser);
+router.post('/addCustody', uploadPhoto.single('image'),addCustody);
+router.put('/updateCustody/:id', uploadPhoto.single('image'), updateCustody);
 router.get(
   '/getAllUsers',
   authenticateUser,
-  authorizePermissions('admin'),
+  authorizeRoles('admin'),
   getAllUsers
 );
 router.get(
   '/getAllTrainers',
   authenticateUser,
-  authorizePermissions('admin'),
+  authorizeRoles('admin'),
   getAllTrainers
 );
 router.get(
     '/getAllSafetyAdvisor',
     authenticateUser,
-    authorizePermissions('admin'),
+    authorizeRoles('admin'),
     getAllSafetyAdvisor
   );
 router.get(
-    '/groupDetails',
+    '/CustodyDetails',
     authenticateUser,
-    authorizePermissions('admin'),
-    groupDetails
+    authorizeRoles('admin'),
+    CustodyDetails
   );
 router.get(
-    '/getGroupByItc',
+    '/getCustodyByCity',
     authenticateUser,
-    authorizePermissions('admin'),
-    getGroupByItc
+    authorizeRoles('admin'),
+    getCustodyByCity
   );
 router.get(
-    '/getallGroups',
+    '/getallCustodys',
     authenticateUser,
-    authorizePermissions('admin'),
-    getallGroups
+    authorizeRoles('admin'),
+    getallCustodys
   );
 // router.post('/reset-password', resetPassword);
 // router.post('/forgot-password', forgotPassword);

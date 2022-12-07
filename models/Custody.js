@@ -3,10 +3,10 @@ const mongoose = require('mongoose');
 
 const groupSchema = new mongoose.Schema({
 
-    groupName : {type: String,required:true,unique:true},
+    custodyName : {type: String,required:true,unique:true},
     trainerIds : [{ type : mongoose.Types.ObjectId, ref: 'User' }],
-    TeamLeader : { type : mongoose.Types.ObjectId, ref: 'User' },
-    itcCenter : {
+    SafetyAdvisor : { type : mongoose.Types.ObjectId, ref: 'User' },
+    city : {
         type: String,
         required: true,
     },
