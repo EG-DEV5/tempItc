@@ -16,17 +16,20 @@ const {
   getAllSafetyAdvisor,
   CustodyDetails,
   getsafteyAdvisorCustody,
-  getCustodyByCity,getallCustodys,updateCustody,
-  getProfile
+  getCustodyByCity,
+  getallCustodys,
+  updateCustody,
+  getProfile,
+  getHomeStatistics,
 } = require('../controllers/userController');
 
-router.post('/addUser',  authenticateUser, uploadPhoto.single('image'), addUser);
-router.post('/addCustody', uploadPhoto.single('image'),addCustody);
+router.post('/addUser', authenticateUser, uploadPhoto.single('image'), addUser);
+router.post('/addCustody', uploadPhoto.single('image'), addCustody);
 router.put('/updateCustody/:id', uploadPhoto.single('image'), updateCustody);
 router.get(
   '/getAllUsers',
   authenticateUser,
-  authorizeRoles('admin',),
+  authorizeRoles('admin'),
   getAllUsers
 );
 router.get(
@@ -36,39 +39,32 @@ router.get(
   getAllTrainers
 );
 router.get(
-    '/getAllSafetyAdvisor',
-    authenticateUser,
-    authorizeRoles('admin'),
-    getAllSafetyAdvisor
-  );
+  '/getAllSafetyAdvisor',
+  authenticateUser,
+  authorizeRoles('admin'),
+  getAllSafetyAdvisor
+);
 router.get(
-    '/CustodyDetails',
-    authenticateUser,
-    authorizeRoles('admin',),
-    CustodyDetails
-  );
+  '/CustodyDetails',
+  authenticateUser,
+  authorizeRoles('admin'),
+  CustodyDetails
+);
 router.get(
-    '/getCustodyByCity',
-    authenticateUser,
-    authorizeRoles('admin'),
-    getCustodyByCity
-  );
+  '/getCustodyByCity',
+  authenticateUser,
+  authorizeRoles('admin'),
+  getCustodyByCity
+);
 router.get(
-    '/getallCustodys',
-    authenticateUser,
-    authorizeRoles('admin'),
-    getallCustodys
-  );
-router.get(
-    '/saftey-custody',
-    authenticateUser,
-    getsafteyAdvisorCustody
-  );
-router.get(
-    '/profile',
-    authenticateUser,
-    getProfile
-  );
+  '/getallCustodys',
+  authenticateUser,
+  authorizeRoles('admin'),
+  getallCustodys
+);
+router.get('/saftey-custody', authenticateUser, getsafteyAdvisorCustody);
+router.get('/profile', authenticateUser, getProfile);
+router.get('/getHomeStatistics', getHomeStatistics);
 // router.post('/reset-password', resetPassword);
 // router.post('/forgot-password', forgotPassword);
 

@@ -169,6 +169,7 @@ const updateCustody = async (req, res, next) => {
       req.body.trainerIds = JSON.parse(req.body.trainerIds);
     }
     let image = {};
+    let oldtrainers = [];
     if (req.file) {
       image = await extractUrl(req.file);
     } else {
@@ -186,15 +187,17 @@ const updateCustody = async (req, res, next) => {
       },
       { new: true, runValidators: true }
     );
-    let oldtrainers = custody.trainerIds;
-    oldtrainers.push(custody.SafetyAdvisor);
-    let newtrainers = req.body.trainerIds;
-    newtrainers.push(SafetyAdvisor);
-    let difference = oldtrainers.filter(
-      (x) => !newtrainers.toString().includes(x.toString())
-    );
-    await User.updateMany({ _id: newtrainers }, { custodyId: custody._id });
-    await User.updateMany({ _id: difference }, { custodyId: null });
+    if (req.body.trainerId) {
+      oldtrainers = custody.trainerIds;
+      oldtrainers.push(custody.SafetyAdvisor);
+      let newtrainers = req.body.trainerIds;
+      newtrainers.push(SafetyAdvisor);
+      let difference = oldtrainers.filter(
+        (x) => !newtrainers.toString().includes(x.toString())
+      );
+      await User.updateMany({ _id: newtrainers }, { custodyId: custody._id });
+      await User.updateMany({ _id: difference }, { custodyId: null });
+    }
     return res.status(200).json({ updatedCustody });
   } catch (error) {
     next(error);
@@ -203,7 +206,7 @@ const updateCustody = async (req, res, next) => {
 
 const getAllUsers = async (req, res, next) => {
   try {
-    const users = await User.find({role:{$ne:'admin'}});
+    const users = await User.find({ role: { $ne: 'admin' } });
     res.status(StatusCodes.OK).json({ users });
   } catch (error) {
     next(error);
@@ -238,9 +241,7 @@ const getAllSafetyAdvisor = async (req, res, next) => {
 };
 const CustodyDetails = async (req, res, next) => {
   try {
-    const custodyDetails = await Custody.find({
-      custodyName: req.body.custodyName,
-    })
+    const custodyDetails = await Custody.findById(req.body.id)
       .populate('trainerIds')
       .populate('SafetyAdvisor');
     res.status(StatusCodes.OK).json({ custodyDetails });
@@ -258,7 +259,9 @@ const getCustodyByCity = async (req, res, next) => {
 };
 const getsafteyAdvisorCustody = async (req, res, next) => {
   try {
-    const data = await Custody.find({ _id: req.user.custodyId });
+    const data = await Custody.find({ _id: req.user.custodyId })
+      .populate('trainerIds')
+      .populate('SafetyAdvisor');
     res.status(StatusCodes.OK).json({ data });
   } catch (error) {
     next(error);
@@ -274,8 +277,15 @@ const getProfile = async (req, res, next) => {
 };
 const getHomeStatistics = async (req, res, next) => {
   try {
-    const data = await Custody.find({ _id: req.user.userId });
-    res.status(StatusCodes.OK).json({ data });
+    res
+      .status(StatusCodes.OK)
+      .json({
+        onlineUsers: 20,
+        offlineUsers: 15,
+        totalMillage: 1229,
+        SafetyAdvisor: 10,
+        totalUsers: 45,
+      });
   } catch (error) {
     next(error);
   }
@@ -292,5 +302,6 @@ module.exports = {
   getallCustodys,
   updateCustody,
   getsafteyAdvisorCustody,
-  getProfile
+  getProfile,
+  getHomeStatistics,
 };

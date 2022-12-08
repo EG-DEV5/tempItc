@@ -30,6 +30,7 @@ const UserSchema = new mongoose.Schema({
   },
   idNumber: { type: String },
   IMEINumber: { type: String },
+  isOnline: { type: Boolean,default:false },
   custodyId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Group',
