@@ -19,13 +19,13 @@ const addAdmin = async (req, res, next) => {
       image = await extractUrl(req.file);
     }
 
-     await User.create({
+    await User.create({
       username,
       password,
       image: image,
       role: 'admin',
     });
-    
+
     res.status(StatusCodes.CREATED).json({
       msg: 'add admin successfully',
     });
@@ -53,21 +53,21 @@ const login = async (req, res, next) => {
       }
       const isPasswordCorrectforSaftey = await safety.comparePassword(password);
       if (!isPasswordCorrectforSaftey) {
-        throw new CustomError.UnauthenticatedError('Invalid Credentials');
+        throw new CustomError.BadRequestError('Invalid Credentials');
       }
       const tokenUser = createTokenUser(safety);
       const token = createJWT({ payload: tokenUser });
-      res.status(StatusCodes.OK).json({ data:safety, token });
+      res.status(StatusCodes.OK).json({ data: safety, token });
     } else if (admin) {
       const isPasswordCorrect = await admin.comparePassword(password);
       if (!isPasswordCorrect) {
-        throw new CustomError.UnauthenticatedError('Invalid Credentials');
+        throw new CustomError.BadRequestError('Invalid Credentials');
       }
       const tokenUser = createTokenUser(admin);
       const token = createJWT({ payload: tokenUser });
-      res.status(StatusCodes.OK).json({ data:admin, token });
+      res.status(StatusCodes.OK).json({ data: admin, token });
     } else {
-      throw new CustomError.UnauthenticatedError('Invalid Credentials');
+      throw new CustomError.BadRequestError('Invalid Credentials');
     }
   } catch (error) {
     next(error);

@@ -258,7 +258,6 @@ const getCustodyByCity = async (req, res, next) => {
 };
 const getsafteyAdvisorCustody = async (req, res, next) => {
   try {
-    console.log(req.user)
     const data = await Custody.find({ _id: req.user.custodyId });
     res.status(StatusCodes.OK).json({ data });
   } catch (error) {
