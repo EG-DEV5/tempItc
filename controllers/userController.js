@@ -261,9 +261,35 @@ const getAllUsers = async (req, res, next) => {
 
 const getallCustodys = async (req, res, next) => {
   try {
-    const custody = await Custody.find({})
-      .populate('trainerIds')
-      .populate('SafetyAdvisor');
+    let agg = [
+
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: 'custodyId',
+          as: 'users'
+        }
+      },
+      {
+        $project: {
+          users: {
+              $filter: {
+                 input: "$users",
+                 as: "user",
+                 cond: { role: "trainer" }
+              }
+           },
+           custodyName: 1,
+           pendingTrainers : 1,
+           SafetyAdvisor : 1,
+           city : 1
+           
+        }
+     }
+    ]
+    const custody = await Custody.aggregate(agg);
+    await Custody.populate(custody, {path: "SafetyAdvisor"});
     res.status(StatusCodes.OK).json({ custody });
   } catch (error) {
     next(error);
@@ -287,9 +313,38 @@ const getAllSafetyAdvisor = async (req, res, next) => {
 };
 const CustodyDetails = async (req, res, next) => {
   try {
-    const custodyDetails = await Custody.findById(req.body.id)
-      .populate('trainerIds')
-      .populate('SafetyAdvisor');
+    let agg = [
+      {
+        $match: { custodyName: req.body.custodyName }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: 'custodyId',
+          as: 'users'
+        }
+      },
+      {
+        $project: {
+          users: {
+              $filter: {
+                 input: "$users",
+                 as: "user",
+                 cond: { role: "trainer" }
+              }
+           },
+           custodyName: 1,
+           pendingTrainers : 1,
+           SafetyAdvisor : 1,
+           city : 1
+           
+        }
+     }
+    ]
+      // const custodyDetails = await Custody.aggregate(agg).populate('SafetyAdvisor');
+      const custodyDetails = await Custody.aggregate(agg);
+        await Custody.populate(custodyDetails, {path: "SafetyAdvisor"});
     res.status(StatusCodes.OK).json({ custodyDetails });
   } catch (error) {
     next(error);
