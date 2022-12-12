@@ -13,7 +13,7 @@ const { isObjectIdOrHexString } = require('mongoose');
 const addUser = async (req, res, next) => {
   try {
     if (req.user.role === 'safety-advisor') {
-      const { username, IMEINumber,idNumber } = req.body;
+      const { username, IMEINumber, idNumber } = req.body;
       const { custodyId } = req.user;
       let image = {};
       const accountAlreadyExists = await User.findOne({
@@ -38,15 +38,8 @@ const addUser = async (req, res, next) => {
         user,
       });
     } else {
-
-      const {
-        username,
-        memberShipType,
-        vid,
-        idNumber,
-        IMEINumber,
-        custodyId,
-      } = req.body;
+      const { username, memberShipType, vid, idNumber, IMEINumber, custodyId } =
+        req.body;
       let image = {};
       const accountAlreadyExists = await User.findOne({
         username,
@@ -81,97 +74,95 @@ const addUser = async (req, res, next) => {
 };
 const updateUser = async (req, res) => {
   try {
-    const {id} = req.params
+    const { id } = req.params;
 
-  if (req.user.role == 'safety-advisor') {
-    const { username, IMEINumber,idNumber,custodyId,vid } = req.body;
-    // const { custodyId } = req.user;
-    const account = await User.findOne({
-      _id:id,
-    });
-    if(account.custodyId == null || account.custodyId == custodyId ) {
-      account.custodyId = custodyId
-      account.save()
-    }
-    else { 
-      const Cus = await Custody.find({_id:custodyId})
-      Cus.pendingTrainers.push(account._id)
-      Cus.save()
-    }
-    let image = {};
-    if (req.file) {
-      image = await extractUrl(req.file);
+    if (req.user.role == 'safety-advisor') {
+      const { username, IMEINumber, idNumber, custodyId, vid } = req.body;
+      // const { custodyId } = req.user;
+      const account = await User.findOne({
+        _id: id,
+      });
+      if (account.custodyId == null || account.custodyId == custodyId) {
+        account.custodyId = custodyId;
+        account.save();
+      } else {
+        const Cus = await Custody.find({ _id: custodyId });
+        Cus.pendingTrainers.push(account._id);
+        Cus.save();
+      }
+      let image = {};
+      if (req.file) {
+        image = await extractUrl(req.file);
+      } else {
+        image.url = account.image.url;
+        image.public_id = account.image.public_id;
+      }
+      const user = await User.findOneAndUpdate(
+        { id },
+        { username, IMEINumber, idNumber, vid, image: image },
+        { new: true, runValidators: true }
+      );
+      res.status(StatusCodes.CREATED).json({
+        msg: '!safety-advisor updated user ',
+        user,
+      });
     } else {
-      image.url = account.image.url;
-      image.public_id = account.image.public_id;
-    }
-    const user = await User.findOneAndUpdate(
-      { id },
-      { username, IMEINumber ,idNumber,vid ,image:image},
-      { new: true, runValidators: true }
-    );
-    res.status(StatusCodes.CREATED).json({
-      msg: '!safety-advisor updated user ',
-      user,
-    });
-  } else {
-    const {
-      username,
-      memberShipType,
-      vid,
-      idNumber,
-      IMEINumber,
-      custodyId,
-    } = req.body;
-    let image = {};
-    const account = await User.findOne({
-      _id:id,
-    });
-    if (!account) {
-      throw new CustomError.BadRequestError('your account Not exists');
-    }
-    // first registered user is an admin
-    if (req.file) {
-      image = await extractUrl(req.file);
-    }
-    if(custodyId){
-      if(account.role == 'trainer'){
-        if(account.custodyId == null || account.custodyId == custodyId ) {
-          account.custodyId = custodyId
-          account.save()
-        }
-        else { 
-          const Cus = await Custody.find({_id:custodyId})
-          Cus.pendingTrainers.push(account._id)
-          Cus.save()
+      const { username, memberShipType, vid, idNumber, IMEINumber, custodyId } =
+        req.body;
+      let image = {};
+      const account = await User.findOne({
+        _id: id,
+      });
+      if (!account) {
+        throw new CustomError.BadRequestError('your account Not exists');
+      }
+      // first registered user is an admin
+      if (req.file) {
+        image = await extractUrl(req.file);
+      }
+      if (custodyId) {
+        if (account.role == 'trainer') {
+          if (account.custodyId == null || account.custodyId == custodyId) {
+            account.custodyId = custodyId;
+            account.save();
+          } else {
+            const Cus = await Custody.find({ _id: custodyId });
+            Cus.pendingTrainers.push(account._id);
+            Cus.save();
+          }
+        } else {
+          account.custodyId = custodyId;
+          account.save();
+          const Cus = await Custody.find({ _id: custodyId });
+          Cus.SafetyAdvisor == account._id;
+          Cus.save();
         }
       }
-      else{
-        account.custodyId = custodyId
-        account.save()
-        const Cus = await Custody.find({_id:custodyId})
-        Cus.SafetyAdvisor == account._id
-        Cus.save()
-      }
-    }
 
-    if (req.file) {
-      image = await extractUrl(req.file);
-    } else {
-      image.url = account.image.url;
-      image.public_id = account.image.public_id;
+      if (req.file) {
+        image = await extractUrl(req.file);
+      } else {
+        image.url = account.image.url;
+        image.public_id = account.image.public_id;
+      }
+
+      const user = await User.findOneAndUpdate(
+        { _id: id },
+        {
+          username: username,
+          IMEINumber,
+          idNumber,
+          vid,
+          image: image,
+          role: memberShipType,
+        },
+        { new: true, runValidators: true }
+      );
+      res.status(StatusCodes.CREATED).json({
+        msg: '!admin updated user ',
+        user,
+      });
     }
-  
-    const user = await User.findOneAndUpdate(
-      { _id:id },
-      { username:username, IMEINumber ,idNumber,vid ,image:image,role:memberShipType},
-      { new: true, runValidators: true }
-    );
-    res.status(StatusCodes.CREATED).json({
-      msg: '!admin updated user ',
-      user,
-    });
-  }
   } catch (error) {
     return res.status(500).send({ message: error.message });
   }
@@ -234,16 +225,16 @@ const updateCustody = async (req, res, next) => {
       { new: true, runValidators: true }
     );
     if (req.body.trainerIds) {
-      let user = await User.find({custodyId:req.params.id},{_id:1})
-         user.forEach(e=> oldtrainers.push(e._id))
-         oldtrainers.push(custody.SafetyAdvisor);
-         let newtrainers = req.body.trainerIds;
-         newtrainers.push(SafetyAdvisor);
-         let difference = oldtrainers.filter(
-           (x) => !newtrainers.toString().includes(x.toString())
-         );
-         await User.updateMany({ _id: newtrainers }, { custodyId: custody._id });
-         await User.updateMany({ _id: difference }, { custodyId: null });
+      let user = await User.find({ custodyId: req.params.id }, { _id: 1 });
+      user.forEach((e) => oldtrainers.push(e._id));
+      oldtrainers.push(custody.SafetyAdvisor);
+      let newtrainers = req.body.trainerIds;
+      newtrainers.push(SafetyAdvisor);
+      let difference = oldtrainers.filter(
+        (x) => !newtrainers.toString().includes(x.toString())
+      );
+      await User.updateMany({ _id: newtrainers }, { custodyId: custody._id });
+      await User.updateMany({ _id: difference }, { custodyId: null });
     }
     return res.status(200).json({ updatedCustody });
   } catch (error) {
@@ -263,34 +254,32 @@ const getAllUsers = async (req, res, next) => {
 const getallCustodys = async (req, res, next) => {
   try {
     let agg = [
-
       {
         $lookup: {
           from: 'users',
           localField: '_id',
           foreignField: 'custodyId',
-          as: 'users'
-        }
+          as: 'users',
+        },
       },
       {
         $project: {
           users: {
-              $filter: {
-                 input: "$users",
-                 as: "user",
-                 cond: { role: "trainer" }
-              }
-           },
-           custodyName: 1,
-           pendingTrainers : 1,
-           SafetyAdvisor : 1,
-           city : 1
-           
-        }
-     }
-    ]
+            $filter: {
+              input: '$users',
+              as: 'user',
+              cond: { $eq: ['$$user.role', 'trainer'] },
+            },
+          },
+          custodyName: 1,
+          pendingTrainers: 1,
+          SafetyAdvisor: 1,
+          city: 1,
+        },
+      },
+    ];
     const custody = await Custody.aggregate(agg);
-    await Custody.populate(custody, {path: "SafetyAdvisor"});
+    await Custody.populate(custody, { path: 'SafetyAdvisor' });
     res.status(StatusCodes.OK).json({ custody });
   } catch (error) {
     next(error);
@@ -316,36 +305,35 @@ const CustodyDetails = async (req, res, next) => {
   try {
     let agg = [
       {
-        $match: { custodyName: req.body.custodyName }
+        $match: { custodyName: req.body.custodyName },
       },
       {
         $lookup: {
           from: 'users',
           localField: '_id',
           foreignField: 'custodyId',
-          as: 'users'
-        }
+          as: 'users',
+        },
       },
       {
         $project: {
           users: {
-              $filter: {
-                 input: "$users",
-                 as: "user",
-                 cond: { role: "trainer" }
-              }
-           },
-           custodyName: 1,
-           pendingTrainers : 1,
-           SafetyAdvisor : 1,
-           city : 1
-           
-        }
-     }
-    ]
-      // const custodyDetails = await Custody.aggregate(agg).populate('SafetyAdvisor');
-      const custodyDetails = await Custody.aggregate(agg);
-        await Custody.populate(custodyDetails, {path: "SafetyAdvisor"});
+            $filter: {
+              input: '$users',
+              as: 'user',
+              cond: { $eq: ['$$user.role', 'trainer'] },
+            },
+          },
+          custodyName: 1,
+          pendingTrainers: 1,
+          SafetyAdvisor: 1,
+          city: 1,
+        },
+      },
+    ];
+    // const custodyDetails = await Custody.aggregate(agg).populate('SafetyAdvisor');
+    const custodyDetails = await Custody.aggregate(agg);
+    await Custody.populate(custodyDetails, { path: 'SafetyAdvisor' });
     res.status(StatusCodes.OK).json({ custodyDetails });
   } catch (error) {
     next(error);
@@ -355,36 +343,35 @@ const getCustodyByCity = async (req, res, next) => {
   try {
     let agg = [
       {
-        $match: { city: req.body.city }
+        $match: { city: req.body.city },
       },
       {
         $lookup: {
           from: 'users',
           localField: '_id',
           foreignField: 'custodyId',
-          as: 'users'
-        }
+          as: 'users',
+        },
       },
       {
         $project: {
           users: {
-              $filter: {
-                 input: "$users",
-                 as: "user",
-                 cond: { role: "trainer" }
-              }
-           },
-           custodyName: 1,
-           pendingTrainers : 1,
-           SafetyAdvisor : 1,
-           city : 1
-           
-        }
-     }
-    ]
-      // const custodyDetails = await Custody.aggregate(agg).populate('SafetyAdvisor');
-      const custodyDetails = await Custody.aggregate(agg);
-        await Custody.populate(custodyDetails, {path: "SafetyAdvisor"});
+            $filter: {
+              input: '$users',
+              as: 'user',
+              cond: { $eq: ['$$user.role', 'trainer'] },
+            },
+          },
+          custodyName: 1,
+          pendingTrainers: 1,
+          SafetyAdvisor: 1,
+          city: 1,
+        },
+      },
+    ];
+    // const custodyDetails = await Custody.aggregate(agg).populate('SafetyAdvisor');
+    const custodyDetails = await Custody.aggregate(agg);
+    await Custody.populate(custodyDetails, { path: 'SafetyAdvisor' });
     res.status(StatusCodes.OK).json({ custodyDetails });
   } catch (error) {
     next(error);
@@ -392,42 +379,41 @@ const getCustodyByCity = async (req, res, next) => {
 };
 const getsafteyAdvisorCustody = async (req, res, next) => {
   try {
-    const { ObjectId }  = require("mongoose").Types
+    const { ObjectId } = require('mongoose').Types;
 
     let agg = [
       {
-        $match: { _id:  new ObjectId(req.user.custodyId) }
+        $match: { _id: new ObjectId(req.user.custodyId) },
       },
       {
         $lookup: {
           from: 'users',
           localField: '_id',
           foreignField: 'custodyId',
-          as: 'users'
-        }
+          as: 'users',
+        },
       },
       {
         $project: {
           users: {
-              $filter: {
-                 input: "$users",
-                 as: "user",
-                 cond: { role: "trainer" }
-              }
-           },
-           custodyName: 1,
-           pendingTrainers : 1,
-           SafetyAdvisor : 1,
-           city : 1
-           
-        }
-     }
-    ]
+            $filter: {
+              input: '$users',
+              as: 'user',
+              cond: { $eq: ['$$user.role', 'trainer'] },
+            },
+          },
+          custodyName: 1,
+          pendingTrainers: 1,
+          SafetyAdvisor: 1,
+          city: 1,
+        },
+      },
+    ];
     const data = await Custody.aggregate(agg);
-    await Custody.populate(data, {path: "SafetyAdvisor"});
+    await Custody.populate(data, { path: 'SafetyAdvisor' });
     res.status(StatusCodes.OK).json({ data });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     next(error);
   }
 };
@@ -441,55 +427,59 @@ const getProfile = async (req, res, next) => {
 };
 const getHomeStatistics = async (req, res, next) => {
   try {
-    res
-      .status(StatusCodes.OK)
-      .json({
-        onlineUsers: 20,
-        offlineUsers: 15,
-        totalMillage: 1229,
-        SafetyAdvisor: 10,
-        totalUsers: 45,
-      });
+    res.status(StatusCodes.OK).json({
+      onlineUsers: 20,
+      offlineUsers: 15,
+      totalMillage: 1229,
+      SafetyAdvisor: 10,
+      totalUsers: 45,
+    });
   } catch (error) {
     next(error);
   }
 };
-const addRequest = async(req,res,next)=>{
+const addRequest = async (req, res, next) => {
   try {
-    let waitingTrainer = []
-    const{username,to} = req.body;
-    const user = await User.findOne({username:username})
-    const custody = await Custody.findOne({_id:to})
-    if(user.custodyId == null){
-      throw new Error("you can't add request for new trainers")
+    let waitingTrainer = [];
+    const { username, to } = req.body;
+    const user = await User.findOne({ username: username });
+    const custody = await Custody.findOne({ _id: to });
+    if (user.custodyId == null) {
+      throw new Error("you can't add request for new trainers");
     }
-    waitingTrainer = custody.pendingTrainers
-    waitingTrainer.push(user._id)
-     await Custody.findByIdAndUpdate(to,{pendingTrainers:waitingTrainer})
-    res.status(StatusCodes.OK).json({msg:"add request successfully"})
+    waitingTrainer = custody.pendingTrainers;
+    waitingTrainer.push(user._id);
+    await Custody.findByIdAndUpdate(to, { pendingTrainers: waitingTrainer });
+    res.status(StatusCodes.OK).json({ msg: 'add request successfully' });
   } catch (error) {
-    next(error)
+    next(error);
   }
-}
-const resForRequest = async(req,res,next)=>{
-  const {responce,trainerId,custodyId} = req.body
-  if(responce == true){
-      let oldCustody = await Custody.findOne({trainerIds : { $in: [ trainerId] }})
-      let custody =  await Custody.findOne({_id :custodyId })
-      let findTr = custody.pendingTrainers.findIndex((e) => e._id.toString() == trainerId)
-      if (findTr > -1) { 
-        custody.pendingTrainers.splice(findTr, 1); 
-        custody.trainerIds.push(trainerId)
-     }
-     custody.save()
-      let x =  oldCustody.trainerIds.findIndex((e) => e._id.toString() == trainerId)
-      if (x > -1) { 
-        oldCustody.trainerIds.splice(x, 1); 
-     }
-     oldCustody.save()
-     res.status(200).json(oldCustody)
+};
+const resForRequest = async (req, res, next) => {
+  const { responce, trainerId, custodyId } = req.body;
+  if (responce == true) {
+    let oldCustody = await Custody.findOne({
+      trainerIds: { $in: [trainerId] },
+    });
+    let custody = await Custody.findOne({ _id: custodyId });
+    let findTr = custody.pendingTrainers.findIndex(
+      (e) => e._id.toString() == trainerId
+    );
+    if (findTr > -1) {
+      custody.pendingTrainers.splice(findTr, 1);
+      custody.trainerIds.push(trainerId);
+    }
+    custody.save();
+    let x = oldCustody.trainerIds.findIndex(
+      (e) => e._id.toString() == trainerId
+    );
+    if (x > -1) {
+      oldCustody.trainerIds.splice(x, 1);
+    }
+    oldCustody.save();
+    res.status(200).json(oldCustody);
   }
-}
+};
 
 module.exports = {
   addUser,
@@ -506,5 +496,5 @@ module.exports = {
   getHomeStatistics,
   addRequest,
   resForRequest,
-  updateUser
+  updateUser,
 };
