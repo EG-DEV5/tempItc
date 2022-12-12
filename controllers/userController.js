@@ -5,6 +5,7 @@ const Custody = require('../models/Custody');
 const CustomError = require('../errors');
 const { StatusCodes } = require('http-status-codes');
 const { extractUrl } = require('../utils');
+const { isObjectIdOrHexString } = require('mongoose');
 // const {
 
 //   authorizeRoles,
@@ -391,11 +392,42 @@ const getCustodyByCity = async (req, res, next) => {
 };
 const getsafteyAdvisorCustody = async (req, res, next) => {
   try {
-    const data = await Custody.find({ _id: req.user.custodyId })
-      .populate('trainerIds')
-      .populate('SafetyAdvisor');
+    const { ObjectId }  = require("mongoose").Types
+
+    let agg = [
+      {
+        $match: { _id:  new ObjectId(req.user.custodyId) }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: 'custodyId',
+          as: 'users'
+        }
+      },
+      {
+        $project: {
+          users: {
+              $filter: {
+                 input: "$users",
+                 as: "user",
+                 cond: { role: "trainer" }
+              }
+           },
+           custodyName: 1,
+           pendingTrainers : 1,
+           SafetyAdvisor : 1,
+           city : 1
+           
+        }
+     }
+    ]
+    const data = await Custody.aggregate(agg);
+    await Custody.populate(data, {path: "SafetyAdvisor"});
     res.status(StatusCodes.OK).json({ data });
   } catch (error) {
+    console.log(error)
     next(error);
   }
 };
