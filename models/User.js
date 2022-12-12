@@ -9,6 +9,17 @@ const UserSchema = new mongoose.Schema({
     maxlength: 50,
     unique: true,
   },
+  phoneNumber: {
+    type: String,
+      unique: true,
+    validate(value) {
+      if (!validator.isMobilePhone(value, ['ar-EG'])) {
+        throw new Error(
+          '{"enMessage" : "please enter a correct Phone number", "arMessage" :"خطأ فى رقم الهاتف"}'
+        );
+      }
+    },
+  },
   password: {
     type: String,
     minlength: 6,

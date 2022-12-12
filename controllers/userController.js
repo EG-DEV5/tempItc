@@ -57,7 +57,6 @@ const addUser = async (req, res, next) => {
         username,
         role: memberShipType,
         vid,
-        location,
         idNumber,
         IMEINumber,
         custodyId,
@@ -480,7 +479,10 @@ const resForRequest = async (req, res, next) => {
     res.status(200).json(oldCustody);
   }
 };
-
+const freeSaftey = async (req, res, next) => {
+  const safety = await User.find({custodyId: null,role: { $ne: 'admin' }})
+  res.status(StatusCodes.OK).json({safety})
+}
 module.exports = {
   addUser,
   addCustody,
@@ -497,4 +499,5 @@ module.exports = {
   addRequest,
   resForRequest,
   updateUser,
+  freeSaftey
 };
