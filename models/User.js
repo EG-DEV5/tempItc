@@ -1,7 +1,6 @@
 /** @format */
 
 const mongoose = require('mongoose');
-const validator = require('validator');
 const bcrypt = require('bcryptjs');
 const UserSchema = new mongoose.Schema({
   username: {
@@ -20,6 +19,9 @@ const UserSchema = new mongoose.Schema({
     required : true,
     default: 'trainer',
   },
+  idNumber : {
+    type: String,
+  },
   vid: {
     type: Number,
   },
@@ -28,7 +30,6 @@ const UserSchema = new mongoose.Schema({
     lat: { type: String },
     long: { type: String },
   },
-  idNumber: { type: String },
   IMEINumber: { type: String },
   isOnline: { type: Boolean,default:false },
   custodyId: {

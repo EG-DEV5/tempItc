@@ -21,11 +21,15 @@ const {
   updateCustody,
   getProfile,
   getHomeStatistics,
+  addRequest,
+  updateUser,
+  resForRequest
 } = require('../controllers/userController');
 
 router.post('/addUser', authenticateUser, uploadPhoto.single('image'), addUser);
 router.post('/addCustody', uploadPhoto.single('image'), addCustody);
-router.put('/updateCustody/:id', uploadPhoto.single('image'), updateCustody);
+router.put('/updateCustody/:id', authenticateUser,uploadPhoto.single('image'), updateCustody);
+router.put('/updateUser/:id', authenticateUser,uploadPhoto.single('image'), updateUser);
 router.get(
   '/getAllUsers',
   authenticateUser,
@@ -65,6 +69,8 @@ router.get(
 router.get('/saftey-custody', authenticateUser, getsafteyAdvisorCustody);
 router.get('/profile', authenticateUser, getProfile);
 router.get('/getHomeStatistics', getHomeStatistics);
+router.post('/addRequest', addRequest);
+router.post('/resForRequest', resForRequest);
 // router.post('/reset-password', resetPassword);
 // router.post('/forgot-password', forgotPassword);
 

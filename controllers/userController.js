@@ -12,7 +12,7 @@ const { extractUrl } = require('../utils');
 const addUser = async (req, res, next) => {
   try {
     if (req.user.role === 'safety-advisor') {
-      const { username, idNumber, IMEINumber } = req.body;
+      const { username, IMEINumber,idNumber } = req.body;
       const { custodyId } = req.user;
       let image = {};
       const accountAlreadyExists = await User.findOne({
@@ -27,9 +27,9 @@ const addUser = async (req, res, next) => {
       const user = await User.create({
         username,
         role: 'trainer',
-        idNumber,
         IMEINumber,
         custodyId,
+        idNumber,
         image: image,
       });
       res.status(StatusCodes.CREATED).json({
@@ -37,11 +37,11 @@ const addUser = async (req, res, next) => {
         user,
       });
     } else {
+
       const {
         username,
         memberShipType,
         vid,
-        location,
         idNumber,
         IMEINumber,
         custodyId,
@@ -75,58 +75,106 @@ const addUser = async (req, res, next) => {
       });
     }
   } catch (error) {
-    console.log({ error });
     next(error);
   }
 };
-// const updateUser = async (req, res) => {
-//   try {
-//     const {
-//       username,
-//       memberShipType,
-//       vid,
-//       location,
-//       idNumber,
-//       IMEINumber,
-//       itcCenter,
-//       custodyId,
-//       phoneNumber,
-//       email,
-//     } = req.body;
-//     const Custody = await Custody.findOne({ id: req.params.id });
+const updateUser = async (req, res) => {
+  try {
+    const {id} = req.params
 
-//     //update image and delete old from database
-//     let image = {};
-//     if (req.file) {
-//       image = await extractUrl(req.file);
-//     } else {
-//       image.url = Custody.image.url;
-//       image.public_id = Custody.image.public_id;
-//     }
-//     const updatedCustody = await User.findOneAndUpdate(
-//       { id: req.params.id },
-//       {
-//         username,
-//         memberShipType,
-//         vid,
-//         location,
-//         idNumber,
-//         IMEINumber,
-//         itcCenter,
-//         CustodyId,
-//         phoneNumber,
-//         email,
-//       },
-//       { new: true, runValidators: true }
-//     );
+  if (req.user.role == 'safety-advisor') {
+    const { username, IMEINumber,idNumber,custodyId,vid } = req.body;
+    // const { custodyId } = req.user;
+    const account = await User.findOne({
+      _id:id,
+    });
+    if(account.custodyId == null || account.custodyId == custodyId ) {
+      account.custodyId = custodyId
+      account.save()
+    }
+    else { 
+      const Cus = await Custody.find({_id:custodyId})
+      Cus.pendingTrainers.push(account._id)
+      Cus.save()
+    }
+    let image = {};
+    if (req.file) {
+      image = await extractUrl(req.file);
+    } else {
+      image.url = account.image.url;
+      image.public_id = account.image.public_id;
+    }
+    const user = await User.findOneAndUpdate(
+      { id },
+      { username, IMEINumber ,idNumber,vid ,image:image},
+      { new: true, runValidators: true }
+    );
+    res.status(StatusCodes.CREATED).json({
+      msg: '!safety-advisor updated user ',
+      user,
+    });
+  } else {
+    const {
+      username,
+      memberShipType,
+      vid,
+      idNumber,
+      IMEINumber,
+      custodyId,
+    } = req.body;
+    let image = {};
+    const account = await User.findOne({
+      _id:id,
+    });
+    if (!account) {
+      throw new CustomError.BadRequestError('your account Not exists');
+    }
+    // first registered user is an admin
+    if (req.file) {
+      image = await extractUrl(req.file);
+    }
+    if(custodyId){
+      if(account.role == 'trainer'){
+        if(account.custodyId == null || account.custodyId == custodyId ) {
+          account.custodyId = custodyId
+          account.save()
+        }
+        else { 
+          const Cus = await Custody.find({_id:custodyId})
+          Cus.pendingTrainers.push(account._id)
+          Cus.save()
+        }
+      }
+      else{
+        account.custodyId = custodyId
+        account.save()
+        const Cus = await Custody.find({_id:custodyId})
+        Cus.SafetyAdvisor == account._id
+        Cus.save()
+      }
+    }
 
-//     await Custody.findOneAndUpdate({ _id: req.body.trainerIds }, { CustodyId: Custody._id });
-//     await User.updateMany({ _id: difference }, { CustodyId: null });
-//     return res.status(200).json({ updatedCustody });
-//   } catch (error) {
-//     return res.status(500).send({ message: error.message });
-//   }
-// };
+    if (req.file) {
+      image = await extractUrl(req.file);
+    } else {
+      image.url = account.image.url;
+      image.public_id = account.image.public_id;
+    }
+  
+    const user = await User.findOneAndUpdate(
+      { _id:id },
+      { username:username, IMEINumber ,idNumber,vid ,image:image,role:memberShipType},
+      { new: true, runValidators: true }
+    );
+    res.status(StatusCodes.CREATED).json({
+      msg: '!admin updated user ',
+      user,
+    });
+  }
+  } catch (error) {
+    return res.status(500).send({ message: error.message });
+  }
+};
 const addCustody = async (req, res, next) => {
   try {
     const { custodyName, city, SafetyAdvisor } = req.body;
@@ -139,7 +187,6 @@ const addCustody = async (req, res, next) => {
     } else {
       const custody = await Custody.create({
         custodyName,
-        trainerIds: req.body.trainerIds,
         city,
         SafetyAdvisor,
         image: image,
@@ -153,7 +200,7 @@ const addCustody = async (req, res, next) => {
       );
       res.status(StatusCodes.CREATED).json({
         msg: 'add Custody successfully',
-        Custody,
+        custody,
       });
     }
   } catch (error) {
@@ -163,8 +210,7 @@ const addCustody = async (req, res, next) => {
 const updateCustody = async (req, res, next) => {
   try {
     const { custodyName, city, SafetyAdvisor } = req.body;
-    const custody = await Custody.findOne({ id: req.params.id });
-
+    const custody = await Custody.findOne({ _id: req.params.id });
     if (typeof req.body.trainerIds == 'string') {
       req.body.trainerIds = JSON.parse(req.body.trainerIds);
     }
@@ -177,26 +223,26 @@ const updateCustody = async (req, res, next) => {
       image.public_id = custody.image.public_id;
     }
     const updatedCustody = await Custody.findOneAndUpdate(
-      { id: req.params.id },
+      { _id: req.params.id },
       {
         custodyName,
-        trainerIds: req.body.trainerIds,
         city,
         SafetyAdvisor,
         image: image,
       },
       { new: true, runValidators: true }
     );
-    if (req.body.trainerId) {
-      oldtrainers = custody.trainerIds;
-      oldtrainers.push(custody.SafetyAdvisor);
-      let newtrainers = req.body.trainerIds;
-      newtrainers.push(SafetyAdvisor);
-      let difference = oldtrainers.filter(
-        (x) => !newtrainers.toString().includes(x.toString())
-      );
-      await User.updateMany({ _id: newtrainers }, { custodyId: custody._id });
-      await User.updateMany({ _id: difference }, { custodyId: null });
+    if (req.body.trainerIds) {
+      let user = await User.find({custodyId:req.params.id},{_id:1})
+         user.forEach(e=> oldtrainers.push(e._id))
+         oldtrainers.push(custody.SafetyAdvisor);
+         let newtrainers = req.body.trainerIds;
+         newtrainers.push(SafetyAdvisor);
+         let difference = oldtrainers.filter(
+           (x) => !newtrainers.toString().includes(x.toString())
+         );
+         await User.updateMany({ _id: newtrainers }, { custodyId: custody._id });
+         await User.updateMany({ _id: difference }, { custodyId: null });
     }
     return res.status(200).json({ updatedCustody });
   } catch (error) {
@@ -290,6 +336,42 @@ const getHomeStatistics = async (req, res, next) => {
     next(error);
   }
 };
+const addRequest = async(req,res,next)=>{
+  try {
+    let waitingTrainer = []
+    const{username,to} = req.body;
+    const user = await User.findOne({username:username})
+    const custody = await Custody.findOne({_id:to})
+    if(user.custodyId == null){
+      throw new Error("you can't add request for new trainers")
+    }
+    waitingTrainer = custody.pendingTrainers
+    waitingTrainer.push(user._id)
+     await Custody.findByIdAndUpdate(to,{pendingTrainers:waitingTrainer})
+    res.status(StatusCodes.OK).json({msg:"add request successfully"})
+  } catch (error) {
+    next(error)
+  }
+}
+const resForRequest = async(req,res,next)=>{
+  const {responce,trainerId,custodyId} = req.body
+  if(responce == true){
+      let oldCustody = await Custody.findOne({trainerIds : { $in: [ trainerId] }})
+      let custody =  await Custody.findOne({_id :custodyId })
+      let findTr = custody.pendingTrainers.findIndex((e) => e._id.toString() == trainerId)
+      if (findTr > -1) { 
+        custody.pendingTrainers.splice(findTr, 1); 
+        custody.trainerIds.push(trainerId)
+     }
+     custody.save()
+      let x =  oldCustody.trainerIds.findIndex((e) => e._id.toString() == trainerId)
+      if (x > -1) { 
+        oldCustody.trainerIds.splice(x, 1); 
+     }
+     oldCustody.save()
+     res.status(200).json(oldCustody)
+  }
+}
 
 module.exports = {
   addUser,
@@ -304,4 +386,7 @@ module.exports = {
   getsafteyAdvisorCustody,
   getProfile,
   getHomeStatistics,
+  addRequest,
+  resForRequest,
+  updateUser
 };
