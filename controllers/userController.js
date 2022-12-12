@@ -352,8 +352,39 @@ const CustodyDetails = async (req, res, next) => {
 };
 const getCustodyByCity = async (req, res, next) => {
   try {
-    const getCustodyByCity = await Custody.find({ city: req.body.city });
-    res.status(StatusCodes.OK).json({ getCustodyByCity });
+    let agg = [
+      {
+        $match: { city: req.body.city }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: 'custodyId',
+          as: 'users'
+        }
+      },
+      {
+        $project: {
+          users: {
+              $filter: {
+                 input: "$users",
+                 as: "user",
+                 cond: { role: "trainer" }
+              }
+           },
+           custodyName: 1,
+           pendingTrainers : 1,
+           SafetyAdvisor : 1,
+           city : 1
+           
+        }
+     }
+    ]
+      // const custodyDetails = await Custody.aggregate(agg).populate('SafetyAdvisor');
+      const custodyDetails = await Custody.aggregate(agg);
+        await Custody.populate(custodyDetails, {path: "SafetyAdvisor"});
+    res.status(StatusCodes.OK).json({ custodyDetails });
   } catch (error) {
     next(error);
   }
