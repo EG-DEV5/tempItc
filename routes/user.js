@@ -24,7 +24,8 @@ const {
   addRequest,
   updateUser,
   resForRequest,
-  freeSaftey
+  freeSaftey,
+  getPendingTrainers
 } = require('../controllers/userController');
 
 router.post('/addUser', authenticateUser, uploadPhoto.single('image'), addUser);
@@ -73,6 +74,7 @@ router.get('/getHomeStatistics', getHomeStatistics);
 router.get('/free-Saftey', freeSaftey);
 router.post('/addRequest', addRequest);
 router.post('/resForRequest', resForRequest);
+router.get('/getPendingTrainers', getPendingTrainers);
 // router.post('/reset-password', resetPassword);
 // router.post('/forgot-password', forgotPassword);
 

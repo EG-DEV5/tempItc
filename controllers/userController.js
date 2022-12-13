@@ -13,7 +13,7 @@ const { isObjectIdOrHexString } = require('mongoose');
 const addUser = async (req, res, next) => {
   try {
     if (req.user.role === 'safety-advisor') {
-      const { username, IMEINumber, idNumber,phoneNumber } = req.body;
+      const { username, IMEINumber, idNumber, phoneNumber } = req.body;
       const { custodyId } = req.user;
       let image = {};
       const accountAlreadyExists = await User.findOne({
@@ -39,8 +39,15 @@ const addUser = async (req, res, next) => {
         user,
       });
     } else {
-      const { username, memberShipType, vid, idNumber, IMEINumber, custodyId,phoneNumber } =
-        req.body;
+      const {
+        username,
+        memberShipType,
+        vid,
+        idNumber,
+        IMEINumber,
+        custodyId,
+        phoneNumber,
+      } = req.body;
       let image = {};
       const accountAlreadyExists = await User.findOne({
         username,
@@ -78,7 +85,8 @@ const updateUser = async (req, res) => {
     const { id } = req.params;
 
     if (req.user.role == 'safety-advisor') {
-      const { username, IMEINumber, idNumber, custodyId, vid,phoneNumber } = req.body;
+      const { username, IMEINumber, idNumber, custodyId, vid, phoneNumber } =
+        req.body;
       // const { custodyId } = req.user;
       const account = await User.findOne({
         _id: id,
@@ -100,7 +108,7 @@ const updateUser = async (req, res) => {
       }
       const user = await User.findOneAndUpdate(
         { id },
-        { username, IMEINumber, idNumber, vid, image: image ,phoneNumber},
+        { username, IMEINumber, idNumber, vid, image: image, phoneNumber },
         { new: true, runValidators: true }
       );
       res.status(StatusCodes.CREATED).json({
@@ -108,8 +116,15 @@ const updateUser = async (req, res) => {
         user,
       });
     } else {
-      const { username, memberShipType, vid, idNumber, IMEINumber, custodyId,phoneNumber } =
-        req.body;
+      const {
+        username,
+        memberShipType,
+        vid,
+        idNumber,
+        IMEINumber,
+        custodyId,
+        phoneNumber,
+      } = req.body;
       let image = {};
       const account = await User.findOne({
         _id: id,
@@ -178,25 +193,24 @@ const addCustody = async (req, res, next) => {
     }
     if (req.file) {
       image = await extractUrl(req.file);
-    } 
-      const custody = await Custody.create({
-        custodyName,
-        city,
-        SafetyAdvisor,
-        image: image,
-      });
-      let updateUserToCustody = [];
-      updateUserToCustody = req.body.trainerIds;
-      updateUserToCustody.push(SafetyAdvisor);
-      await User.updateMany(
-        { _id: updateUserToCustody },
-        { custodyId: custody._id }
-      );
-      res.status(StatusCodes.CREATED).json({
-        msg: 'add Custody successfully',
-        custody,
-      });
-    
+    }
+    const custody = await Custody.create({
+      custodyName,
+      city,
+      SafetyAdvisor,
+      image: image,
+    });
+    let updateUserToCustody = [];
+    updateUserToCustody = req.body.trainerIds;
+    updateUserToCustody.push(SafetyAdvisor);
+    await User.updateMany(
+      { _id: updateUserToCustody },
+      { custodyId: custody._id }
+    );
+    res.status(StatusCodes.CREATED).json({
+      msg: 'add Custody successfully',
+      custody,
+    });
   } catch (error) {
     next(error);
   }
@@ -331,7 +345,7 @@ const CustodyDetails = async (req, res, next) => {
           pendingTrainers: 1,
           SafetyAdvisor: 1,
           city: 1,
-          image : 1
+          image: 1,
         },
       },
     ];
@@ -370,7 +384,7 @@ const getCustodyByCity = async (req, res, next) => {
           pendingTrainers: 1,
           SafetyAdvisor: 1,
           city: 1,
-          image : 1
+          image: 1,
         },
       },
     ];
@@ -411,6 +425,7 @@ const getsafteyAdvisorCustody = async (req, res, next) => {
           pendingTrainers: 1,
           SafetyAdvisor: 1,
           city: 1,
+          image: 1,
         },
       },
     ];
@@ -463,8 +478,8 @@ const addRequest = async (req, res, next) => {
 const resForRequest = async (req, res, next) => {
   const { responce, trainerId, custodyId } = req.body;
   if (responce == true) {
-    let oldCustody = await Custody.findOne({
-      trainerIds: { $in: [trainerId] },
+    let trainer = await User.findOne({
+      _id: trainerId,
     });
     let custody = await Custody.findOne({ _id: custodyId });
     let findTr = custody.pendingTrainers.findIndex(
@@ -472,23 +487,31 @@ const resForRequest = async (req, res, next) => {
     );
     if (findTr > -1) {
       custody.pendingTrainers.splice(findTr, 1);
-      custody.trainerIds.push(trainerId);
+      trainer.custodyId = custodyId;
     }
+    trainer.save();
     custody.save();
-    let x = oldCustody.trainerIds.findIndex(
-      (e) => e._id.toString() == trainerId
-    );
-    if (x > -1) {
-      oldCustody.trainerIds.splice(x, 1);
-    }
-    oldCustody.save();
-    res.status(200).json(oldCustody);
+    res.status(200).json({ msg: 'accepted req' });
   }
 };
 const freeSaftey = async (req, res, next) => {
-  const safety = await User.find({custodyId: null,role: { $ne: 'admin' }})
-  res.status(StatusCodes.OK).json({safety})
-}
+  try {
+    const safety = await User.find({
+      custodyId: null,
+      role: { $eq: 'safety-advisor' },
+    });
+    res.status(StatusCodes.OK).json({ safety });
+  } catch (error) {
+    next(error);
+  }
+};
+const getPendingTrainers = async (req, res, next) => {
+  const { custodyId } = req.body;
+  const pendingTrainers = await Custody.findOne({ _id: custodyId }).populate(
+    'pendingTrainers'
+  );
+  res.status(200).json({ pendingTrainers });
+};
 module.exports = {
   addUser,
   addCustody,
@@ -505,5 +528,6 @@ module.exports = {
   addRequest,
   resForRequest,
   updateUser,
-  freeSaftey
+  freeSaftey,
+  getPendingTrainers,
 };
