@@ -13,7 +13,7 @@ const { isObjectIdOrHexString } = require('mongoose');
 const addUser = async (req, res, next) => {
   try {
     if (req.user.role === 'safety-advisor') {
-      const { username, IMEINumber, idNumber } = req.body;
+      const { username, IMEINumber, idNumber,phoneNumber } = req.body;
       const { custodyId } = req.user;
       let image = {};
       const accountAlreadyExists = await User.findOne({
@@ -31,6 +31,7 @@ const addUser = async (req, res, next) => {
         IMEINumber,
         custodyId,
         idNumber,
+        phoneNumber,
         image: image,
       });
       res.status(StatusCodes.CREATED).json({
@@ -38,7 +39,7 @@ const addUser = async (req, res, next) => {
         user,
       });
     } else {
-      const { username, memberShipType, vid, idNumber, IMEINumber, custodyId } =
+      const { username, memberShipType, vid, idNumber, IMEINumber, custodyId,phoneNumber } =
         req.body;
       let image = {};
       const accountAlreadyExists = await User.findOne({
@@ -60,6 +61,7 @@ const addUser = async (req, res, next) => {
         idNumber,
         IMEINumber,
         custodyId,
+        phoneNumber,
         image: image,
       });
       res.status(StatusCodes.CREATED).json({
@@ -76,7 +78,7 @@ const updateUser = async (req, res) => {
     const { id } = req.params;
 
     if (req.user.role == 'safety-advisor') {
-      const { username, IMEINumber, idNumber, custodyId, vid } = req.body;
+      const { username, IMEINumber, idNumber, custodyId, vid,phoneNumber } = req.body;
       // const { custodyId } = req.user;
       const account = await User.findOne({
         _id: id,
@@ -98,7 +100,7 @@ const updateUser = async (req, res) => {
       }
       const user = await User.findOneAndUpdate(
         { id },
-        { username, IMEINumber, idNumber, vid, image: image },
+        { username, IMEINumber, idNumber, vid, image: image ,phoneNumber},
         { new: true, runValidators: true }
       );
       res.status(StatusCodes.CREATED).json({
@@ -106,7 +108,7 @@ const updateUser = async (req, res) => {
         user,
       });
     } else {
-      const { username, memberShipType, vid, idNumber, IMEINumber, custodyId } =
+      const { username, memberShipType, vid, idNumber, IMEINumber, custodyId,phoneNumber } =
         req.body;
       let image = {};
       const account = await User.findOne({
@@ -153,6 +155,7 @@ const updateUser = async (req, res) => {
           idNumber,
           vid,
           image: image,
+          phoneNumber,
           role: memberShipType,
         },
         { new: true, runValidators: true }
@@ -175,7 +178,7 @@ const addCustody = async (req, res, next) => {
     }
     if (req.file) {
       image = await extractUrl(req.file);
-    } else {
+    } 
       const custody = await Custody.create({
         custodyName,
         city,
@@ -193,7 +196,7 @@ const addCustody = async (req, res, next) => {
         msg: 'add Custody successfully',
         custody,
       });
-    }
+    
   } catch (error) {
     next(error);
   }
