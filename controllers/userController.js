@@ -277,6 +277,7 @@ const getallCustodys = async (req, res, next) => {
           pendingTrainers: 1,
           SafetyAdvisor: 1,
           city: 1,
+          image: 1,
         },
       },
     ];
@@ -330,6 +331,7 @@ const CustodyDetails = async (req, res, next) => {
           pendingTrainers: 1,
           SafetyAdvisor: 1,
           city: 1,
+          image : 1
         },
       },
     ];
@@ -368,6 +370,7 @@ const getCustodyByCity = async (req, res, next) => {
           pendingTrainers: 1,
           SafetyAdvisor: 1,
           city: 1,
+          image : 1
         },
       },
     ];
