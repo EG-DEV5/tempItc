@@ -83,7 +83,7 @@ const addUser = async (req, res, next) => {
 const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-
+  
     if (req.user.role == 'safety-advisor') {
       const { username, IMEINumber, idNumber, custodyId, vid, phoneNumber } =
         req.body;
@@ -106,6 +106,7 @@ const updateUser = async (req, res) => {
         image.url = account.image.url;
         image.public_id = account.image.public_id;
       }
+    
       const user = await User.findOneAndUpdate(
         { id },
         { username, IMEINumber, idNumber, vid, image: image, phoneNumber },
@@ -125,6 +126,7 @@ const updateUser = async (req, res) => {
         custodyId,
         phoneNumber,
       } = req.body;
+    
       let image = {};
       const account = await User.findOne({
         _id: id,
@@ -133,9 +135,7 @@ const updateUser = async (req, res) => {
         throw new CustomError.BadRequestError('your account Not exists');
       }
       // first registered user is an admin
-      if (req.file) {
-        image = await extractUrl(req.file);
-      }
+      
       if (custodyId) {
         if (account.role == 'trainer') {
           if (account.custodyId == null || account.custodyId == custodyId) {
@@ -154,7 +154,6 @@ const updateUser = async (req, res) => {
           Cus.save();
         }
       }
-
       if (req.file) {
         image = await extractUrl(req.file);
       } else {
