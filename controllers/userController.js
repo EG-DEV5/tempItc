@@ -276,6 +276,7 @@ const getallCustodys = async (req, res, next) => {
           as: 'users',
         },
       },
+
       {
         $project: {
           users: {
@@ -481,22 +482,40 @@ const addRequest = async (req, res, next) => {
 };
 const resForRequest = async (req, res, next) => {
   const { responce, trainerId, custodyId } = req.body;
-  if (responce == true) {
-    let trainer = await User.findOne({
-      _id: trainerId,
-    });
-    let custody = await Custody.findOne({ _id: custodyId });
-    let findTr = custody.pendingTrainers.findIndex(
-      (e) => e._id.toString() == trainerId
-    );
-    if (findTr > -1) {
-      custody.pendingTrainers.splice(findTr, 1);
-      trainer.custodyId = custodyId;
+  try {
+    if (responce == 'accept') {
+      let trainer = await User.findOne({
+        _id: trainerId,
+      });
+      let custody = await Custody.findOne({ _id: custodyId });
+      let findTr = custody.pendingTrainers.findIndex(
+        (e) => e._id.toString() == trainerId
+      );
+      if (findTr > -1) {
+        custody.pendingTrainers.splice(findTr, 1);
+        trainer.custodyId = custodyId;
+      }
+      trainer.save();
+      custody.save();
+      res.status(200).json({ msg: 'accepted req' });
+    } else if(responce == 'refuse') {
+      let custody = await Custody.findOne({ _id: custodyId });
+      let findTr = custody.pendingTrainers.findIndex(
+        (e) => e._id.toString() == trainerId
+      );
+      if (findTr > -1) {
+        custody.pendingTrainers.splice(findTr, 1);
+      }
+      custody.save();
+      res.status(200).json({ msg: 'reject req' });
     }
-    trainer.save();
-    custody.save();
-    res.status(200).json({ msg: 'accepted req' });
+    else {
+      throw new Error("please try again")
+    }
+  } catch (error) {
+    next(error)
   }
+
 };
 const freeSaftey = async (req, res, next) => {
   try {
