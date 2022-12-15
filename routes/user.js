@@ -25,13 +25,23 @@ const {
   updateUser,
   resForRequest,
   freeSaftey,
-  getPendingTrainers
+  getPendingTrainers,
 } = require('../controllers/userController');
 
 router.post('/addUser', authenticateUser, uploadPhoto.single('image'), addUser);
 router.post('/addCustody', uploadPhoto.single('image'), addCustody);
-router.put('/updateCustody/:id', authenticateUser,uploadPhoto.single('image'), updateCustody);
-router.put('/updateUser/:id', authenticateUser,uploadPhoto.single('image'), updateUser);
+router.put(
+  '/updateCustody/:id',
+  authenticateUser,
+  uploadPhoto.single('image'),
+  updateCustody
+);
+router.put(
+  '/updateUser/:id',
+  authenticateUser,
+  uploadPhoto.single('image'),
+  updateUser
+);
 router.get(
   '/getAllUsers',
   authenticateUser,
@@ -65,7 +75,7 @@ router.get(
 router.get(
   '/getallCustodys',
   authenticateUser,
-  authorizeRoles('admin'),
+  authorizeRoles('admin', 'safety-advisor'),
   getallCustodys
 );
 router.get('/saftey-custody', authenticateUser, getsafteyAdvisorCustody);
