@@ -82,8 +82,18 @@ router.get('/saftey-custody', authenticateUser, getsafteyAdvisorCustody);
 router.get('/profile', authenticateUser, getProfile);
 router.get('/getHomeStatistics', getHomeStatistics);
 router.get('/free-Saftey', freeSaftey);
-router.post('/addRequest', addRequest);
-router.post('/resForRequest', resForRequest);
+router.post(
+  '/addRequest',
+  authenticateUser,
+  authorizeRoles('admin', 'safety-advisor'),
+  addRequest
+);
+router.post(
+  '/resForRequest',
+  authenticateUser,
+  authorizeRoles('admin', 'safety-advisor'),
+  resForRequest
+);
 router.get('/getPendingTrainers', getPendingTrainers);
 // router.post('/reset-password', resetPassword);
 // router.post('/forgot-password', forgotPassword);
