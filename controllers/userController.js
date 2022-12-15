@@ -294,10 +294,7 @@ const getallCustodys = async (req, res, next) => {
       },
     ];
     const custody = await Custody.aggregate(agg);
-    await Custody.populate(custody, {
-      path: 'SafetyAdvisor',
-      path: 'pendingTrainers',
-    });
+    await Custody.populate(custody, { path: 'SafetyAdvisor pendingTrainers' });
     res.status(StatusCodes.OK).json({ custody });
   } catch (error) {
     next(error);
@@ -353,8 +350,7 @@ const CustodyDetails = async (req, res, next) => {
     // const custodyDetails = await Custody.aggregate(agg).populate('SafetyAdvisor');
     const custodyDetails = await Custody.aggregate(agg);
     await Custody.populate(custodyDetails, {
-      path: 'SafetyAdvisor',
-      path: 'pendingTrainers',
+      path: 'SafetyAdvisor pendingTrainers',
     });
     res.status(StatusCodes.OK).json({ custodyDetails });
   } catch (error) {
@@ -395,8 +391,7 @@ const getCustodyByCity = async (req, res, next) => {
     // const custodyDetails = await Custody.aggregate(agg).populate('SafetyAdvisor');
     const custodyDetails = await Custody.aggregate(agg);
     await Custody.populate(custodyDetails, {
-      path: 'SafetyAdvisor',
-      path: 'pendingTrainers',
+      path: 'SafetyAdvisor pendingTrainers',
     });
     res.status(StatusCodes.OK).json({ custodyDetails });
   } catch (error) {
@@ -438,8 +433,7 @@ const getsafteyAdvisorCustody = async (req, res, next) => {
     ];
     const data = await Custody.aggregate(agg);
     await Custody.populate(data, {
-      path: 'SafetyAdvisor',
-      path: 'pendingTrainers',
+      path: 'SafetyAdvisor pendingTrainers',
     });
     res.status(StatusCodes.OK).json({ data });
   } catch (error) {
