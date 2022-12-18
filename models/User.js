@@ -11,7 +11,7 @@ const UserSchema = new mongoose.Schema({
   },
   phoneNumber: {
     type: String,
-      unique: true,
+    unique: true,
     validate(value) {
       if (!validator.isMobilePhone(value, ['ar-EG'])) {
         throw new Error(
@@ -23,14 +23,15 @@ const UserSchema = new mongoose.Schema({
   password: {
     type: String,
     minlength: 6,
-    default:null,  },
+    default: null,
+  },
   role: {
     type: String,
-    enum: ['safety-advisor', 'trainer','admin'],
-    required : true,
+    enum: ['safety-advisor', 'trainer', 'admin'],
+    required: true,
     default: 'trainer',
   },
-  idNumber : {
+  idNumber: {
     type: String,
   },
   vid: {
@@ -41,12 +42,12 @@ const UserSchema = new mongoose.Schema({
     lat: { type: String },
     long: { type: String },
   },
-  IMEINumber: { type: String },
-  isOnline: { type: Boolean,default:false },
+  SerialNumber: { type: String },
+  isOnline: { type: Boolean, default: false },
   custodyId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Group',
-    default:null,
+    default: null,
   },
   image: {
     url: { type: String },

@@ -5,6 +5,8 @@ const Custody = require('../models/Custody');
 const CustomError = require('../errors');
 const { StatusCodes } = require('http-status-codes');
 const { extractUrl } = require('../utils');
+const axios = require('axios');
+
 // const {
 
 //   authorizeRoles,
@@ -535,6 +537,28 @@ const getPendingTrainers = async (req, res, next) => {
   );
   res.status(200).json({ data });
 };
+
+const Vehicle = async (req, res, next) => {
+  const config = {
+    headers: {
+      Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImVhMjM3NWM3LWZkMjAtNDYyOC1hNDg0LTc1MWE2NTgyZTA1NiIsInVzZXJuYW1lIjoidGQiLCJleHAiOjE2NzY1MzYwMDYsImFjY291bnRJZCI6MzY2LCJyb2xlIjoidXNlciIsImlhdCI6MTY3MTM1MjAwNn0.HpEzqi1BcF4ZJyjqkDwUh0wcZt26beqkyPNXz91shfI`,
+    },
+  };
+  const getAllVech = await User.find(
+    { SerialNumber: { $ne: null } },
+    { SerialNumber: 1, _id: 0 }
+  );
+  const data = await axios
+    .get('https://api.v6.saferoad.net/dashboard/vehicles', config)
+    .then((apiResponse) => {
+      // process the response
+      return apiResponse.data;
+    });
+  data.Vehicles = data.Vehicles.filter((veh) => {
+    return !getAllVech.some((g) => g.SerialNumber == veh.SerialNumber);
+  });
+  res.send(data.Vehicles);
+};
 module.exports = {
   addUser,
   addCustody,
@@ -553,4 +577,5 @@ module.exports = {
   updateUser,
   freeSaftey,
   getPendingTrainers,
+  Vehicle,
 };
