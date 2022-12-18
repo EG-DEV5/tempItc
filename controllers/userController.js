@@ -14,7 +14,7 @@ const axios = require('axios');
 const addUser = async (req, res, next) => {
   try {
     if (req.user.role === 'safety-advisor') {
-      const { username, IMEINumber, idNumber, phoneNumber } = req.body;
+      const { username, SerialNumber, idNumber, phoneNumber } = req.body;
       const { custodyId } = req.user;
       let image = {};
       const accountAlreadyExists = await User.findOne({
@@ -29,7 +29,7 @@ const addUser = async (req, res, next) => {
       const user = await User.create({
         username,
         role: 'trainer',
-        IMEINumber,
+        SerialNumber,
         custodyId,
         idNumber,
         phoneNumber,
@@ -45,7 +45,7 @@ const addUser = async (req, res, next) => {
         memberShipType,
         vid,
         idNumber,
-        IMEINumber,
+        SerialNumber,
         custodyId,
         phoneNumber,
       } = req.body;
@@ -67,7 +67,7 @@ const addUser = async (req, res, next) => {
         role: memberShipType,
         vid,
         idNumber,
-        IMEINumber,
+        SerialNumber,
         custodyId,
         phoneNumber,
         image: image,
@@ -86,7 +86,7 @@ const updateUser = async (req, res) => {
     const { id } = req.params;
 
     if (req.user.role == 'safety-advisor') {
-      const { username, IMEINumber, idNumber, custodyId, vid, phoneNumber } =
+      const { username, SerialNumber, idNumber, custodyId, vid, phoneNumber } =
         req.body;
       // const { custodyId } = req.user;
       const account = await User.findOne({
@@ -110,7 +110,7 @@ const updateUser = async (req, res) => {
 
       const user = await User.findOneAndUpdate(
         { id },
-        { username, IMEINumber, idNumber, vid, image: image, phoneNumber },
+        { username, SerialNumber, idNumber, vid, image: image, phoneNumber },
         { new: true, runValidators: true }
       );
       res.status(StatusCodes.CREATED).json({
@@ -123,7 +123,7 @@ const updateUser = async (req, res) => {
         memberShipType,
         vid,
         idNumber,
-        IMEINumber,
+        SerialNumber,
         custodyId,
         phoneNumber,
       } = req.body;
@@ -166,7 +166,7 @@ const updateUser = async (req, res) => {
         { _id: id },
         {
           username: username,
-          IMEINumber,
+          SerialNumber,
           idNumber,
           vid,
           image: image,
