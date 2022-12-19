@@ -218,6 +218,7 @@ const addCustody = async (req, res, next) => {
 const updateCustody = async (req, res, next) => {
   try {
     const { custodyName, city, SafetyAdvisor } = req.body;
+    
     const custody = await Custody.findOne({ _id: req.params.id });
     if (typeof req.body.trainerIds == 'string') {
       req.body.trainerIds = JSON.parse(req.body.trainerIds);
@@ -230,6 +231,26 @@ const updateCustody = async (req, res, next) => {
       image.url = custody.image.url;
       image.public_id = custody.image.public_id;
     }
+    if(req.body.trainerIds){
+        const newTrainers =  await User.find({_id : req.body.trainerIds })
+        let oldUsers = await User.find({ custodyId: req.params.id ,role : "trainer"}, { _id: 1 });
+          oldUsers.forEach((e) => oldtrainers.push(e._id));
+              let difference = oldtrainers.filter(
+              (x) => !req.body.trainerIds.toString().includes(x.toString())
+              );
+              await User.updateMany({ _id: difference }, { custodyId: null })
+          newTrainers.forEach(element => {
+            if(element.custodyId != null && element.custodyId != custody._id ) {
+              custody.pendingTrainers.push(element._id)
+            }
+            else {
+                element.custodyId = custody._id
+                element.save()
+            }
+          });
+          custody.save()
+        }
+ 
     const updatedCustody = await Custody.findOneAndUpdate(
       { _id: req.params.id },
       {
@@ -240,19 +261,17 @@ const updateCustody = async (req, res, next) => {
       },
       { new: true, runValidators: true }
     );
-    if (req.body.trainerIds) {
-      let user = await User.find({ custodyId: req.params.id }, { _id: 1 });
-      user.forEach((e) => oldtrainers.push(e._id));
-      oldtrainers.push(custody.SafetyAdvisor);
-      let newtrainers = req.body.trainerIds;
-      newtrainers.push(SafetyAdvisor);
-      let difference = oldtrainers.filter(
-        (x) => !newtrainers.toString().includes(x.toString())
-      );
-      await User.updateMany({ _id: newtrainers }, { custodyId: custody._id });
-      await User.updateMany({ _id: difference }, { custodyId: null });
+    if(SafetyAdvisor){
+      const saftey =  await User.findOne({_id:SafetyAdvisor})
+      const oldSaftey =  await User.findOne({ custodyId: req.params.id ,role : "safety-advisor"})
+      if(saftey.custodyId !=  oldSaftey.custodyId ){
+          saftey.custodyId = custody._id
+          oldSaftey.custodyId = null
+      }
+    await  saftey.save();
+    await  oldSaftey.save();
     }
-    return res.status(200).json({ updatedCustody });
+    return res.status(200).json({ msg : "Custody updated successfully",updatedCustody });
   } catch (error) {
     next(error);
   }
