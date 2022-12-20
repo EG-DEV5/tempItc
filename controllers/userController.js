@@ -251,7 +251,10 @@ const updateCustody = async (req, res, next) => {
           if (!custody.pendingTrainers.includes(element._id)) {
             custody.pendingTrainers.push(element._id);
           } else {
-              throw new Error(`${element.username} already request in ${custody.custodyName}`)
+            throw new CustomError.BadRequestError(
+              `${element.username} already request in ${custody.custodyName}`,
+              { statusCode: 400 }
+            );
           }
         } else {
           element.custodyId = custody._id;
@@ -263,12 +266,14 @@ const updateCustody = async (req, res, next) => {
     if (SafetyAdvisor) {
       const saftey = await User.findOne({ _id: SafetyAdvisor });
       const oldSaftey = await User.findOne({ _id: custody.SafetyAdvisor });
-      if (saftey.custodyId != oldSaftey.custodyId) {
+
+      if (saftey.custodyId.toString() != oldSaftey.custodyId.toString()) {
         oldSaftey.custodyId = null;
+
         saftey.custodyId = custody._id;
       }
-      saftey.save();
-      oldSaftey.save();
+      await oldSaftey.save();
+      await saftey.save();
     }
     const updatedCustody = await Custody.findOneAndUpdate(
       { _id: req.params.id },
