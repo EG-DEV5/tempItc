@@ -113,7 +113,7 @@ const updateUser = async (req, res) => {
       }
 
       const user = await User.findOneAndUpdate(
-        { id },
+        { _id: id },
         { username, SerialNumber, idNumber, vid, image: image, phoneNumber },
         { new: true, runValidators: true }
       );
@@ -167,7 +167,6 @@ const updateUser = async (req, res) => {
         image.url = account.image.url;
         image.public_id = account.image.public_id;
       }
-
       const user = await User.findOneAndUpdate(
         { _id: id },
         {
