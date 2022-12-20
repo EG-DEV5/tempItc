@@ -258,8 +258,7 @@ const updateCustody = async (req, res, next) => {
             custody.pendingTrainers.push(element._id);
           } else {
             throw new CustomError.BadRequestError(
-              '{"enMessage" : `${element.username} already request in ${custody.custodyName}`, "arMessage" :`${custody.custodyName}  قام بالفعل بطلب فى ${element.username}`}',
-              { statusCode: 400 }
+              `{"enMessage" : "${element.username} already request in ${custody.custodyName}", "arMessage" : "${custody.custodyName}  قام بالفعل بطلب فى ${element.username}"}`
             );
           }
         } else {
@@ -514,8 +513,8 @@ const addRequest = async (req, res, next) => {
     const custody = await Custody.findOne({ _id: to });
     if (user.custodyId == null) {
       throw new Error(
-        '{"enMessage" : "you can not  add request for new trainers", "arMessage" :"لا يمكنك إضافة طلب لمتدرب جديد"}',
-        { statusCode: 400 }
+        '{"enMessage" : "you can not  add request for new trainers", "arMessage" :"لا يمكنك إضافة طلب لمتدرب جديد"}'
+        // { statusCode: 400 }
       );
     }
     waitingTrainer = custody.pendingTrainers;

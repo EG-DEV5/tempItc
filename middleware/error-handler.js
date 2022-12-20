@@ -2,7 +2,6 @@
 
 const { StatusCodes } = require('http-status-codes');
 const errorHandlerMiddleware = (err, req, res, next) => {
-  // console.log(err);
   const mesObject = JSON.parse(err.message);
   let customError = {
     // set default
@@ -10,9 +9,8 @@ const errorHandlerMiddleware = (err, req, res, next) => {
       err.statusCode || StatusCodes.INTERNAL_SERVER_ERROR || err.status,
 
     msg: {
-      
-      enMessage: mesObject.enMessage || 'Something went wrong try again later',
-      arMessage: mesObject.arMessage ||'حدث خطأ ما ، برجاء المحاولة مرة اخرى',
+      enMessage: mesObject?.enMessage || 'Something went wrong try again later',
+      arMessage: mesObject?.arMessage || 'حدث خطأ ما ، برجاء المحاولة مرة اخرى',
     },
   };
   if (err.name === 'ValidationError') {
@@ -60,12 +58,10 @@ const errorHandlerMiddleware = (err, req, res, next) => {
     customError.statusCode = 404;
   }
 
-  return res
-    .status(customError.statusCode)
-    .json({
-      enMessage: customError.msg.enMessage,
-      arMessage: customError.msg.arMessage,
-    });
+  return res.status(customError.statusCode).json({
+    enMessage: customError.msg.enMessage,
+    arMessage: customError.msg.arMessage,
+  });
 };
 
 module.exports = errorHandlerMiddleware;
