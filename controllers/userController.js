@@ -218,7 +218,7 @@ const addCustody = async (req, res, next) => {
 const updateCustody = async (req, res, next) => {
   try {
     const { custodyName, city, SafetyAdvisor } = req.body;
-    
+
     const custody = await Custody.findOne({ _id: req.params.id });
     if (typeof req.body.trainerIds == 'string') {
       req.body.trainerIds = JSON.parse(req.body.trainerIds);
@@ -231,26 +231,45 @@ const updateCustody = async (req, res, next) => {
       image.url = custody.image.url;
       image.public_id = custody.image.public_id;
     }
-    if(req.body.trainerIds){
-        const newTrainers =  await User.find({_id : req.body.trainerIds })
-        let oldUsers = await User.find({ custodyId: req.params.id ,role : "trainer"}, { _id: 1 });
-          oldUsers.forEach((e) => oldtrainers.push(e._id));
-              let difference = oldtrainers.filter(
-              (x) => !req.body.trainerIds.toString().includes(x.toString())
-              );
-              await User.updateMany({ _id: difference }, { custodyId: null })
-          newTrainers.forEach(element => {
-            if(element.custodyId != null && element.custodyId != custody._id ) {
-              custody.pendingTrainers.push(element._id)
-            }
-            else {
-                element.custodyId = custody._id
-                element.save()
-            }
-          });
-          custody.save()
+    if (req.body.trainerIds) {
+      const newTrainers = await User.find({ _id: req.body.trainerIds });
+      let oldUsers = await User.find(
+        { custodyId: req.params.id, role: 'trainer' },
+        { _id: 1 }
+      );
+      oldUsers.forEach((e) => oldtrainers.push(e._id));
+      let difference = oldtrainers.filter(
+        (x) => !req.body.trainerIds.toString().includes(x.toString())
+      );
+      await User.updateMany({ _id: difference }, { custodyId: null });
+
+      newTrainers.forEach((element) => {
+        if (
+          element.custodyId != null &&
+          element.custodyId.toString() != custody._id.toString()
+        ) {
+          if (!custody.pendingTrainers.includes(element._id)) {
+            custody.pendingTrainers.push(element._id);
+          } else {
+              throw new Error(`${element.username} already request in ${custody.custodyName}`)
+          }
+        } else {
+          element.custodyId = custody._id;
+          element.save();
         }
- 
+      });
+      custody.save();
+    }
+    if (SafetyAdvisor) {
+      const saftey = await User.findOne({ _id: SafetyAdvisor });
+      const oldSaftey = await User.findOne({ _id: custody.SafetyAdvisor });
+      if (saftey.custodyId != oldSaftey.custodyId) {
+        oldSaftey.custodyId = null;
+        saftey.custodyId = custody._id;
+      }
+      saftey.save();
+      oldSaftey.save();
+    }
     const updatedCustody = await Custody.findOneAndUpdate(
       { _id: req.params.id },
       {
@@ -261,17 +280,10 @@ const updateCustody = async (req, res, next) => {
       },
       { new: true, runValidators: true }
     );
-    if(SafetyAdvisor){
-      const saftey =  await User.findOne({_id:SafetyAdvisor})
-      const oldSaftey =  await User.findOne({ custodyId: req.params.id ,role : "safety-advisor"})
-      if(saftey.custodyId !=  oldSaftey.custodyId ){
-          saftey.custodyId = custody._id
-          oldSaftey.custodyId = null
-      }
-    await  saftey.save();
-    await  oldSaftey.save();
-    }
-    return res.status(200).json({ msg : "Custody updated successfully",updatedCustody });
+
+    return res
+      .status(200)
+      .json({ msg: 'Custody updated successfully', updatedCustody });
   } catch (error) {
     next(error);
   }
@@ -459,7 +471,6 @@ const getsafteyAdvisorCustody = async (req, res, next) => {
     });
     res.status(StatusCodes.OK).json({ data });
   } catch (error) {
-    console.log(error);
     next(error);
   }
 };

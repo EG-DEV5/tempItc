@@ -26,12 +26,11 @@ const extractUrl = async (file) => {
   fs.unlinkSync(file.path);
   const { public_id, secure_url } = await cloudinary.uploader.upload(
     resizedpath,
-    { folder: 'foreverUsers' }
+    { folder: 'itc' }
   );
   userimage.url = secure_url;
   userimage.public_id = public_id;
   return userimage;
 };
-
 
 module.exports = { extractUrl, envToInt };
