@@ -511,9 +511,9 @@ const addRequest = async (req, res, next) => {
     const { username, to } = req.body;
     const user = await User.findOne({ username: username });
     const custody = await Custody.findOne({ _id: to });
-    if (user.custodyId == null) {
+    if (user.custodyId == null || custody.pendingTrainers.includes(user._id)) {
       throw new Error(
-        '{"enMessage" : "you can not  add request for new trainers", "arMessage" :"لا يمكنك إضافة طلب لمتدرب جديد"}'
+        '{"enMessage" : "you can not  add request for new trainers or trainer  already request it ", "arMessage" :"لا يمكنك إضافة طلب لمتدرب جديد أو لمتدرب قام بطلب بالفعل"}'
         // { statusCode: 400 }
       );
     }
