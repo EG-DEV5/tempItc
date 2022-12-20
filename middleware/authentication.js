@@ -1,3 +1,5 @@
+/** @format */
+
 const CustomError = require('../errors');
 const { isTokenValid } = require('../utils/jwt');
 
@@ -9,7 +11,9 @@ const authenticateUser = async (req, res, next) => {
     token = authHeader.split(' ')[1];
   }
   if (!token) {
-    throw new CustomError.UnauthenticatedError('Authentication invalid');
+    throw new CustomError.UnauthenticatedError(
+      '{"enMessage" : "Authentication invalid", "arMessage" :"المصادقة غير صالحة"}'
+    );
   }
   try {
     const payload = isTokenValid(token);
@@ -20,10 +24,12 @@ const authenticateUser = async (req, res, next) => {
       role: payload.role,
       custodyId: payload.custodyId,
     };
-   
+
     next();
   } catch (error) {
-    throw new CustomError.UnauthenticatedError('Authentication invalid');
+    throw new CustomError.UnauthenticatedError(
+      '{"enMessage" : "Authentication invalid", "arMessage" :"المصادقة غير صالحة"}'
+    );
   }
 };
 
@@ -31,7 +37,7 @@ const authorizeRoles = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
       throw new CustomError.UnauthorizedError(
-        'Unauthorized to access this route'
+        '{"enMessage" : "Unauthorized to access this route", "arMessage" :"غير مصرح لك لإستخدام هذه الصفحة"}'
       );
     }
     next();

@@ -13,7 +13,9 @@ const addAdmin = async (req, res, next) => {
     });
 
     if (accountAlreadyExists) {
-      throw new CustomError.BadRequestError('your username is already exists');
+      throw new CustomError.BadRequestError(
+        '{"enMessage" : "your username is already exists", "arMessage" :"اسم المستخدم موجود بالفعل"}'
+      );
     }
     if (req.file) {
       image = await extractUrl(req.file);
@@ -53,7 +55,9 @@ const login = async (req, res, next) => {
       }
       const isPasswordCorrectforSaftey = await safety.comparePassword(password);
       if (!isPasswordCorrectforSaftey) {
-        throw new CustomError.BadRequestError('Invalid Credentials');
+        throw new CustomError.BadRequestError(
+          '{"enMessage" : "Invalid Credentials", "arMessage" :"البيانات خاطئة"}'
+        );
       }
       const tokenUser = createTokenUser(safety);
       const token = createJWT({ payload: tokenUser });
@@ -61,13 +65,17 @@ const login = async (req, res, next) => {
     } else if (admin) {
       const isPasswordCorrect = await admin.comparePassword(password);
       if (!isPasswordCorrect) {
-        throw new CustomError.BadRequestError('Invalid Credentials');
+        throw new CustomError.BadRequestError(
+          '{"enMessage" : "Invalid Credentials", "arMessage" :"البيانات خاطئة"}'
+        );
       }
       const tokenUser = createTokenUser(admin);
       const token = createJWT({ payload: tokenUser });
       res.status(StatusCodes.OK).json({ data: admin, token });
     } else {
-      throw new CustomError.BadRequestError('Invalid Credentials');
+      throw new CustomError.BadRequestError(
+        '{"enMessage" : "Invalid Credentials", "arMessage" :"البيانات خاطئة"}'
+      );
     }
   } catch (error) {
     next(error);

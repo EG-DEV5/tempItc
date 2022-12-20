@@ -21,7 +21,9 @@ const addUser = async (req, res, next) => {
         username,
       });
       if (accountAlreadyExists) {
-        throw new CustomError.BadRequestError('your account is already exists');
+        throw new CustomError.BadRequestError(
+          '{"enMessage" : "your username is already exists", "arMessage" :"اسم المستخدم موجود بالفعل"}'
+        );
       }
       if (req.file) {
         image = await extractUrl(req.file);
@@ -54,7 +56,9 @@ const addUser = async (req, res, next) => {
         username,
       });
       if (accountAlreadyExists) {
-        throw new CustomError.BadRequestError('your account is already exists');
+        throw new CustomError.BadRequestError(
+          '{"enMessage" : "your username is already exists", "arMessage" :"اسم المستخدم موجود بالفعل"}'
+        );
       }
 
       // first registered user is an admin
@@ -133,7 +137,9 @@ const updateUser = async (req, res) => {
         _id: id,
       });
       if (!account) {
-        throw new CustomError.BadRequestError('your account Not exists');
+        throw new CustomError.BadRequestError(
+          '{"enMessage" : "your account Not exists", "arMessage" :"اسم المستخدم غير موجود"}'
+        );
       }
       // first registered user is an admin
 
@@ -252,7 +258,7 @@ const updateCustody = async (req, res, next) => {
             custody.pendingTrainers.push(element._id);
           } else {
             throw new CustomError.BadRequestError(
-              `${element.username} already request in ${custody.custodyName}`,
+              '{"enMessage" : `${element.username} already request in ${custody.custodyName}`, "arMessage" :`${custody.custodyName}  قام بالفعل بطلب فى ${element.username}`}',
               { statusCode: 400 }
             );
           }
@@ -507,7 +513,10 @@ const addRequest = async (req, res, next) => {
     const user = await User.findOne({ username: username });
     const custody = await Custody.findOne({ _id: to });
     if (user.custodyId == null) {
-      throw new Error("you can't add request for new trainers");
+      throw new Error(
+        '{"enMessage" : "you can not  add request for new trainers", "arMessage" :"لا يمكنك إضافة طلب لمتدرب جديد"}',
+        { statusCode: 400 }
+      );
     }
     waitingTrainer = custody.pendingTrainers;
     waitingTrainer.push(user._id);
@@ -548,7 +557,9 @@ const resForRequest = async (req, res, next) => {
       custody.save();
       res.status(200).json({ msg: 'reject req' });
     } else {
-      throw new Error('please try again');
+      throw new Error(
+        '{"enMessage" : "please try again", "arMessage" :"برجاء المحاولة مرة أخرى"}'
+      );
     }
   } catch (error) {
     next(error);
