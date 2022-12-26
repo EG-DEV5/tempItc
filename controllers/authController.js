@@ -6,7 +6,7 @@ const CustomError = require('../errors');
 const { createTokenUser, extractUrl, createJWT } = require('../utils');
 const addAdmin = async (req, res, next) => {
   try {
-    const { username, password,email,phoneNumber } = req.body;
+    const { username, password, email, phoneNumber } = req.body;
     let image = {};
     const accountAlreadyExists = await User.findOne({
       username,
@@ -83,13 +83,14 @@ const login = async (req, res, next) => {
 };
 
 const resetPassword = async (req, res) => {
-  const { username, oldPassword, newPassword } = req.body;
+  const { oldPassword, newPassword } = req.body;
+  const { username } = req.user;
   if (!username || !oldPassword || !newPassword) {
-    throw new CustomError.BadRequestError('{"enMessage" : "Please provide all values", "arMessage" :"برحاء إدخال كل البيانات"}');
+    throw new CustomError.BadRequestError(
+      '{"enMessage" : "Please provide all values", "arMessage" :"برحاء إدخال كل البيانات"}'
+    );
   }
-
   const user = await User.findOne({ username });
-
   if (user) {
     const isPasswordCorrect = await user.comparePassword(oldPassword);
     if (!isPasswordCorrect) {
@@ -97,20 +98,19 @@ const resetPassword = async (req, res) => {
         '{"enMessage" : "Invalid Credentials", "arMessage" :"البيانات خاطئة"}'
       );
     }
-      user.password = newPassword;
-      await user.save();
-    }
-    else{
-      throw new CustomError.BadRequestError(
-        '{"enMessage" : "Invalid username", "arMessage" :"البيانات خاطئة"}'
-      );
-    }
-  res.send('reset password');
+    user.password = newPassword;
+    await user.save();
+  } else {
+    throw new CustomError.BadRequestError(
+      '{"enMessage" : "Invalid username", "arMessage" :"البيانات خاطئة"}'
+    );
+  }
+  res.status(StatusCodes.CREATED).json({ msg: 'reset password successfully' });
 };
 
 module.exports = {
   addAdmin,
   login,
   //   forgotPassword,
-     resetPassword,
+  resetPassword,
 };

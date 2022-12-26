@@ -5,9 +5,10 @@ const createTokenUser = require('./createTokenUser');
 const checkPermissions = require('./checkPermissions');
 
 const createHash = require('./createHash');
-const {generatePassword} = require('./generatePassword');
+const { generatePassword } = require('./generatePassword');
+const { multer } = require('./multer');
 const { extractUrl, envToInt } = require('./helpers');
-const sendPassword  = require('./emailSend');
+const sendPassword = require('./emailSend');
 module.exports = {
   createJWT,
   isTokenValid,
@@ -15,7 +16,8 @@ module.exports = {
   checkPermissions,
   createHash,
   generatePassword,
+  multer,
   extractUrl,
   envToInt,
-  sendPassword
+  sendPassword,
 };

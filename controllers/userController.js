@@ -71,7 +71,6 @@ const addUser = async (req, res, next) => {
         image = await extractUrl(req.file);
       }
      let autoPass =  generatePassword()
-     console.log(autoPass)
       memberShipType == "safety-advisor" ? password = autoPass : password
       const user = await User.create({
         username,
