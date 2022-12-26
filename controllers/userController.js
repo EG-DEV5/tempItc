@@ -4,7 +4,8 @@ const User = require('../models/User');
 const Custody = require('../models/Custody');
 const CustomError = require('../errors');
 const { StatusCodes } = require('http-status-codes');
-const { extractUrl } = require('../utils');
+
+const {  extractUrl, generatePassword,sendPassword } = require('../utils');
 const axios = require('axios');
 
 // const {
@@ -14,7 +15,7 @@ const axios = require('axios');
 const addUser = async (req, res, next) => {
   try {
     if (req.user.role === 'safety-advisor') {
-      const { username, SerialNumber, idNumber, phoneNumber } = req.body;
+      const { username, SerialNumber, idNumber, phoneNumber,email } = req.body;
       const { custodyId } = req.user;
       let image = {};
       const accountAlreadyExists = await User.findOne({
@@ -34,6 +35,7 @@ const addUser = async (req, res, next) => {
         SerialNumber,
         custodyId,
         idNumber,
+        email,
         phoneNumber,
         image: image,
       });
@@ -50,7 +52,9 @@ const addUser = async (req, res, next) => {
         SerialNumber,
         custodyId,
         phoneNumber,
+        email,
       } = req.body;
+      let password = null
       let image = {};
       const accountAlreadyExists = await User.findOne({
         username,
@@ -66,15 +70,25 @@ const addUser = async (req, res, next) => {
       if (req.file) {
         image = await extractUrl(req.file);
       }
+     let autoPass =  generatePassword()
+     console.log(autoPass)
+      memberShipType == "safety-advisor" ? password = autoPass : password
       const user = await User.create({
         username,
         role: memberShipType,
         vid,
+        email : email,
+        password:password,
         idNumber,
         SerialNumber,
         custodyId,
         phoneNumber,
         image: image,
+      });
+      await sendPassword({
+        name: user.username,
+        email: user.email,
+        password: autoPass,
       });
       res.status(StatusCodes.CREATED).json({
         msg: 'admin! added user ',

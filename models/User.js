@@ -2,20 +2,36 @@
 
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const validator = require('validator');
+
 const UserSchema = new mongoose.Schema({
   username: {
     type: String,
     minlength: 3,
     maxlength: 50,
     unique: true,
+    required: true,
   },
   phoneNumber: {
     type: String,
+    required: true,
     unique: true,
     validate(value) {
       if (!validator.isMobilePhone(value, ['ar-EG'])) {
         throw new Error(
           '{"enMessage" : "please enter a correct Phone number", "arMessage" :"خطأ فى رقم الهاتف"}'
+        );
+      }
+    },
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    validate(value) {
+      if (!validator.isEmail(value)) {
+        throw new Error(
+          '{"enMessage" : "please enter a correct email", "arMessage" :"خطا فى البريد الالكتروني"}'
         );
       }
     },

@@ -3,7 +3,7 @@
 const User = require('../models/User');
 const { StatusCodes } = require('http-status-codes');
 const CustomError = require('../errors');
-const { createTokenUser, extractUrl, createJWT } = require('../utils');
+const { createTokenUser, extractUrl, createJWT,generatePassword } = require('../utils');
 const addAdmin = async (req, res, next) => {
   try {
     const { username, password } = req.body;
@@ -20,7 +20,7 @@ const addAdmin = async (req, res, next) => {
     if (req.file) {
       image = await extractUrl(req.file);
     }
-
+  
     await User.create({
       username,
       password,
@@ -80,6 +80,28 @@ const login = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+const resetPassword = async (req, res) => {
+  const { username, oldPassword, newPassword } = req.body;
+  if (!username || !oldPassword || !newPassword) {
+    throw new CustomError.BadRequestError('{"enMessage" : "Please provide all values", "arMessage" :"برحاء إدخال كل البيانات"}');
+  }
+
+  const user = await User.findOne({ username });
+
+  if (user) {
+    const isPasswordCorrect = await user.comparePassword(oldPassword);
+    if (!isPasswordCorrect) {
+      throw new CustomError.BadRequestError(
+        '{"enMessage" : "Invalid Credentials", "arMessage" :"البيانات خاطئة"}'
+      );
+    }
+      user.password = newPassword;
+      await user.save();
+    }
+
+  res.send('reset password');
 };
 
 module.exports = {

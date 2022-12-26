@@ -3,6 +3,7 @@
 const { StatusCodes } = require('http-status-codes');
 const errorHandlerMiddleware = (err, req, res, next) => {
   try {
+    console.log(err)
     var mesObject = JSON.parse(err.message);
   } catch (error) {
     next(error);
