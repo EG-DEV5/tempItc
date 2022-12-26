@@ -3,10 +3,10 @@
 const User = require('../models/User');
 const { StatusCodes } = require('http-status-codes');
 const CustomError = require('../errors');
-const { createTokenUser, extractUrl, createJWT,generatePassword } = require('../utils');
+const { createTokenUser, extractUrl, createJWT } = require('../utils');
 const addAdmin = async (req, res, next) => {
   try {
-    const { username, password } = req.body;
+    const { username, password,email,phoneNumber } = req.body;
     let image = {};
     const accountAlreadyExists = await User.findOne({
       username,
@@ -20,14 +20,14 @@ const addAdmin = async (req, res, next) => {
     if (req.file) {
       image = await extractUrl(req.file);
     }
-  
     await User.create({
       username,
       password,
       image: image,
+      email,
+      phoneNumber,
       role: 'admin',
     });
-
     res.status(StatusCodes.CREATED).json({
       msg: 'add admin successfully',
     });
@@ -100,7 +100,11 @@ const resetPassword = async (req, res) => {
       user.password = newPassword;
       await user.save();
     }
-
+    else{
+      throw new CustomError.BadRequestError(
+        '{"enMessage" : "Invalid username", "arMessage" :"البيانات خاطئة"}'
+      );
+    }
   res.send('reset password');
 };
 
@@ -108,5 +112,5 @@ module.exports = {
   addAdmin,
   login,
   //   forgotPassword,
-  //   resetPassword,
+     resetPassword,
 };
