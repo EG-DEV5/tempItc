@@ -54,7 +54,6 @@ const addUser = async (req, res, next) => {
         phoneNumber,
         email,
       } = req.body;
-      let password = null
       let image = {};
       const accountAlreadyExists = await User.findOne({
         username,
@@ -66,29 +65,31 @@ const addUser = async (req, res, next) => {
       }
 
       // first registered user is an admin
-
       if (req.file) {
         image = await extractUrl(req.file);
       }
      let autoPass =  generatePassword()
-      memberShipType == "safety-advisor" ? password = autoPass : password
+     console.log(autoPass)
+      
       const user = await User.create({
         username,
         role: memberShipType,
         vid,
         email : email,
-        password:password,
         idNumber,
+        password: memberShipType === "safety-advisor" ?  autoPass : '123456',
         SerialNumber,
         custodyId,
         phoneNumber,
         image: image,
       });
+      if(memberShipType ==  'safety-advisor'){
       await sendPassword({
         name: user.username,
         email: user.email,
         password: autoPass,
       });
+      }
       res.status(StatusCodes.CREATED).json({
         msg: 'admin! added user ',
         user,
