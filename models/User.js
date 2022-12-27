@@ -16,13 +16,6 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    validate(value) {
-      if (!validator.isMobilePhone(value, ['ar-EG'])) {
-        throw new Error(
-          '{"enMessage" : "please enter a correct Phone number", "arMessage" :"خطأ فى رقم الهاتف"}'
-        );
-      }
-    },
   },
   email: {
     type: String,
