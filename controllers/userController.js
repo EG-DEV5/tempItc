@@ -69,7 +69,6 @@ const addUser = async (req, res, next) => {
         image = await extractUrl(req.file);
       }
      let autoPass =  generatePassword()
-     console.log(autoPass)
       
       const user = await User.create({
         username,
@@ -239,9 +238,6 @@ const updateCustody = async (req, res, next) => {
     const { custodyName, city, SafetyAdvisor } = req.body;
 
     const custody = await Custody.findOne({ _id: req.params.id });
-    if (typeof req.body.trainerIds == 'string') {
-      req.body.trainerIds = JSON.parse(req.body.trainerIds);
-    }
     let image = {};
     let oldtrainers = [];
     if (req.file) {
@@ -251,6 +247,9 @@ const updateCustody = async (req, res, next) => {
       image.public_id = custody.image.public_id;
     }
     if (req.body.trainerIds) {
+      if (typeof req.body.trainerIds == 'string') {
+        req.body.trainerIds = JSON.parse(req.body.trainerIds);
+      }
       const newTrainers = await User.find({ _id: req.body.trainerIds });
       let oldUsers = await User.find(
         { custodyId: req.params.id, role: 'trainer' },
@@ -285,7 +284,7 @@ const updateCustody = async (req, res, next) => {
       const saftey = await User.findOne({ _id: SafetyAdvisor });
       const oldSaftey = await User.findOne({ _id: custody.SafetyAdvisor });
 
-      if (saftey.custodyId.toString() != oldSaftey.custodyId.toString()) {
+      if (saftey.custodyId == null || saftey.custodyId.toString() != oldSaftey.custodyId.toString()) {
         oldSaftey.custodyId = null;
 
         saftey.custodyId = custody._id;
