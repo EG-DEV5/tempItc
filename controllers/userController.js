@@ -89,18 +89,17 @@ const addUser = async (req, res, next) => {
         email: user.email,
         password: autoPass,
       });
-      const custody = await User.findOne({
-        custodyId,
-      });
-      const oldSaftey = await User.findOne({ _id: custody.SafetyAdvisor ,role : "safety-advisor"});
+      const custody = await Custody.findOne({_id:custodyId});
+      const oldSaftey = await User.findOne({ _id: custody.SafetyAdvisor });
       if (custody.SafetyAdvisor !=null && custodyId ) {
         oldSaftey.custodyId = null;
         custody.SafetyAdvisor = user._id;
         await oldSaftey.save();
         await custody.save();
       }
-      else if(custody.SafetyAdvisor ==null){
+      else if(!oldSaftey ||custody.SafetyAdvisor ==null){
         custody.SafetyAdvisor=user._id;
+        await custody.save();
       }
       }
       res.status(StatusCodes.CREATED).json({
