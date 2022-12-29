@@ -58,6 +58,7 @@ const addUser = async (req, res, next) => {
       const accountAlreadyExists = await User.findOne({
         username,
       });
+
       if (accountAlreadyExists) {
         throw new CustomError.BadRequestError(
           '{"enMessage" : "your username is already exists", "arMessage" :"اسم المستخدم موجود بالفعل"}'
@@ -88,6 +89,19 @@ const addUser = async (req, res, next) => {
         email: user.email,
         password: autoPass,
       });
+      const custody = await User.findOne({
+        custodyId,
+      });
+      const oldSaftey = await User.findOne({ _id: custody.SafetyAdvisor ,role : "safety-advisor"});
+      if (custody.SafetyAdvisor !=null && custodyId ) {
+        oldSaftey.custodyId = null;
+        custody.SafetyAdvisor = user._id;
+        await oldSaftey.save();
+        await custody.save();
+      }
+      else if(custody.SafetyAdvisor ==null){
+        custody.SafetyAdvisor=user._id;
+      }
       }
       res.status(StatusCodes.CREATED).json({
         msg: 'admin! added user ',
