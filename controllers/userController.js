@@ -5,7 +5,7 @@ const Custody = require('../models/Custody');
 const CustomError = require('../errors');
 const { StatusCodes } = require('http-status-codes');
 
-const {  extractUrl, generatePassword,sendPassword } = require('../utils');
+const { extractUrl, generatePassword, sendPassword } = require('../utils');
 const axios = require('axios');
 
 // const {
@@ -15,7 +15,7 @@ const axios = require('axios');
 const addUser = async (req, res, next) => {
   try {
     if (req.user.role === 'safety-advisor') {
-      const { username, SerialNumber, idNumber, phoneNumber,email } = req.body;
+      const { username, SerialNumber, idNumber, phoneNumber, email } = req.body;
       const { custodyId } = req.user;
       let image = {};
       const accountAlreadyExists = await User.findOne({
@@ -69,38 +69,28 @@ const addUser = async (req, res, next) => {
       if (req.file) {
         image = await extractUrl(req.file);
       }
-     let autoPass =  generatePassword()
-      
+      let autoPass = generatePassword();
+
       const user = await User.create({
         username,
         role: memberShipType,
         vid,
-        email : email,
+        email: email,
         idNumber,
-        password: memberShipType === "safety-advisor" ?  autoPass : '123456',
+        password: memberShipType === 'safety-advisor' ? autoPass : '123456',
         SerialNumber,
         custodyId,
         phoneNumber,
         image: image,
       });
-      if(memberShipType ==  'safety-advisor'){
-      await sendPassword({
-        name: user.username,
-        email: user.email,
-        password: autoPass,
-      });
-      const custody = await Custody.findOne({_id:custodyId});
-      const oldSaftey = await User.findOne({ _id: custody.SafetyAdvisor });
-      if (custody.SafetyAdvisor !=null && custodyId ) {
-        oldSaftey.custodyId = null;
-        custody.SafetyAdvisor = user._id;
-        await oldSaftey.save();
-        await custody.save();
-      }
-      else if(!oldSaftey ||custody.SafetyAdvisor ==null){
-        custody.SafetyAdvisor=user._id;
-        await custody.save();
-      }
+      if (memberShipType == 'safety-advisor') {
+        await sendPassword({
+          name: user.username,
+          email: user.email,
+          password: autoPass,
+        });
+        const custody = await Custody.findOne({ _id: custodyId });
+        const oldSaftey = await User.findOne({ _id: custody.SafetyAdvisor });
       }
       res.status(StatusCodes.CREATED).json({
         msg: 'admin! added user ',
@@ -182,8 +172,11 @@ const updateUser = async (req, res) => {
         } else {
           account.custodyId = custodyId;
           account.save();
-          const Cus = await Custody.find({ _id: custodyId });
+          const Cus = await Custody.findOne({ _id: custodyId });
+          const oldCus = await User.findOne({ _id: custodyId });
+          oldCus.custodyId = null;
           Cus.SafetyAdvisor == account._id;
+          oldCus.save();
           Cus.save();
         }
       }
@@ -297,7 +290,10 @@ const updateCustody = async (req, res, next) => {
       const saftey = await User.findOne({ _id: SafetyAdvisor });
       const oldSaftey = await User.findOne({ _id: custody.SafetyAdvisor });
 
-      if (saftey.custodyId == null || saftey.custodyId.toString() != oldSaftey.custodyId.toString()) {
+      if (
+        saftey.custodyId == null ||
+        saftey.custodyId.toString() != oldSaftey.custodyId.toString()
+      ) {
         oldSaftey.custodyId = null;
 
         saftey.custodyId = custody._id;
