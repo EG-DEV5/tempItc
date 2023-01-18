@@ -6,10 +6,11 @@ const {
   } = require('../middleware/authentication');
 const {
     mainDashboard,
+    mainDashboardt,
     harshAcceleration
   } = require('../controllers/dashboardController');
 
-  router.get('/mainDashboard',authenticateUser, mainDashboard);
+  router.get('/mainDashboard',authenticateUser, mainDashboardt);
   router.get('/harshAcceleration',authenticateUser, harshAcceleration);
   router.get('/overSpeeding',authenticateUser, harshAcceleration);
   router.get('/harshBrake',authenticateUser, harshAcceleration);

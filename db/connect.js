@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { MongoClient } = require('mongodb');
 
 const connectDB = (url) => {
   return mongoose
@@ -7,4 +8,13 @@ const connectDB = (url) => {
   .catch((error) => console.log(error.message));
 };
 
-module.exports = connectDB;
+
+const connectDBLive = async (url) => {
+  const client = new MongoClient(url);
+  await client.connect().then(console.log("MongoDB live locations connected"));
+  return client.db("StageDB").collection("LiveLocations")
+};
+
+module.exports = {
+  connectDB,connectDBLive
+};

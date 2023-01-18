@@ -1,5 +1,5 @@
 const {faker} =  require('@faker-js/faker')
-const {getUserVehicles,harshAccelerationToday} = require('../helpers/helper')
+const {getUserVehicles,harshAccelerationQuery,mainDashboardQuery} = require('../helpers/helper')
     const mainDashboard = (req,res)=>{
         res.status(200).json({
             harshAcceleration : {
@@ -37,8 +37,18 @@ const {getUserVehicles,harshAccelerationToday} = require('../helpers/helper')
 
 
     const harshAcceleration = async (req,res)=>{
-       const data = await getUserVehicles()
-       return res.json(await harshAccelerationToday(data))
+        const data = await getUserVehicles()
+       const {dataTime} = req.body
+       let result = await harshAccelerationQuery(data,dataTime)
+        res.json({result})
+    }
+
+
+    const mainDashboardt = async (req,res)=>{
+        const data = await getUserVehicles()
+       const {dataTime} = req.body
+       let result = await mainDashboardQuery(data,dataTime)
+        res.json({result})
     }
 
     // const overSpeeding = (req,res)=>{
@@ -277,5 +287,5 @@ const {getUserVehicles,harshAccelerationToday} = require('../helpers/helper')
 module.exports = {
     mainDashboard,
     harshAcceleration,
-    // overSpeeding
+     mainDashboardt
 }
