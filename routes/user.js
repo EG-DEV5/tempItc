@@ -98,6 +98,6 @@ router.post(
 router.get('/getPendingTrainers', getPendingTrainers);
 router.get('/Vehicle', Vehicle);
 // router.post('/reset-password', resetPassword);
-// router.post('/forgot-password', forgotPassword);
+//  router.post('/forgot-password', forgotPassword);
 
 module.exports = router;
