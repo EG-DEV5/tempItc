@@ -5,18 +5,22 @@ const {
     authorizeRoles,
   } = require('../middleware/authentication');
 const {
-    mainDashboard,
-    mainDashboardt,
-    harshAcceleration
+  mainDashboard,
+  harshAcceleration,
+  IsOverSpeed,
+  nightDriving,
+  sharpTurns,
+  seatBelt,
+  HarshBreaking,
   } = require('../controllers/dashboardController');
 
-  router.get('/mainDashboard',authenticateUser, mainDashboardt);
+  router.get('/mainDashboard',authenticateUser, mainDashboard);
   router.get('/harshAcceleration',authenticateUser, harshAcceleration);
-  router.get('/overSpeeding',authenticateUser, harshAcceleration);
-  router.get('/harshBrake',authenticateUser, harshAcceleration);
-  router.get('/seatBelt',authenticateUser, harshAcceleration);
-  router.get('/nightDriving',authenticateUser, harshAcceleration);
-  router.get('/sharpTurns',authenticateUser, harshAcceleration);
+  router.get('/overSpeeding',authenticateUser, IsOverSpeed);
+  router.get('/harshBrake',authenticateUser, HarshBreaking);
+  router.get('/seatBelt',authenticateUser, seatBelt);
+  router.get('/nightDriving',authenticateUser, nightDriving);
+  router.get('/sharpTurns',authenticateUser, sharpTurns);
 
 
   module.exports = router;
