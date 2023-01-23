@@ -56,7 +56,7 @@ const mainDashboard = async (req, res) => {
   delete result[0]._id;
   result[0].nightDriving = 0;
   result[0].sharpTurns = 0;
-  res.status(200).json(result);
+  res.status(200).json(result[0]);
 };
 
 const nightDriving = (req, res) => {
