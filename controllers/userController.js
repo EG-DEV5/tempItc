@@ -385,7 +385,7 @@ const CustodyDetails = async (req, res, next) => {
   try {
     let agg = [
       {
-        $match: { custodyName: req.body.custodyName },
+        $match: { custodyName: req.query.custodyName },
       },
       {
         $lookup: {
