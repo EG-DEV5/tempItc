@@ -13,7 +13,7 @@ const {
 
 const harshAcceleration = async (req, res) => {
   const vhs = await getusersVhs();
-  const { dateTime } = req.qury;
+  const { dateTime } = req.query;
   console.log(dateTime)
   let result = await harshAccelerationQuery(vhs, dateTime);
 
