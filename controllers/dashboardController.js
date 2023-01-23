@@ -13,22 +13,23 @@ const {
 
 const harshAcceleration = async (req, res) => {
   const vhs = await getusersVhs();
-  const { dateTime } = req.body;
+  const { dateTime } = req.qury;
+  console.log(dateTime)
   let result = await harshAccelerationQuery(vhs, dateTime);
 
-    res.json({ result });
+    res.status(200).json({ result });
 };
 const HarshBreaking = async (req, res) => {
   const data = await getusersVhs();
   const { dateTime } = req.body;
   let result = await HarshBreakingQuery(data, dateTime);
-  res.json({ result });
+  res.status(200).json({ result });
 };
 const IsOverSpeed = async (req, res) => {
   const data = await getusersVhs();
   const { dateTime } = req.body;
   let result = await IsOverSpeedQuery(data, dateTime);
-  res.json({ result });
+  res.status(200).json({ result });
 };
 const seatBelt = async (req, res) => {
   const vhs = await getusersVhs();
@@ -45,7 +46,7 @@ const seatBelt = async (req, res) => {
 //         })
 //     }
 // });
-  res.json({ result });
+  res.status(200).json({ result });
 };
 
 const mainDashboard = async (req, res) => {
@@ -55,7 +56,7 @@ const mainDashboard = async (req, res) => {
   delete result[0]._id;
   result[0].nightDriving = 0;
   result[0].sharpTurns = 0;
-  res.json(result);
+  res.status(200).json(result);
 };
 
 const nightDriving = (req, res) => {
