@@ -165,7 +165,7 @@ const updateUser = async (req, res) => {
             account.custodyId = custodyId;
             account.save();
           } else {
-            const Cus = await Custody.find({ _id: custodyId });
+            const Cus = await Custody.findOne({ _id: custodyId });
             Cus.pendingTrainers.push(account._id);
             Cus.save();
           }
