@@ -38,6 +38,7 @@ const UserSchema = new mongoose.Schema({
   },
   vid: {
     type: Number,
+    default:null
   },
   location: {
     address: { type: String },

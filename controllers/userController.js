@@ -89,8 +89,6 @@ const addUser = async (req, res, next) => {
           email: user.email,
           password: autoPass,
         });
-        const custody = await Custody.findOne({ _id: custodyId });
-        const oldSaftey = await User.findOne({ _id: custody.SafetyAdvisor });
       }
       res.status(StatusCodes.CREATED).json({
         msg: 'admin! added user ',
