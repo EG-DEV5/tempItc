@@ -292,6 +292,121 @@ async function mainDashboardQuery(vhs,dataTime) {
         await client.close();
     }
 }
+async function  vehicleViolationsQuery (strDate,endDate,vehIDs) {
+    const client = new MongoClient(process.env.MONGO_LIVELOCS);
+    try {
+        await client.connect().then(console.log("MongoDB live locations connected"));
+       const start = new Date(strDate);
+       const end = new Date(endDate);
+       let agg =
+           [
+                 {
+                   $match: { VehicleID: { $in: vehIDs },RecordDateTime: { $gte: start, $lte: end }, $or: [{ AlarmCode: { $bitsAnySet: [ 0,1,2 ] }},{StatusCode: { $bitsAllSet: [ 3 ] }}]   }
+               },
+               {  $addFields:
+                   {
+                       harshAcceleration:
+                         { $function:
+                            {
+                               body: `function(num, bit) {
+                                   return ((num>>bit) % 2 != 0)
+                               }`,
+                               args: [ "$AlarmCode", 0],
+                               lang: "js"
+                            }
+                         },
+                         IsOverSpeed:
+                         { $function:
+                            {
+                                body: `function(num, bit) {
+                                    return ((num>>bit) % 2 != 0)
+                                }`,
+                                args: [ "$AlarmCode", 2],
+                                lang: "js"
+                            }
+                         },
+                         harshBrake:
+                         { $function:
+                            {
+                                body: `function(num, bit) {
+                                    return ((num>>bit) % 2 != 0)
+                                }`,
+                                args: [ "$AlarmCode", 1],
+                                lang: "js"
+                            }
+                         },
+                         SeatBelt:
+                         { $function:
+                            {
+                                body: `function(num, bit) {
+                                    return ((num>>bit) % 2 != 0)
+                                }`,
+                                args: [ "$StatusCode", 3],
+                                lang: "js"
+                            }
+                         }
+                       }
+                    },
+
+               {
+                   $group: {
+                       _id: null,
+                       harshAcceleration: {
+                           $sum: {
+                               $cond: {
+                                   if: {
+                                       $eq: ["$harshAcceleration", true],
+                                   },
+                                   then: 1,
+                                   else: 0,
+                               },
+                           },
+                       },
+                       OverSpeed: {
+                           $sum: {
+                               $cond: {
+                                   if: {
+                                       $eq: ["$IsOverSpeed", true],
+                                   },
+                                   then: 1,
+                                   else: 0,
+                               },
+                           },
+                       },
+                       SeatBelt: {
+                           $sum: {
+                               $cond: {
+                                   if: {
+                                       $eq: ["$SeatBelt", true],
+                                   },
+                                   then: 1,
+                                   else: 0,
+                               },
+                           },
+                       },
+                       harshBrake: {
+                           $sum: {
+                               $cond: {
+                                   if: {
+                                       $eq: ["$harshBrake", true],
+                                   },
+                                   then: 1,
+                                   else: 0,
+                               },
+                           },
+                       },
+                       }
+                   }
+               
+               , { $sort: { '_id': 1 } }
+           ]
+       const result = await client.db("StageDB").collection("LiveLocations").aggregate(agg).toArray();
+       return result
+   }
+   catch {
+
+   }
+}
 module.exports ={
     harshAccelerationQuery,
     HarshBreakingQuery,
@@ -299,5 +414,6 @@ module.exports ={
     seatBeltQuery,
     getUserVehiclesFMS,
     getusersVhs,
-    mainDashboardQuery
+    mainDashboardQuery,
+    vehicleViolationsQuery
 }

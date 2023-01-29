@@ -9,6 +9,7 @@ const {
   HarshBreakingQuery,
   IsOverSpeedQuery,
   seatBeltQuery,
+  vehicleViolationsQuery
 } = require('../helpers/helper');
 
 const harshAcceleration = async (req, res) => {
@@ -69,6 +70,17 @@ const sharpTurns = (req, res) => {
     result: [],
   });
 };
+const vehicleViolations = async(req,res)=>{
+  let { strDate,endDate,vehIDs } = req.query;
+  if ( vehIDs || vehIDs == 'string') {
+    vehIDs = JSON.parse(vehIDs);
+  }
+  let result = await vehicleViolationsQuery(strDate, endDate,vehIDs);
+  delete result[0]._id;
+  result[0].nightDriving = 0;
+  result[0].sharpTurns = 0;
+  res.status(200).json(result[0]);
+}
 
 module.exports = {
   mainDashboard,
@@ -78,4 +90,5 @@ module.exports = {
   nightDriving,
   sharpTurns,
   seatBelt,
+  vehicleViolations
 };
