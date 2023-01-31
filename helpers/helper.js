@@ -4,19 +4,17 @@ const axios = require('axios');
 function bit_test(num, bit){
     return ((num>>bit) % 2 != 0)
 }
-async function harshAccelerationQuery(vhs,dataTime) {
+async function harshAccelerationQuery(strDate,endDate,vehIDs) {
     const client = new MongoClient(process.env.MONGO_LIVELOCS);
     try {
          await client.connect().then(console.log("MongoDB live locations connected"));
-        let today = new Date();
-        let date = new Date(new Date(today).setDate(new Date(today).getDate() - dataTime))
-        date.setMinutes(00)
-        let agg =
+         console.log(strDate)
+         let agg =
             [
                   {
-                    $match: { VehicleID: { $in: vhs }, RecordDateTime: { $gte: date }, AlarmCode: { $bitsAllSet: [ 0 ] }   }
+                    $match: { VehicleID: { $in: vehIDs }, RecordDateTime: { $gte: new Date(strDate), $lte: new Date(endDate) }, AlarmCode: { $bitsAllSet: [ 0 ] }   }
                 },
-                vhs.length > 1000 ?
+                vehIDs.length > 1000 ?
                     {
                         $limit: 2000000
                     } : { $limit: 5000000 },
@@ -41,19 +39,16 @@ async function harshAccelerationQuery(vhs,dataTime) {
     }
 }
 
-async function HarshBreakingQuery(vhs,dataTime) {
+async function HarshBreakingQuery(strDate,endDate,vehIDs) {
     const client = new MongoClient(process.env.MONGO_LIVELOCS);
     try {
          await client.connect().then(console.log("MongoDB live locations connected"));
-        let today = new Date();
-        let date = new Date(new Date(today).setDate(new Date(today).getDate() - dataTime))
-        date.setMinutes(00)
-        let agg =
+          let agg =
             [
                   {
-                    $match: { VehicleID: { $in: vhs }, RecordDateTime: { $gte: date }, AlarmCode: { $bitsAllSet: [ 1 ] }   }
+                    $match: { VehicleID: { $in: vehIDs }, RecordDateTime: { $gte: new Date(strDate), $lte: new Date(endDate) }, AlarmCode: { $bitsAllSet: [ 1 ] }   }
                 },
-                vhs.length > 1000 ?
+                vehIDs.length > 1000 ?
                     {
                         $limit: 2000000
                     } : { $limit: 5000000 },
@@ -78,19 +73,16 @@ async function HarshBreakingQuery(vhs,dataTime) {
         await client.close();
     }
 }
-async function IsOverSpeedQuery(vhs,dataTime) {
+async function IsOverSpeedQuery(strDate,endDate,vehIDs) {
     const client = new MongoClient(process.env.MONGO_LIVELOCS);
     try {
          await client.connect().then(console.log("MongoDB live locations connected"));
-        let today = new Date();
-        let date = new Date(new Date(today).setDate(new Date(today).getDate() - dataTime))
-        date.setMinutes(00)
-        let agg =
+          let agg =
             [
                   {
-                    $match: { VehicleID: { $in: vhs }, RecordDateTime: { $gte: date }, AlarmCode: { $bitsAllSet: [ 2 ] }   }
+                    $match: { VehicleID: { $in: vehIDs }, RecordDateTime: { $gte: new Date(strDate), $lte: new Date(endDate) }, AlarmCode: { $bitsAllSet: [ 2 ] }   }
                 },
-                vhs.length > 1000 ?
+                vehIDs.length > 1000 ?
                     {
                         $limit: 2000000
                     } : { $limit: 5000000 },
@@ -114,19 +106,16 @@ async function IsOverSpeedQuery(vhs,dataTime) {
         await client.close();
     }
 }
-async function seatBeltQuery(vhs,dataTime) {
+async function seatBeltQuery(strDate,endDate,vehIDs) {
     const client = new MongoClient(process.env.MONGO_LIVELOCS);
     try {
          await client.connect().then(console.log("MongoDB live locations connected"));
-        let today = new Date();
-        let date = new Date(new Date(today).setDate(new Date(today).getDate() - dataTime))
-        date.setMinutes(00)
-        let agg =
+          let agg =
             [
                   {
-                    $match: { VehicleID: { $in: vhs }, RecordDateTime: { $gte: date }, StatusCode: { $bitsAllSet: [ 3 ] }   }
+                    $match: { VehicleID: { $in: vehIDs }, RecordDateTime: { $gte: new Date(strDate), $lte: new Date(endDate) }, StatusCode: { $bitsAllSet: [ 3 ] }   }
                 },
-                vhs.length > 1000 ?
+                vehIDs.length > 1000 ?
                     {
                         $limit: 2000000
                     } : { $limit: 5000000 },
@@ -151,7 +140,73 @@ async function seatBeltQuery(vhs,dataTime) {
     }
 }
 
-
+async function nightDriveQuery(strDate,endDate,vehIDs) {
+    const client = new MongoClient(process.env.MONGO_LIVELOCS);
+    try {
+         await client.connect().then(console.log("MongoDB live locations connected"));
+          let agg =
+            [
+                {
+                    $match: { VehicleID: { $in: vehIDs }, RecordDateTime: { $gte: new Date(strDate), $lte: new Date(endDate) },$or: [{ AlarmCode: { $bitsAnySet: [ 0,1,2 ] }},{StatusCode: { $bitsAllSet: [ 3 ] }}] }
+                },
+                      
+                {  $addFields:
+                    {
+                          startnight:
+                          { $function:
+                             {
+                                 body: `function(dateTime) {
+                                     let start = new Date(dateTime);
+                                     start.setHours(16,0,0,0);
+                                    return start
+                                 }`,
+                                 args: [ "$RecordDateTime"],
+                                 lang: "js"
+                             }
+                          },
+                          endnight:
+                          { $function:
+                             {
+                                 body: `function(dateTime) {
+                                     let end = new Date(dateTime);
+                                     end.setDate(end.getDate()+1)
+                                     end.setHours(04,0,0,0);
+                                    return end
+                                 }`,
+                                 args: [ "$RecordDateTime"],
+                                 lang: "js"
+                             }
+                          },
+                          
+                        }
+                     },
+                {
+                    $group: {
+                        _id: { $dateToString: { format: "%Y-%m-%d", date: "$RecordDateTime" } },
+                         count : {
+                        $sum: { 
+                            $cond: [
+                                {$and: [
+                                    {$gte: ["$RecordDateTime", "$startnight"]},
+                                    {$lte: ["$RecordDateTime", "$endnight"]}
+                                ]}, 
+                                1, 
+                                0
+                            ]
+                        }
+                    },
+                }
+                    }
+                , { $sort: { '_id': 1 } }
+            ]
+        const result = await client.db("StageDB").collection("LiveLocations").aggregate(agg).toArray();
+        return result
+    } catch (e) {
+        return e.message
+    } finally {
+        await client.close();
+    }
+}
 async function getUserVehiclesFMS(){
     const config = {
         headers: {
@@ -167,25 +222,21 @@ async function getUserVehiclesFMS(){
         return data
 
 }
-async function getusersVhs(){
+async function getusersvehIDs(){
 
-    let userVhs =  await User.find({role:"trainer"},{vid:1,_id:0})
-    userVhs = userVhs.map(e=>e.vid)
-    return userVhs
+    let uservehIDs =  await User.find({role:"trainer"},{vid:1,_id:0})
+    uservehIDs = uservehIDs.map(e=>e.vid)
+    return uservehIDs
 }
 
-
-async function mainDashboardQuery(vhs,dataTime) {
+async function mainDashboardQuery(strDate,endDate,vehIDs) {
     const client = new MongoClient(process.env.MONGO_LIVELOCS);
     try {
          await client.connect().then(console.log("MongoDB live locations connected"));
-        let today = new Date();
-        let date = new Date(new Date(today).setDate(new Date(today).getDate() - dataTime))
-        date.setMinutes(00)
-        let agg =
+          let agg =
             [
                   {
-                    $match: { VehicleID: { $in: vhs }, RecordDateTime: { $gte: date }, $or: [{ AlarmCode: { $bitsAnySet: [ 0,1,2 ] }},{StatusCode: { $bitsAllSet: [ 3 ] }}]   }
+                    $match: { VehicleID: { $in: vehIDs }, RecordDateTime: { $gte: new Date(strDate), $lte: new Date(endDate) }, $or: [{ AlarmCode: { $bitsAnySet: [ 0,1,2 ] }},{StatusCode: { $bitsAllSet: [ 3 ] }}]   }
                 },
                 {  $addFields:
                     {
@@ -231,7 +282,6 @@ async function mainDashboardQuery(vhs,dataTime) {
                           }
                         }
                      },
-
                 {
                     $group: {
                         _id: null,
@@ -296,13 +346,16 @@ async function  vehicleViolationsQuery (strDate,endDate,vehIDs) {
     const client = new MongoClient(process.env.MONGO_LIVELOCS);
     try {
         await client.connect().then(console.log("MongoDB live locations connected"));
-       const start = new Date(strDate);
-       const end = new Date(endDate);
+
        let agg =
            [
                  {
-                   $match: { VehicleID: { $in: vehIDs },RecordDateTime: { $gte: start, $lte: end }, $or: [{ AlarmCode: { $bitsAnySet: [ 0,1,2 ] }},{StatusCode: { $bitsAllSet: [ 3 ] }}]   }
+                   $match: { VehicleID: { $in: vehIDs },RecordDateTime: { $gte: new Date(strDate), $lte: new Date(endDate) }, $or: [{ AlarmCode: { $bitsAnySet: [ 0,1,2 ] }},{StatusCode: { $bitsAllSet: [ 3 ] }}] }
                },
+               vehIDs.length > 1000 ?
+               {
+                   $limit: 2000000
+               } : { $limit: 5000000 },
                {  $addFields:
                    {
                        harshAcceleration:
@@ -344,7 +397,33 @@ async function  vehicleViolationsQuery (strDate,endDate,vehIDs) {
                                 args: [ "$StatusCode", 3],
                                 lang: "js"
                             }
-                         }
+                         },
+                         startnight:
+                         { $function:
+                            {
+                                body: `function(dateTime) {
+                                    let start = new Date(dateTime);
+                                    start.setHours(16,0,0,0);
+                                   return start
+                                }`,
+                                args: [ "$RecordDateTime"],
+                                lang: "js"
+                            }
+                         },
+                         endnight:
+                         { $function:
+                            {
+                                body: `function(dateTime) {
+                                    let end = new Date(dateTime);
+                                    end.setDate(end.getDate()+1)
+                                    end.setHours(04,0,0,0);
+                                   return end
+                                }`,
+                                args: [ "$RecordDateTime"],
+                                lang: "js"
+                            }
+                         },
+                         
                        }
                     },
 
@@ -395,6 +474,18 @@ async function  vehicleViolationsQuery (strDate,endDate,vehIDs) {
                                },
                            },
                        },
+                       nightDrive : {
+                        $sum: { 
+                            $cond: [
+                                {$and: [
+                                    {$gte: ["$RecordDateTime", "$startnight"]},
+                                    {$lte: ["$RecordDateTime", "$endnight"]}
+                                ]}, 
+                                1, 
+                                0
+                            ]
+                        }
+                    },
                        }
                    }
                
@@ -413,7 +504,8 @@ module.exports ={
     IsOverSpeedQuery,
     seatBeltQuery,
     getUserVehiclesFMS,
-    getusersVhs,
+    getusersvehIDs,
     mainDashboardQuery,
-    vehicleViolationsQuery
+    vehicleViolationsQuery,
+    nightDriveQuery
 }
