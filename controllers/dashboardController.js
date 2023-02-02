@@ -92,7 +92,7 @@ const nightDriving = async(req, res) => {
   if(result.length == 0 ){
     throw new CustomError.BadRequestError('{"enMessage" : "there is no data in this period", "arMessage" :"لا توجد بيانات فى هذه الفترة"}')
   }
-  res.send(result)
+  res.send({result})
 };
 const sharpTurns = (req, res) => {
   res.status(200).json({
