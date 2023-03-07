@@ -26,7 +26,7 @@ const {
   resForRequest,
   freeSaftey,
   getPendingTrainers,
-  Vehicle
+  Vehicle,
 } = require('../controllers/userController');
 
 router.post('/addUser', authenticateUser, uploadPhoto.single('image'), addUser);
@@ -96,7 +96,7 @@ router.post(
   resForRequest
 );
 router.get('/getPendingTrainers', getPendingTrainers);
-router.get('/Vehicle', Vehicle);
+router.get('/Vehicle', authenticateUser, Vehicle);
 // router.post('/reset-password', resetPassword);
 //  router.post('/forgot-password', forgotPassword);
 

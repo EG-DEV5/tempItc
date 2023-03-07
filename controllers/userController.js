@@ -603,9 +603,10 @@ const getPendingTrainers = async (req, res, next) => {
 };
 
 const Vehicle = async (req, res, next) => {
+  const { token } = req.user;
   const config = {
     headers: {
-      Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImVhMjM3NWM3LWZkMjAtNDYyOC1hNDg0LTc1MWE2NTgyZTA1NiIsInVzZXJuYW1lIjoidGQiLCJleHAiOjE2NzY1MzYwMDYsImFjY291bnRJZCI6MzY2LCJyb2xlIjoidXNlciIsImlhdCI6MTY3MTM1MjAwNn0.HpEzqi1BcF4ZJyjqkDwUh0wcZt26beqkyPNXz91shfI`,
+      Authorization: `Bearer ${token}`,
     },
   };
   const getAllVech = await User.find(
@@ -617,7 +618,11 @@ const Vehicle = async (req, res, next) => {
     .then((apiResponse) => {
       // process the response
       return apiResponse.data;
+    })
+    .catch((err) => {
+      console.log(err);
     });
+
   data.Vehicles = data.Vehicles.filter((veh) => {
     return !getAllVech.some((g) => g.SerialNumber == veh.SerialNumber);
   });

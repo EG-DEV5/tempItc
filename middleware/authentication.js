@@ -23,6 +23,7 @@ const authenticateUser = async (req, res, next) => {
       username: payload.username,
       role: payload.role,
       custodyId: payload.custodyId,
+      token,
     };
 
     next();
