@@ -7,6 +7,7 @@ const { StatusCodes } = require('http-status-codes')
 
 const { extractUrl, generatePassword, sendPassword } = require('../utils')
 const axios = require('axios')
+const { deleteModel } = require('mongoose')
 
 // const {
 
@@ -640,7 +641,7 @@ const deleteUser = async (req, res) => {
     if (!deleteUser)
       return res.status(404).json({ msg: 'No document found with that ID' })
 
-    return res.status(204).json(null)
+    return res.status(204).json({ msg: 'the user has been deleted' })
   } catch (error) {
     res.status(500).json({ error })
   }
@@ -652,7 +653,7 @@ const deleteCustody = async (req, res) => {
     if (!deleteUser)
       return res.status(404).json({ msg: 'No document found with that ID' })
 
-    return res.status(204).json(null)
+    return res.status(204).json({ msg: 'the custody has been deleted' })
   } catch (error) {
     res.status(500).json({ error })
   }
