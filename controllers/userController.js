@@ -1,12 +1,12 @@
 /** @format */
 
-const User = require('../models/User');
-const Custody = require('../models/Custody');
-const CustomError = require('../errors');
-const { StatusCodes } = require('http-status-codes');
+const User = require('../models/User')
+const Custody = require('../models/Custody')
+const CustomError = require('../errors')
+const { StatusCodes } = require('http-status-codes')
 
-const { extractUrl, generatePassword, sendPassword } = require('../utils');
-const axios = require('axios');
+const { extractUrl, generatePassword, sendPassword } = require('../utils')
+const axios = require('axios')
 
 // const {
 
@@ -15,19 +15,19 @@ const axios = require('axios');
 const addUser = async (req, res, next) => {
   try {
     if (req.user.role === 'safety-advisor') {
-      const { username, SerialNumber, idNumber, phoneNumber, email } = req.body;
-      const { custodyId } = req.user;
-      let image = {};
+      const { username, SerialNumber, idNumber, phoneNumber, email } = req.body
+      const { custodyId } = req.user
+      let image = {}
       const accountAlreadyExists = await User.findOne({
         username,
-      });
+      })
       if (accountAlreadyExists) {
         throw new CustomError.BadRequestError(
           '{"enMessage" : "your username is already exists", "arMessage" :"اسم المستخدم موجود بالفعل"}'
-        );
+        )
       }
       if (req.file) {
-        image = await extractUrl(req.file);
+        image = await extractUrl(req.file)
       }
       const user = await User.create({
         username,
@@ -38,11 +38,11 @@ const addUser = async (req, res, next) => {
         email,
         phoneNumber,
         image: image,
-      });
+      })
       res.status(StatusCodes.CREATED).json({
         msg: '!safety-advisor added user ',
         user,
-      });
+      })
     } else {
       const {
         username,
@@ -53,23 +53,23 @@ const addUser = async (req, res, next) => {
         custodyId,
         phoneNumber,
         email,
-      } = req.body;
-      let image = {};
+      } = req.body
+      let image = {}
       const accountAlreadyExists = await User.findOne({
         username,
-      });
+      })
 
       if (accountAlreadyExists) {
         throw new CustomError.BadRequestError(
           '{"enMessage" : "your username is already exists", "arMessage" :"اسم المستخدم موجود بالفعل"}'
-        );
+        )
       }
 
       // first registered user is an admin
       if (req.file) {
-        image = await extractUrl(req.file);
+        image = await extractUrl(req.file)
       }
-      let autoPass = generatePassword();
+      let autoPass = generatePassword()
 
       const user = await User.create({
         username,
@@ -82,59 +82,59 @@ const addUser = async (req, res, next) => {
         custodyId,
         phoneNumber,
         image: image,
-      });
+      })
       if (memberShipType == 'safety-advisor') {
         await sendPassword({
           name: user.username,
           email: user.email,
           password: autoPass,
-        });
+        })
       }
       res.status(StatusCodes.CREATED).json({
         msg: 'admin! added user ',
         user,
-      });
+      })
     }
   } catch (error) {
-    next(error);
+    next(error)
   }
-};
+}
 const updateUser = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params
 
     if (req.user.role == 'safety-advisor') {
       const { username, SerialNumber, idNumber, custodyId, vid, phoneNumber } =
-        req.body;
+        req.body
       // const { custodyId } = req.user;
       const account = await User.findOne({
         _id: id,
-      });
+      })
       if (account.custodyId == null || account.custodyId == custodyId) {
-        account.custodyId = custodyId;
-        account.save();
+        account.custodyId = custodyId
+        account.save()
       } else {
-        const Cus = await Custody.find({ _id: custodyId });
-        Cus.pendingTrainers.push(account._id);
-        Cus.save();
+        const Cus = await Custody.find({ _id: custodyId })
+        Cus.pendingTrainers.push(account._id)
+        Cus.save()
       }
-      let image = {};
+      let image = {}
       if (req.file) {
-        image = await extractUrl(req.file);
+        image = await extractUrl(req.file)
       } else {
-        image.url = account.image.url;
-        image.public_id = account.image.public_id;
+        image.url = account.image.url
+        image.public_id = account.image.public_id
       }
 
       const user = await User.findOneAndUpdate(
         { _id: id },
         { username, SerialNumber, idNumber, vid, image: image, phoneNumber },
         { new: true, runValidators: true }
-      );
+      )
       res.status(StatusCodes.CREATED).json({
         msg: '!safety-advisor updated user ',
         user,
-      });
+      })
     } else {
       const {
         username,
@@ -144,45 +144,45 @@ const updateUser = async (req, res) => {
         SerialNumber,
         custodyId,
         phoneNumber,
-      } = req.body;
+      } = req.body
 
-      let image = {};
+      let image = {}
       const account = await User.findOne({
         _id: id,
-      });
+      })
       if (!account) {
         throw new CustomError.BadRequestError(
           '{"enMessage" : "your account Not exists", "arMessage" :"اسم المستخدم غير موجود"}'
-        );
+        )
       }
       // first registered user is an admin
 
       if (custodyId) {
         if (account.role == 'trainer') {
           if (account.custodyId == null || account.custodyId == custodyId) {
-            account.custodyId = custodyId;
-            account.save();
+            account.custodyId = custodyId
+            account.save()
           } else {
-            const Cus = await Custody.findOne({ _id: custodyId });
-            Cus.pendingTrainers.push(account._id);
-            Cus.save();
+            const Cus = await Custody.findOne({ _id: custodyId })
+            Cus.pendingTrainers.push(account._id)
+            Cus.save()
           }
         } else {
-          account.custodyId = custodyId;
-          account.save();
-          const Cus = await Custody.findOne({ _id: custodyId });
-          const oldCus = await User.findOne({ _id: custodyId });
-          oldCus.custodyId = null;
-          Cus.SafetyAdvisor == account._id;
-          oldCus.save();
-          Cus.save();
+          account.custodyId = custodyId
+          account.save()
+          const Cus = await Custody.findOne({ _id: custodyId })
+          const oldCus = await User.findOne({ _id: custodyId })
+          oldCus.custodyId = null
+          Cus.SafetyAdvisor == account._id
+          oldCus.save()
+          Cus.save()
         }
       }
       if (req.file) {
-        image = await extractUrl(req.file);
+        image = await extractUrl(req.file)
       } else {
-        image.url = account.image.url;
-        image.public_id = account.image.public_id;
+        image.url = account.image.url
+        image.public_id = account.image.public_id
       }
       const user = await User.findOneAndUpdate(
         { _id: id },
@@ -196,74 +196,77 @@ const updateUser = async (req, res) => {
           role: memberShipType,
         },
         { new: true, runValidators: true }
-      );
+      )
       res.status(StatusCodes.CREATED).json({
         msg: '!admin updated user ',
         user,
-      });
+      })
     }
   } catch (error) {
-    return res.status(500).send({ message: error.message });
+    return res.status(500).send({ message: error.message })
   }
-};
+}
 const addCustody = async (req, res, next) => {
   try {
-    const { custodyName, city, SafetyAdvisor } = req.body;
-    let image = {};
+    const { custodyName, city, SafetyAdvisor } = req.body
+    let image = {}
     if (typeof req.body.trainerIds == 'string') {
-      req.body.trainerIds = JSON.parse(req.body.trainerIds);
+      req.body.trainerIds = JSON.parse(req.body.trainerIds)
     }
     if (req.file) {
-      image = await extractUrl(req.file);
+      image = await extractUrl(req.file)
     }
     const custody = await Custody.create({
       custodyName,
       city,
       SafetyAdvisor,
       image: image,
-    });
-    let updateUserToCustody = [];
-    updateUserToCustody = req.body.trainerIds;
-    updateUserToCustody.push(SafetyAdvisor);
+    })
+    // let updateUserToCustody = []
+    // updateUserToCustody = req.body.trainerIds
+    // updateUserToCustody.push(SafetyAdvisor)
+
     await User.updateMany(
-      { _id: updateUserToCustody },
+      { _id: req.body.trainerIds },
+      { SafetyAdvisor },
       { custodyId: custody._id }
-    );
+    )
+
     res.status(StatusCodes.CREATED).json({
       msg: 'add Custody successfully',
       custody,
-    });
+    })
   } catch (error) {
-    next(error);
+    next(error)
   }
-};
+}
 const updateCustody = async (req, res, next) => {
   try {
-    const { custodyName, city, SafetyAdvisor } = req.body;
+    const { custodyName, city, SafetyAdvisor } = req.body
 
-    const custody = await Custody.findOne({ _id: req.params.id });
-    let image = {};
-    let oldtrainers = [];
+    const custody = await Custody.findOne({ _id: req.params.id })
+    let image = {}
+    let oldtrainers = []
     if (req.file) {
-      image = await extractUrl(req.file);
+      image = await extractUrl(req.file)
     } else {
-      image.url = custody.image.url;
-      image.public_id = custody.image.public_id;
+      image.url = custody.image.url
+      image.public_id = custody.image.public_id
     }
     if (req.body.trainerIds) {
       if (typeof req.body.trainerIds == 'string') {
-        req.body.trainerIds = JSON.parse(req.body.trainerIds);
+        req.body.trainerIds = JSON.parse(req.body.trainerIds)
       }
-      const newTrainers = await User.find({ _id: req.body.trainerIds });
+      const newTrainers = await User.find({ _id: req.body.trainerIds })
       let oldUsers = await User.find(
         { custodyId: req.params.id, role: 'trainer' },
         { _id: 1 }
-      );
-      oldUsers.forEach((e) => oldtrainers.push(e._id));
+      )
+      oldUsers.forEach((e) => oldtrainers.push(e._id))
       let difference = oldtrainers.filter(
         (x) => !req.body.trainerIds.toString().includes(x.toString())
-      );
-      await User.updateMany({ _id: difference }, { custodyId: null });
+      )
+      await User.updateMany({ _id: difference }, { custodyId: null })
 
       newTrainers.forEach((element) => {
         if (
@@ -271,33 +274,33 @@ const updateCustody = async (req, res, next) => {
           element.custodyId.toString() != custody._id.toString()
         ) {
           if (!custody.pendingTrainers.includes(element._id)) {
-            custody.pendingTrainers.push(element._id);
+            custody.pendingTrainers.push(element._id)
           } else {
             throw new CustomError.BadRequestError(
               `{"enMessage" : "${element.username} already request in ${custody.custodyName}", "arMessage" : "${custody.custodyName}  قام بالفعل بطلب فى ${element.username}"}`
-            );
+            )
           }
         } else {
-          element.custodyId = custody._id;
-          element.save();
+          element.custodyId = custody._id
+          element.save()
         }
-      });
-      custody.save();
+      })
+      custody.save()
     }
     if (SafetyAdvisor) {
-      const saftey = await User.findOne({ _id: SafetyAdvisor });
-      const oldSaftey = await User.findOne({ _id: custody.SafetyAdvisor });
+      const saftey = await User.findOne({ _id: SafetyAdvisor })
+      const oldSaftey = await User.findOne({ _id: custody.SafetyAdvisor })
 
       if (
         saftey.custodyId == null ||
         saftey.custodyId.toString() != oldSaftey.custodyId.toString()
       ) {
-        oldSaftey.custodyId = null;
+        oldSaftey.custodyId = null
 
-        saftey.custodyId = custody._id;
+        saftey.custodyId = custody._id
       }
-      await oldSaftey.save();
-      await saftey.save();
+      await oldSaftey.save()
+      await saftey.save()
     }
     const updatedCustody = await Custody.findOneAndUpdate(
       { _id: req.params.id },
@@ -308,24 +311,24 @@ const updateCustody = async (req, res, next) => {
         image: image,
       },
       { new: true, runValidators: true }
-    );
+    )
 
     return res
       .status(200)
-      .json({ msg: 'Custody updated successfully', updatedCustody });
+      .json({ msg: 'Custody updated successfully', updatedCustody })
   } catch (error) {
-    next(error);
+    next(error)
   }
-};
+}
 
 const getAllUsers = async (req, res, next) => {
   try {
-    const users = await User.find({ role: { $ne: 'admin' } });
-    res.status(StatusCodes.OK).json({ users });
+    const users = await User.find({ role: { $ne: 'admin' } })
+    res.status(StatusCodes.OK).json({ users })
   } catch (error) {
-    next(error);
+    next(error)
   }
-};
+}
 
 const getallCustodys = async (req, res, next) => {
   try {
@@ -355,30 +358,32 @@ const getallCustodys = async (req, res, next) => {
           image: 1,
         },
       },
-    ];
-    const custody = await Custody.aggregate(agg);
-    await Custody.populate(custody, { path: 'SafetyAdvisor pendingTrainers' });
-    res.status(StatusCodes.OK).json({ custody });
+    ]
+    const custody = await Custody.aggregate(agg)
+
+    console.log(custody)
+    await Custody.populate(custody, { path: 'SafetyAdvisor pendingTrainers' })
+    res.status(StatusCodes.OK).json({ custody })
   } catch (error) {
-    next(error);
+    next(error)
   }
-};
+}
 const getAllTrainers = async (req, res, next) => {
   try {
-    const users = await User.find({ role: 'trainer' });
-    res.status(StatusCodes.OK).json({ users });
+    const users = await User.find({ role: 'trainer' })
+    res.status(StatusCodes.OK).json({ users })
   } catch (error) {
-    next(error);
+    next(error)
   }
-};
+}
 const getAllSafetyAdvisor = async (req, res, next) => {
   try {
-    const users = await User.find({ role: 'safety-advisor' });
-    res.status(StatusCodes.OK).json({ users });
+    const users = await User.find({ role: 'safety-advisor' })
+    res.status(StatusCodes.OK).json({ users })
   } catch (error) {
-    next(error);
+    next(error)
   }
-};
+}
 const CustodyDetails = async (req, res, next) => {
   try {
     let agg = [
@@ -409,17 +414,17 @@ const CustodyDetails = async (req, res, next) => {
           image: 1,
         },
       },
-    ];
+    ]
     // const custodyDetails = await Custody.aggregate(agg).populate('SafetyAdvisor');
-    const custodyDetails = await Custody.aggregate(agg);
+    const custodyDetails = await Custody.aggregate(agg)
     await Custody.populate(custodyDetails, {
       path: 'SafetyAdvisor pendingTrainers',
-    });
-    res.status(StatusCodes.OK).json({ custodyDetails });
+    })
+    res.status(StatusCodes.OK).json({ custodyDetails })
   } catch (error) {
-    next(error);
+    next(error)
   }
-};
+}
 const getCustodyByCity = async (req, res, next) => {
   try {
     let agg = [
@@ -450,20 +455,20 @@ const getCustodyByCity = async (req, res, next) => {
           image: 1,
         },
       },
-    ];
+    ]
     // const custodyDetails = await Custody.aggregate(agg).populate('SafetyAdvisor');
-    const custodyDetails = await Custody.aggregate(agg);
+    const custodyDetails = await Custody.aggregate(agg)
     await Custody.populate(custodyDetails, {
       path: 'SafetyAdvisor pendingTrainers',
-    });
-    res.status(StatusCodes.OK).json({ custodyDetails });
+    })
+    res.status(StatusCodes.OK).json({ custodyDetails })
   } catch (error) {
-    next(error);
+    next(error)
   }
-};
+}
 const getsafteyAdvisorCustody = async (req, res, next) => {
   try {
-    const { ObjectId } = require('mongoose').Types;
+    const { ObjectId } = require('mongoose').Types
 
     let agg = [
       {
@@ -493,24 +498,24 @@ const getsafteyAdvisorCustody = async (req, res, next) => {
           image: 1,
         },
       },
-    ];
-    const data = await Custody.aggregate(agg);
+    ]
+    const data = await Custody.aggregate(agg)
     await Custody.populate(data, {
       path: 'SafetyAdvisor pendingTrainers',
-    });
-    res.status(StatusCodes.OK).json({ data });
+    })
+    res.status(StatusCodes.OK).json({ data })
   } catch (error) {
-    next(error);
+    next(error)
   }
-};
+}
 const getProfile = async (req, res, next) => {
   try {
-    const data = await User.find({ _id: req.user.userId });
-    res.status(StatusCodes.OK).json({ data });
+    const data = await User.find({ _id: req.user.userId })
+    res.status(StatusCodes.OK).json({ data })
   } catch (error) {
-    next(error);
+    next(error)
   }
-};
+}
 const getHomeStatistics = async (req, res, next) => {
   try {
     res.status(StatusCodes.OK).json({
@@ -519,115 +524,115 @@ const getHomeStatistics = async (req, res, next) => {
       totalMillage: 1229,
       SafetyAdvisor: 10,
       totalUsers: 45,
-    });
+    })
   } catch (error) {
-    next(error);
+    next(error)
   }
-};
+}
 const addRequest = async (req, res, next) => {
   try {
-    let waitingTrainer = [];
-    const { username, to } = req.body;
-    const user = await User.findOne({ username: username });
-    const custody = await Custody.findOne({ _id: to });
+    let waitingTrainer = []
+    const { username, to } = req.body
+    const user = await User.findOne({ username: username })
+    const custody = await Custody.findOne({ _id: to })
     if (user.custodyId == null || custody.pendingTrainers.includes(user._id)) {
       throw new Error(
         '{"enMessage" : "you can not  add request for new trainers or trainer  already request it ", "arMessage" :"لا يمكنك إضافة طلب لمتدرب جديد أو لمتدرب قام بطلب بالفعل"}'
         // { statusCode: 400 }
-      );
+      )
     }
-    waitingTrainer = custody.pendingTrainers;
-    waitingTrainer.push(user._id);
-    await Custody.findByIdAndUpdate(to, { pendingTrainers: waitingTrainer });
-    res.status(StatusCodes.OK).json({ msg: 'add request successfully' });
+    waitingTrainer = custody.pendingTrainers
+    waitingTrainer.push(user._id)
+    await Custody.findByIdAndUpdate(to, { pendingTrainers: waitingTrainer })
+    res.status(StatusCodes.OK).json({ msg: 'add request successfully' })
   } catch (error) {
-    next(error);
+    next(error)
   }
-};
+}
 const resForRequest = async (req, res, next) => {
-  const { responce, trainerId, custodyId } = req.body;
+  const { responce, trainerId, custodyId } = req.body
   try {
     if (responce == 'accept') {
       let trainer = await User.findOne({
         _id: trainerId,
-      });
-      let custody = await Custody.findOne({ _id: custodyId });
+      })
+      let custody = await Custody.findOne({ _id: custodyId })
       let findTr = custody.pendingTrainers.findIndex(
         (e) => e._id.toString() == trainerId
-      );
+      )
       if (findTr > -1) {
-        custody.pendingTrainers.splice(findTr, 1);
-        trainer.custodyId = custodyId;
+        custody.pendingTrainers.splice(findTr, 1)
+        trainer.custodyId = custodyId
       } else {
-        return res.status(200).json({ msg: "you can't added on this group" });
+        return res.status(200).json({ msg: "you can't added on this group" })
       }
-      trainer.save();
-      custody.save();
-      res.status(200).json({ msg: 'accepted req' });
+      trainer.save()
+      custody.save()
+      res.status(200).json({ msg: 'accepted req' })
     } else if (responce == 'refuse') {
-      let custody = await Custody.findOne({ _id: custodyId });
+      let custody = await Custody.findOne({ _id: custodyId })
       let findTr = custody.pendingTrainers.findIndex(
         (e) => e._id.toString() == trainerId
-      );
+      )
       if (findTr > -1) {
-        custody.pendingTrainers.splice(findTr, 1);
+        custody.pendingTrainers.splice(findTr, 1)
       }
-      custody.save();
-      res.status(200).json({ msg: 'reject req' });
+      custody.save()
+      res.status(200).json({ msg: 'reject req' })
     } else {
       throw new Error(
         '{"enMessage" : "please try again", "arMessage" :"برجاء المحاولة مرة أخرى"}'
-      );
+      )
     }
   } catch (error) {
-    next(error);
+    next(error)
   }
-};
+}
 const freeSaftey = async (req, res, next) => {
   try {
     const safety = await User.find({
       custodyId: null,
       role: { $eq: 'safety-advisor' },
-    });
-    res.status(StatusCodes.OK).json({ safety });
+    })
+    res.status(StatusCodes.OK).json({ safety })
   } catch (error) {
-    next(error);
+    next(error)
   }
-};
+}
 const getPendingTrainers = async (req, res, next) => {
-  const { custodyId } = req.body;
+  const { custodyId } = req.body
   const data = await Custody.findOne({ _id: custodyId }).populate(
     'pendingTrainers'
-  );
-  res.status(200).json({ data });
-};
+  )
+  res.status(200).json({ data })
+}
 
 const Vehicle = async (req, res, next) => {
-  const { token } = req.user;
+  const { token } = req.user
   const config = {
     headers: {
       Authorization: `Bearer ${token}`,
     },
-  };
+  }
   const getAllVech = await User.find(
     { SerialNumber: { $ne: null } },
     { SerialNumber: 1, _id: 0 }
-  );
+  )
   const data = await axios
     .get('https://api.v6.saferoad.net/dashboard/vehicles', config)
     .then((apiResponse) => {
       // process the response
-      return apiResponse.data;
+      return apiResponse.data
     })
     .catch((err) => {
-      console.log(err);
-    });
+      console.log(err)
+    })
 
   data.Vehicles = data.Vehicles.filter((veh) => {
-    return !getAllVech.some((g) => g.SerialNumber == veh.SerialNumber);
-  });
-  res.send(data.Vehicles);
-};
+    return !getAllVech.some((g) => g.SerialNumber == veh.SerialNumber)
+  })
+  res.send(data.Vehicles)
+}
 module.exports = {
   addUser,
   addCustody,
@@ -647,4 +652,4 @@ module.exports = {
   freeSaftey,
   getPendingTrainers,
   Vehicle,
-};
+}
