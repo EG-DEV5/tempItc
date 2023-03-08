@@ -253,6 +253,7 @@ const updateCustody = async (req, res, next) => {
       image.url = custody.image.url
       image.public_id = custody.image.public_id
     }
+
     if (req.body.trainerIds) {
       if (typeof req.body.trainerIds == 'string') {
         req.body.trainerIds = JSON.parse(req.body.trainerIds)
@@ -287,21 +288,23 @@ const updateCustody = async (req, res, next) => {
       })
       custody.save()
     }
+
     if (SafetyAdvisor) {
-      const saftey = await User.findOne({ _id: SafetyAdvisor })
-      const oldSaftey = await User.findOne({ _id: custody.SafetyAdvisor })
+      const saftey = await User.find({ _id: SafetyAdvisor })
 
-      if (
-        saftey.custodyId == null ||
-        saftey.custodyId.toString() != oldSaftey.custodyId.toString()
-      ) {
-        oldSaftey.custodyId = null
-
-        saftey.custodyId = custody._id
-      }
-      await oldSaftey.save()
-      await saftey.save()
+      saftey.forEach((element) => {
+        if (
+          element.custodyId == null ||
+          element.custodyId.toString() != custody._id.toString()
+        ) {
+          element.custodyId = custody._id
+        }
+        element.save()
+      })
+    } else {
+      res.status(400).json({ msg: 'Invaild Data' })
     }
+
     const updatedCustody = await Custody.findOneAndUpdate(
       { _id: req.params.id },
       {
@@ -632,7 +635,19 @@ const Vehicle = async (req, res, next) => {
 }
 const deleteUser = async (req, res) => {
   try {
-    const deleteUser = await User.findByIdAndDelete({ _id: req.params.id })
+    const deleteUser = await User.findByIdAndDelete(req.params.id)
+
+    if (!deleteUser)
+      return res.status(404).json({ msg: 'No document found with that ID' })
+
+    return res.status(204).json(null)
+  } catch (error) {
+    res.status(500).json({ error })
+  }
+}
+const deleteCustody = async (req, res) => {
+  try {
+    const deleteUser = await Custody.findByIdAndDelete(req.params.id)
 
     if (!deleteUser)
       return res.status(404).json({ msg: 'No document found with that ID' })
@@ -644,6 +659,7 @@ const deleteUser = async (req, res) => {
 }
 
 module.exports = {
+  deleteCustody,
   deleteUser,
   addUser,
   addCustody,

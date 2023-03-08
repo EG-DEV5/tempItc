@@ -28,11 +28,13 @@ const {
   getPendingTrainers,
   Vehicle,
   deleteUser,
+  deleteCustody,
 } = require('../controllers/userController')
 
 router.post('/addUser', authenticateUser, uploadPhoto.single('image'), addUser)
 router.post('/addCustody', uploadPhoto.single('image'), addCustody)
 router.delete('/deleteUser/:id', authenticateUser, deleteUser)
+router.delete('/deleteCustody/:id', authenticateUser, deleteCustody)
 router.put(
   '/updateCustody/:id',
   authenticateUser,
