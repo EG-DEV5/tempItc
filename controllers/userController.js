@@ -320,7 +320,6 @@ const updateCustody = async (req, res, next) => {
     next(error)
   }
 }
-
 const getAllUsers = async (req, res, next) => {
   try {
     const users = await User.find({ role: { $ne: 'admin' } })
@@ -329,7 +328,6 @@ const getAllUsers = async (req, res, next) => {
     next(error)
   }
 }
-
 const getallCustodys = async (req, res, next) => {
   try {
     let agg = [
@@ -606,7 +604,6 @@ const getPendingTrainers = async (req, res, next) => {
   )
   res.status(200).json({ data })
 }
-
 const Vehicle = async (req, res, next) => {
   const { token } = req.user
   const config = {
@@ -633,7 +630,21 @@ const Vehicle = async (req, res, next) => {
   })
   res.send(data.Vehicles)
 }
+const deleteUser = async (req, res) => {
+  try {
+    const deleteUser = await User.findByIdAndDelete({ _id: req.params.id })
+
+    if (!deleteUser)
+      return res.status(404).json({ msg: 'No document found with that ID' })
+
+    return res.status(204).json(null)
+  } catch (error) {
+    res.status(500).json({ error })
+  }
+}
+
 module.exports = {
+  deleteUser,
   addUser,
   addCustody,
   getAllUsers,
