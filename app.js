@@ -35,12 +35,11 @@ app.use(
     max: 60,
   })
 )
-app.use(express.json())
 app.use(helmet())
 app.use(cors())
 app.use(xss())
 app.use(mongoSanitize())
-
+app.use(express.urlencoded({ extended: true }))
 app.use(express.json())
 app.use(cookieParser(process.env.JWT_SECRET))
 // app.use(fileUpload());

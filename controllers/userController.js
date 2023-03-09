@@ -245,13 +245,11 @@ const updateCustody = async (req, res, next) => {
   try {
     const { custodyName, city, SafetyAdvisor } = req.body
 
-    if (SafetyAdvisor == 'string') {
-      SafetyAdvisor = JSON.parse(SafetyAdvisor)
-    }
-
     const custody = await Custody.findOne({ _id: req.params.id })
+
     let image = {}
     let oldtrainers = []
+
     if (req.file) {
       image = await extractUrl(req.file)
     } else {
