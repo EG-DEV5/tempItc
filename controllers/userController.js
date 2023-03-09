@@ -247,8 +247,9 @@ const updateCustody = async (req, res, next) => {
 
     const custody = await Custody.findOne({ _id: req.params.id })
 
+    if (!custody) return res.status(404).json({ msg: 'custody not found' })
+
     let image = {}
-    let oldtrainers = []
 
     if (req.file) {
       image = await extractUrl(req.file)
@@ -257,56 +258,33 @@ const updateCustody = async (req, res, next) => {
       image.public_id = custody.image.public_id
     }
 
-    if (req.body.trainerIds) {
-      if (typeof req.body.trainerIds == 'string') {
-        req.body.trainerIds = JSON.parse(req.body.trainerIds)
-      }
-
-      const newTrainers = await User.find({ _id: req.body.trainerIds })
-      let oldUsers = await User.find(
-        { custodyId: req.params.id, role: 'trainer' },
-        { _id: 1 }
-      )
-      oldUsers.forEach((e) => oldtrainers.push(e._id))
-      let difference = oldtrainers.filter(
-        (x) => !req.body.trainerIds.toString().includes(x.toString())
-      )
-      await User.updateMany({ _id: difference }, { custodyId: null })
-
-      newTrainers.forEach((element) => {
-        if (
-          element.custodyId != null &&
-          element.custodyId.toString() != custody._id.toString()
-        ) {
-          if (!custody.pendingTrainers.includes(element._id)) {
-            custody.pendingTrainers.push(element._id)
-          } else {
-            throw new CustomError.BadRequestError(
-              `{"enMessage" : "${element.username} already request in ${custody.custodyName}", "arMessage" : "${custody.custodyName}  قام بالفعل بطلب فى ${element.username}"}`
-            )
-          }
-        } else {
-          element.custodyId = custody._id
-          element.save()
+    if (!req.body.trainerIds || req.body.trainerIds.length === 0) {
+      await User.updateMany(
+        { custodyId: custody._id },
+        {
+          $set: { custodyId: null },
         }
-      })
-      custody.save()
+      )
+    } else {
+      await User.updateMany(
+        { _id: { $in: req.body.trainerIds } },
+        { $set: { custodyId: custody._id } }
+      )
     }
 
-    if (SafetyAdvisor) {
-      const saftey = await User.find({ _id: SafetyAdvisor })
-
-      saftey.forEach((element) => {
-        if (
-          element.custodyId == null ||
-          element.custodyId.toString() != custody._id.toString()
-        ) {
-          element.custodyId = custody._id
-        }
-        element.save()
-      })
-    } else {
-      res.status(400).json({ msg: 'Invaild Data' })
+    if (!SafetyAdvisor || SafetyAdvisor.length === 0)
+      return res
+        .status(400)
+        .json({ msg: 'Please make sure to select at least "1" SafetyAdvisor' })
+    else {
+      await User.updateMany(
+        { _id: { $in: custody.SafetyAdvisor } },
+        { $set: { custodyId: null } }
+      )
+      await User.updateMany(
+        { _id: { $in: SafetyAdvisor } },
+        { $set: { custodyId: custody._id } }
+      )
     }
 
     const updatedCustody = await Custody.findOneAndUpdate(
