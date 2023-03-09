@@ -30,6 +30,7 @@ const addUser = async (req, res, next) => {
       if (req.file) {
         image = await extractUrl(req.file)
       }
+
       const user = await User.create({
         username,
         role: 'trainer',
@@ -211,9 +212,7 @@ const addCustody = async (req, res, next) => {
   try {
     const { custodyName, city, SafetyAdvisor } = req.body
     let image = {}
-    if (typeof req.body.trainerIds == 'string') {
-      req.body.trainerIds = JSON.parse(req.body.trainerIds)
-    }
+
     if (req.file) {
       image = await extractUrl(req.file)
     }
@@ -223,14 +222,15 @@ const addCustody = async (req, res, next) => {
       SafetyAdvisor,
       image: image,
     })
-    // let updateUserToCustody = []
-    // updateUserToCustody = req.body.trainerIds
-    // updateUserToCustody.push(SafetyAdvisor)
 
     await User.updateMany(
-      { _id: req.body.trainerIds },
-      { SafetyAdvisor },
-      { custodyId: custody._id }
+      {
+        $or: [
+          { _id: { $in: SafetyAdvisor } },
+          { _id: { $in: req.body.trainerIds } },
+        ],
+      },
+      { $set: { custodyId: custody._id } }
     )
 
     res.status(StatusCodes.CREATED).json({
@@ -259,6 +259,7 @@ const updateCustody = async (req, res, next) => {
       if (typeof req.body.trainerIds == 'string') {
         req.body.trainerIds = JSON.parse(req.body.trainerIds)
       }
+
       const newTrainers = await User.find({ _id: req.body.trainerIds })
       let oldUsers = await User.find(
         { custodyId: req.params.id, role: 'trainer' },
@@ -636,26 +637,40 @@ const Vehicle = async (req, res, next) => {
 }
 const deleteUser = async (req, res) => {
   try {
-    const deleteUser = await User.findByIdAndDelete(req.params.id)
+    const deletedUser = await User.findOneAndDelete({ _id: req.params.id })
 
-    if (!deleteUser)
+    await Custody.findOneAndUpdate(
+      { _id: deletedUser.custodyId },
+      {
+        $pull: { SafetyAdvisor: { $in: deletedUser._id } },
+      }
+    )
+
+    if (!deletedUser)
       return res.status(404).json({ msg: 'No document found with that ID' })
 
-    return res.status(204).json({ msg: 'the user has been deleted' })
+    return res.status(200).json({ msg: 'the user has been deleted' })
   } catch (error) {
-    res.status(500).json({ error })
+    res.status(500).json({ error, msg: 'Something went wrong' })
   }
 }
 const deleteCustody = async (req, res) => {
   try {
-    const deleteUser = await Custody.findByIdAndDelete(req.params.id)
+    const deletedCustody = await Custody.findOneAndDelete(req.params.id)
 
-    if (!deleteUser)
+    await User.updateMany(
+      { _id: deletedCustody.SafetyAdvisor },
+      {
+        $set: { custodyId: null },
+      }
+    )
+
+    if (!deletedCustody)
       return res.status(404).json({ msg: 'No document found with that ID' })
 
-    return res.status(204).json({ msg: 'the custody has been deleted' })
+    return res.status(200).json({ msg: 'the custody has been deleted' })
   } catch (error) {
-    res.status(500).json({ error })
+    res.status(500).json({ error, msg: 'Something went wrong' })
   }
 }
 
