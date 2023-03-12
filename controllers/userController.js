@@ -5,7 +5,12 @@ const Custody = require('../models/Custody')
 const CustomError = require('../errors')
 const { StatusCodes } = require('http-status-codes')
 
-const { extractUrl, generatePassword, sendPassword } = require('../utils')
+const {
+  extractUrl,
+  generatePassword,
+  sendEmail,
+  sendPasswordMessage,
+} = require('../utils')
 const axios = require('axios')
 const { deleteModel } = require('mongoose')
 
@@ -86,10 +91,22 @@ const addUser = async (req, res, next) => {
         image: image,
       })
       if (memberShipType == 'safety-advisor') {
-        await sendPassword({
+        await sendEmail({
           name: user.username,
-          email: user.email,
-          password: autoPass,
+          subject: 'Password Account',
+          html: `<h4> Hello, ${user.username}</h4>
+          <div
+  class="container"
+  style="max-width: 90%; margin: auto; padding-top: 20px"
+>
+  <h2>Welcome to ITC.</h2>
+  <h4>You are officially In ✔</h4>
+  <p style="margin-bottom: 30px;">Your password account is </p>
+  <h1 style="font-size: 40px; letter-spacing: 2px; text-align:center;">${autoPass}</h1>
+  <p style="margin-bottom: 30px;">Your username  is </p>
+  <h1 style="font-size: 40px; letter-spacing: 2px; text-align:center;">${user.username}</h1>
+</div>
+          `,
         })
       }
       res.status(StatusCodes.CREATED).json({
@@ -275,7 +292,7 @@ const updateCustody = async (req, res, next) => {
     if (!SafetyAdvisor || SafetyAdvisor.length === 0)
       return res
         .status(400)
-        .json({ msg: 'Please make sure to select at least "1" SafetyAdvisor' })
+        .json({ msg: `Please make sure to select at least '1' SafetyAdvisor` })
     else {
       await User.updateMany(
         { _id: { $in: custody.SafetyAdvisor } },
@@ -344,7 +361,6 @@ const getallCustodys = async (req, res, next) => {
     ]
     const custody = await Custody.aggregate(agg)
 
-    console.log(custody)
     await Custody.populate(custody, { path: 'SafetyAdvisor pendingTrainers' })
     res.status(StatusCodes.OK).json({ custody })
   } catch (error) {
