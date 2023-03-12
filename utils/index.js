@@ -1,14 +1,13 @@
 /** @format */
 
-const { createJWT, isTokenValid } = require('./jwt');
-const createTokenUser = require('./createTokenUser');
-const checkPermissions = require('./checkPermissions');
+const { createJWT, isTokenValid } = require('./jwt')
+const createTokenUser = require('./createTokenUser')
+const checkPermissions = require('./checkPermissions')
 
-const createHash = require('./createHash');
-const { generatePassword } = require('./generatePassword');
-const { multer } = require('./multer');
-const { extractUrl, envToInt } = require('./helpers');
-const sendPassword = require('./emailSend');
+const createHash = require('./createHash')
+const { generatePassword } = require('./generatePassword')
+const { multer } = require('./multer')
+const { extractUrl, envToInt } = require('./helpers')
 module.exports = {
   createJWT,
   isTokenValid,
@@ -19,5 +18,4 @@ module.exports = {
   multer,
   extractUrl,
   envToInt,
-  sendPassword,
-};
+}

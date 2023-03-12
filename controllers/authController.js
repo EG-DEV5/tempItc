@@ -4,6 +4,7 @@ const User = require('../models/User')
 const { StatusCodes } = require('http-status-codes')
 const CustomError = require('../errors')
 const { createTokenUser, extractUrl, createJWT } = require('../utils')
+const createEmail = require('../utils/email')
 
 const addAdmin = async (req, res, next) => {
   try {
@@ -83,35 +84,103 @@ const login = async (req, res, next) => {
   }
 }
 
-const resetPassword = async (req, res) => {
-  const { oldPassword, newPassword } = req.body
-  const { username } = req.user
-  if (!username || !oldPassword || !newPassword) {
-    throw new CustomError.BadRequestError(
-      '{"enMessage" : "Please provide all values", "arMessage" :"برحاء إدخال كل البيانات"}'
-    )
+const forgotPassword = async (req, res, next) => {
+  const user = await User.findOne({ email: req.body.email })
+
+  if (!user) {
+    return res.status(StatusCodes.NOT_FOUND).json({ msg: 'user not found' })
   }
-  const user = await User.findOne({ username })
-  if (user) {
-    const isPasswordCorrect = await user.comparePassword(oldPassword)
-    if (!isPasswordCorrect) {
-      throw new CustomError.BadRequestError(
-        '{"enMessage" : "Invalid Credentials", "arMessage" :"البيانات خاطئة"}'
-      )
+
+  const otp = user.createOTP()
+  await user.save({ validateBeforeSave: true })
+
+  const message = `Your OTP is ${otp}`
+
+  try {
+    await createEmail({
+      email: user.email,
+      subject: 'Your OTP code (valid for 5 mins)',
+      message,
+    })
+    res.status(200).json({
+      status: 'success',
+      message: 'OTP sent to email!',
+    })
+  } catch (error) {
+    user.passwordResetExpires = undefined
+    await user.save({ validateBeforeSave: false })
+
+    return res
+      .status(500)
+      .json({ msg: 'There was an error sending the email. Try again later!' })
+  }
+}
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const user = await User.findOne({
+      otp: req.params.otp,
+      passwordResetExpires: { $gt: Date.now() },
+    })
+
+    if (!user) {
+      return res.status(400).json({ msg: 'OTP is invalid or has expired' })
     }
-    user.password = newPassword
+
+    user.password = req.body.password
+    user.passwordConfirm = req.body.passwordConfirm
+    user.passwordResetExpires = undefined
+    user.otp = undefined
     await user.save()
-  } else {
-    throw new CustomError.BadRequestError(
-      '{"enMessage" : "Invalid username", "arMessage" :"البيانات خاطئة"}'
-    )
+
+    user.password = undefined
+
+    const tokenUser = createTokenUser(user)
+    const token = createJWT({ payload: tokenUser })
+
+    res.status(201).json({
+      token,
+      data: {
+        user,
+      },
+    })
+  } catch (error) {
+    return res.status(500).send({ error, msg: 'Something went wrong' })
   }
-  res.status(StatusCodes.CREATED).json({ msg: 'reset password successfully' })
+}
+
+const updatePassword = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.userId).select('+password')
+
+    if (!(await user.comparePassword(req.body.passwordCurrent))) {
+      return res.status(401).json({ msg: 'Your current password is incorrect' })
+    }
+
+    user.password = req.body.passwordCurrent
+    user.passwordConfirm = req.body.passwordConfirm
+    await user.save()
+
+    user.password = undefined
+
+    const tokenUser = createTokenUser(user)
+    const token = createJWT({ payload: tokenUser })
+
+    res.status(200).json({
+      token,
+      data: {
+        user,
+      },
+    })
+  } catch (error) {
+    return res.status(500).send({ error, msg: 'Something went wrong' })
+  }
 }
 
 module.exports = {
   addAdmin,
   login,
-  //   forgotPassword,
+  forgotPassword,
   resetPassword,
+  updatePassword,
 }
