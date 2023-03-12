@@ -3,8 +3,12 @@
 const User = require('../models/User')
 const { StatusCodes } = require('http-status-codes')
 const CustomError = require('../errors')
-const { createTokenUser, extractUrl, createJWT } = require('../utils')
-const createEmail = require('../utils/email')
+const {
+  createTokenUser,
+  extractUrl,
+  createJWT,
+  sendEmail,
+} = require('../utils')
 
 const addAdmin = async (req, res, next) => {
   try {
@@ -97,10 +101,10 @@ const forgotPassword = async (req, res, next) => {
   const message = `Your OTP is ${otp}`
 
   try {
-    await createEmail({
+    await sendEmail({
       email: user.email,
       subject: 'Your OTP code (valid for 5 mins)',
-      message,
+      text: message,
     })
     res.status(200).json({
       status: 'success',
@@ -151,13 +155,23 @@ const resetPassword = async (req, res, next) => {
 
 const updatePassword = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.userId).select('+password')
+    const { passwordCurrent, newPassword, passwordConfirm } = req.body
 
-    if (!(await user.comparePassword(req.body.passwordCurrent))) {
+    if (!passwordCurrent || !newPassword || !passwordConfirm) {
+      return res.status(400).json({ error: 'All fields are required.' })
+    }
+
+    const user = await User.findById(req.user.userId)
+
+    if (!user) {
+      return res.status(401).json({ error: 'the user is unauthorized' })
+    }
+
+    if (!(await user.comparePassword(passwordCurrent))) {
       return res.status(401).json({ msg: 'Your current password is incorrect' })
     }
 
-    user.password = req.body.passwordCurrent
+    user.password = req.body.newPassword
     user.passwordConfirm = req.body.passwordConfirm
     await user.save()
 

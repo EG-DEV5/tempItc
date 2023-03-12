@@ -8,7 +8,9 @@ const createHash = require('./createHash')
 const { generatePassword } = require('./generatePassword')
 const { multer } = require('./multer')
 const { extractUrl, envToInt } = require('./helpers')
+const { sendEmail } = require('./sendEmail')
 module.exports = {
+  sendEmail,
   createJWT,
   isTokenValid,
   createTokenUser,
