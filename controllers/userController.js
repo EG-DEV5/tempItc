@@ -5,12 +5,7 @@ const Custody = require('../models/Custody')
 const CustomError = require('../errors')
 const { StatusCodes } = require('http-status-codes')
 
-const {
-  extractUrl,
-  generatePassword,
-  sendEmail,
-  sendPasswordMessage,
-} = require('../utils')
+const { extractUrl, generatePassword, sendEmail } = require('../utils')
 const axios = require('axios')
 const { deleteModel } = require('mongoose')
 
@@ -93,6 +88,7 @@ const addUser = async (req, res, next) => {
       if (memberShipType == 'safety-advisor') {
         await sendEmail({
           name: user.username,
+          email: user.email,
           subject: 'Password Account',
           html: `<h4> Hello, ${user.username}</h4>
           <div
