@@ -28,7 +28,7 @@ const UserSchema = new mongoose.Schema(
       type: String,
       minlength: 6,
       default: null,
-      select: false,
+      // select: false,
     },
     passwordConfirm: {
       type: String,
