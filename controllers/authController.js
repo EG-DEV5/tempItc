@@ -157,18 +157,26 @@ const updatePassword = async (req, res, next) => {
   try {
     const { passwordCurrent, passwordConfirm } = req.body
 
+    const user = await User.findById(req.user.userId)
+
     if (!(await user.comparePassword(passwordCurrent))) {
-      return res.status(400).json({ msg: 'Your current password is incorrect' })
+      throw new CustomError.BadRequestError(
+        '{"enMessage" : "Your current password is incorrect", "arMessage" :"كلمة السر غير صحيحه"}'
+      )
     }
 
     if (!passwordCurrent || !passwordConfirm) {
-      return res.status(400).json({ error: 'All fields are required.' })
+      throw new CustomError.BadRequestError(
+        '{"enMessage" : "All fields are required.", "arMessage" :"جميع الحقول مطلوبة"}',
+        400
+      )
     }
 
-    const user = await User.findById(req.user.userId)
-
     if (!user) {
-      return res.status(401).json({ error: 'the user is unauthorized' })
+      throw new CustomError.BadRequestError(
+        401,
+        '{"enMessage" : "the user is unauthorized.", "arMessage" :"المستخدم غير مصرح به"}'
+      )
     }
 
     user.password = req.body.passwordConfirm
