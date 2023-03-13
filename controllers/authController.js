@@ -157,6 +157,10 @@ const updatePassword = async (req, res, next) => {
   try {
     const { passwordCurrent, passwordConfirm } = req.body
 
+    if (!(await user.comparePassword(passwordCurrent))) {
+      return res.status(400).json({ msg: 'Your current password is incorrect' })
+    }
+
     if (!passwordCurrent || !passwordConfirm) {
       return res.status(400).json({ error: 'All fields are required.' })
     }
@@ -165,10 +169,6 @@ const updatePassword = async (req, res, next) => {
 
     if (!user) {
       return res.status(401).json({ error: 'the user is unauthorized' })
-    }
-
-    if (!(await user.comparePassword(passwordCurrent))) {
-      return res.status(401).json({ msg: 'Your current password is incorrect' })
     }
 
     user.password = req.body.passwordConfirm
