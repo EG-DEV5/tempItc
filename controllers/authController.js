@@ -155,9 +155,9 @@ const resetPassword = async (req, res, next) => {
 
 const updatePassword = async (req, res, next) => {
   try {
-    const { passwordCurrent, newPassword, passwordConfirm } = req.body
+    const { passwordCurrent, passwordConfirm } = req.body
 
-    if (!passwordCurrent || !newPassword || !passwordConfirm) {
+    if (!passwordCurrent || !passwordConfirm) {
       return res.status(400).json({ error: 'All fields are required.' })
     }
 
@@ -171,7 +171,7 @@ const updatePassword = async (req, res, next) => {
       return res.status(401).json({ msg: 'Your current password is incorrect' })
     }
 
-    user.password = req.body.newPassword
+    user.password = req.body.passwordConfirm
     user.passwordConfirm = req.body.passwordConfirm
     await user.save()
 
