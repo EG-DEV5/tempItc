@@ -118,13 +118,14 @@ const updateUser = async (req, res) => {
   try {
     const { id } = req.params
 
-    if (req.user.role == 'safety-advisor') {
+    if (req.user.role == 'admin') {
       const { username, SerialNumber, idNumber, custodyId, vid, phoneNumber } =
         req.body
       // const { custodyId } = req.user;
       const account = await User.findOne({
         _id: id,
       })
+
       if (account.custodyId == null || account.custodyId == custodyId) {
         account.custodyId = custodyId
         account.save()
