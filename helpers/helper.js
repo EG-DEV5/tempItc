@@ -516,6 +516,7 @@ async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
                 },
               },
             },
+            { $sort: { OverSpeed: 1 } },
           ],
           totalViolation: [
             {
@@ -584,8 +585,6 @@ async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
           ],
         },
       },
-
-      { $sort: { OverSpeed: 1 } },
     ]
     const result = await client
       .db('StageDB')
