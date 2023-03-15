@@ -122,22 +122,6 @@ const vehicleViolations = async (req, res, next) => {
       vehIDs
     )
 
-    const arr1 = result.map((el) => {
-      return el._id
-    })
-
-    const arr2 = vehIDs.filter((el) => !arr1.includes(el))
-
-    arr2.map((el) =>
-      result.unshift({
-        _id: el,
-        harshAcceleration: 0,
-        OverSpeed: 0,
-        SeatBelt: 0,
-        harshBrake: 0,
-        nightDrive: 0,
-      })
-    )
     if (!result) {
       throw new CustomError.BadRequestError(
         '{"enMessage" : "there is no data in this period", "arMessage" :"لا توجد بيانات فى هذه الفترة"}'
