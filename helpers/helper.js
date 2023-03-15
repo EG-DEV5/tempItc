@@ -406,18 +406,21 @@ async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
       {
         $match: {
           VehicleID: { $in: vehIDs },
-          RecordDateTime: { $gte: new Date(strDate), $lte: new Date(endDate) },
-          // $or: [
-          //   { AlarmCode: { $bitsAnySet: [0, 1, 2] } },
-          //   { StatusCode: { $bitsAllSet: [3] } },
-          // ],
+          RecordDateTime: {
+            $gte: new Date(strDate),
+            $lte: new Date(endDate),
+          },
+          $or: [
+            { AlarmCode: { $bitsAnySet: [0, 1, 2, 3, 4] } },
+            { StatusCode: { $bitsAllSet: [3] } },
+          ],
         },
       },
-      vehIDs.length > 1000
-        ? {
-            $limit: 2000000,
-          }
-        : { $limit: 5000000 },
+      // vehIDs.length > 1000
+      //   ? {
+      //       $limit: 2000000,
+      //     }
+      //   : { $limit: 5000000 },
       {
         $addFields: {
           harshAcceleration: {
@@ -489,16 +492,48 @@ async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
               $group: {
                 _id: '$VehicleID',
                 harshAcceleration: {
-                  $sum: { $cond: ['$harshAcceleration', 1, 0] },
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$harshAcceleration', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
                 },
                 OverSpeed: {
-                  $sum: { $cond: ['$IsOverSpeed', 1, 0] },
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$IsOverSpeed', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
                 },
                 SeatBelt: {
-                  $sum: { $cond: ['$SeatBelt', 1, 0] },
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$SeatBelt', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
                 },
                 harshBrake: {
-                  $sum: { $cond: ['$harshBrake', 1, 0] },
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$harshBrake', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
                 },
                 nightDrive: {
                   $sum: {
