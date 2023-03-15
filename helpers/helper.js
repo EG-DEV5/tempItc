@@ -407,10 +407,10 @@ async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
         $match: {
           VehicleID: { $in: vehIDs },
           RecordDateTime: { $gte: new Date(strDate), $lte: new Date(endDate) },
-          $or: [
-            { AlarmCode: { $bitsAnySet: [0, 1, 2] } },
-            { StatusCode: { $bitsAllSet: [3] } },
-          ],
+          // $or: [
+          //   { AlarmCode: { $bitsAnySet: [0, 1, 2] } },
+          //   { StatusCode: { $bitsAllSet: [3] } },
+          // ],
         },
       },
       vehIDs.length > 1000
