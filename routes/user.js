@@ -66,7 +66,7 @@ router.get(
   getAllSafetyAdvisor
 )
 router.get(
-  '/CustodyDetails',
+  '/CustodyDetails/:id',
   authenticateUser,
   authorizeRoles('admin'),
   CustodyDetails
