@@ -7,7 +7,9 @@ const { StatusCodes } = require('http-status-codes')
 
 const { extractUrl, generatePassword, sendEmail } = require('../utils')
 const axios = require('axios')
-const { deleteModel } = require('mongoose')
+const {
+  Types: { ObjectId },
+} = require('mongoose')
 
 // const {
 
@@ -384,7 +386,7 @@ const CustodyDetails = async (req, res, next) => {
   try {
     let agg = [
       {
-        $match: { custodyName: req.query.custodyName },
+        $match: { _id: ObjectId(req.params.id) },
       },
       {
         $lookup: {
