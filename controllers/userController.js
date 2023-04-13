@@ -386,7 +386,7 @@ const CustodyDetails = async (req, res, next) => {
   try {
     let agg = [
       {
-        $match: { _id: new ObjectId(req.params.id) },
+        $match: { _id: ObjectId(req.params.id) },
       },
       {
         $lookup: {
