@@ -12,6 +12,7 @@ const {
   seatBeltQuery,
   vehicleViolationsQuery,
   nightDriveQuery,
+  getUserDetails,
 } = require('../helpers/helper')
 
 const harshAcceleration = async (req, res) => {
@@ -128,9 +129,19 @@ const vehicleViolations = async (req, res, next) => {
       )
     }
 
-    res.status(200).json({ result, totalViolation })
+    const usersDetails = await getUserDetails(vehIDs)
+
+    result.map((res) => {
+      const userDetails = usersDetails.find((user) => user.vid === res._id)
+
+      if (userDetails) return { ...res, ...userDetails }
+
+      return res
+    })
+
+    return res.status(StatusCodes.OK).json({ result, totalViolation })
   } catch (error) {
-    next(error)
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json()
   }
 }
 
