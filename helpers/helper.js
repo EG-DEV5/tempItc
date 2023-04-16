@@ -1,4 +1,5 @@
 const { MongoClient } = require('mongodb')
+const { configConnection, stageDBConnection } = require('./mongodbConn')
 const User = require('../models/User')
 const axios = require('axios')
 function bit_test(num, bit) {
@@ -416,11 +417,6 @@ async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
           ],
         },
       },
-      // vehIDs.length > 1000
-      //   ? {
-      //       $limit: 2000000,
-      //     }
-      //   : { $limit: 5000000 },
       {
         $addFields: {
           harshAcceleration: {
@@ -629,6 +625,34 @@ async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
     return result
   } catch {}
 }
+
+async function getUserDetails(ids) {
+  try {
+    const agg = [
+      {
+        $match: { vid: { $in: ids } },
+      },
+      {
+        $project: {
+          username: 1,
+          phoneNumber: 1,
+          email: 1,
+          password: 0,
+        },
+      },
+    ]
+
+    const result = await configConnection
+      .db('ITC')
+      .collection('users')
+      .aggregate(agg)
+      .toArray()
+    return result
+  } catch (error) {
+    await configConnection.close()
+  }
+}
+
 module.exports = {
   harshAccelerationQuery,
   HarshBreakingQuery,
@@ -639,4 +663,5 @@ module.exports = {
   mainDashboardQuery,
   vehicleViolationsQuery,
   nightDriveQuery,
+  getUserDetails,
 }
