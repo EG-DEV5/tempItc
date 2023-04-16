@@ -131,13 +131,15 @@ const vehicleViolations = async (req, res, next) => {
 
     const usersDetails = await getUserDetails(vehIDs)
 
-    result.map((res) => {
-      const userDetails = usersDetails.find((user) => user.vid === res._id)
+    if (usersDetails) {
+      result.map((res) => {
+        const userDetails = usersDetails.find((user) => user.vid === res._id)
 
-      if (userDetails) return { ...res, ...userDetails }
+        if (userDetails) return { ...res, ...userDetails }
 
-      return res
-    })
+        return res
+      })
+    }
 
     return res.status(StatusCodes.OK).json({ result, totalViolation })
   } catch (error) {
