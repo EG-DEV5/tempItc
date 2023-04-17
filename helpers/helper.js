@@ -634,10 +634,12 @@ async function getUserDetails(ids) {
       },
       {
         $project: {
+          _id: 0,
           username: 1,
           phoneNumber: 1,
           email: 1,
           vid: 1,
+          image: 1,
         },
       },
     ]
