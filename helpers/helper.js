@@ -381,10 +381,10 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
               },
             },
           },
+          SerialNumber: { $first: '$SerialNumber' },
+          Mileage: { $max: { $divide: ['$Mileage', 1000] } },
         },
       },
-
-      { $sort: { _id: 1 } },
     ]
     const result = await client
       .db('StageDB')
@@ -645,7 +645,6 @@ async function getUserDetails(ids) {
     ]
 
     const result = await configConnection
-      .useDb('ITC')
       .collection('users')
       .aggregate(agg)
       .toArray()

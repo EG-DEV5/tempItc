@@ -2,6 +2,8 @@
 const CustomError = require('../errors')
 const { StatusCodes } = require('http-status-codes')
 const { faker } = require('@faker-js/faker')
+const User = require('../models/User')
+const axios = require('axios')
 const {
   getUserVehiclesFMS,
   harshAccelerationQuery,
@@ -84,12 +86,53 @@ const seatBelt = async (req, res) => {
 }
 
 const mainDashboard = async (req, res) => {
-  // const data = await getusersVhs();
-  let { strDate, endDate, vehIDs } = req.query
-  let result = await mainDashboardQuery(strDate, endDate, vehIDs)
-  delete result[0]._id
-  result[0].nightDriving = 0
-  res.status(200).json(result[0])
+  const startDate = new Date()
+  const endDate = new Date()
+  startDate.setDate(startDate.getDate() - 7)
+
+  const vehicles = await User.find(
+    { vid: { $ne: null, $exists: true } },
+    { vid: 1 }
+  )
+
+  const validVids = vehicles.map((vehicle) => vehicle.vid)
+
+  let result = await mainDashboardQuery(startDate, endDate, validVids)
+
+  const vehiclesSerial = result.map((vehicle) => vehicle.SerialNumber)
+
+  const requests = vehiclesSerial.map((serialNumber) => {
+    const url = `https://saferoad-srialfb.firebaseio.com/${serialNumber}.json`
+    return axios.get(url)
+  })
+
+  // https://saferoad-srialfb.firebaseio.com/${SerialNumber}.json
+
+  let online = 0
+  let offline = 0
+
+  Promise.all(requests)
+    .then((responses) => {
+      responses.forEach((response) => {
+        const vehicle = result.find(
+          (vehicle) => vehicle.SerialNumber === response.data.SerialNumber
+        )
+        if (vehicle) {
+          if (response.data.EngineStatus) ++online
+          else ++offline
+          vehicle.EngineStatus = response.data.EngineStatus
+        }
+      })
+    })
+    .catch((error) => {
+      console.error(error)
+      res.status(500).send('An error occurred')
+    })
+    .finally(() => {
+      // delete result[0]._id
+      // result[0].nightDriving = 0
+      res.status(200).json({ ...result[0], online, offline })
+    })
 }
 
 const nightDriving = async (req, res) => {
