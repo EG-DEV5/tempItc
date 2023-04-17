@@ -86,53 +86,57 @@ const seatBelt = async (req, res) => {
 }
 
 const mainDashboard = async (req, res) => {
-  const startDate = new Date()
-  const endDate = new Date()
-  startDate.setDate(startDate.getDate() - 7)
+  try {
+    const startDate = new Date()
+    const endDate = new Date()
+    startDate.setDate(startDate.getDate() - 7)
 
-  const vehicles = await User.find(
-    { vid: { $ne: null, $exists: true } },
-    { vid: 1 }
-  )
+    const vehicles = await User.find(
+      { vid: { $ne: null, $exists: true } },
+      { vid: 1 }
+    )
 
-  const validVids = vehicles.map((vehicle) => vehicle.vid)
+    const validVids = vehicles.map((vehicle) => vehicle.vid)
 
-  let result = await mainDashboardQuery(startDate, endDate, validVids)
+    let result = await mainDashboardQuery(startDate, endDate, validVids)
 
-  const vehiclesSerial = result.map((vehicle) => vehicle.SerialNumber)
+    const vehiclesSerial = result.map((vehicle) => vehicle.SerialNumber)
 
-  const requests = vehiclesSerial.map((serialNumber) => {
-    const url = `https://saferoad-srialfb.firebaseio.com/${serialNumber}.json`
-    return axios.get(url)
-  })
+    const requests = vehiclesSerial.map((serialNumber) => {
+      const url = `https://saferoad-srialfb.firebaseio.com/${serialNumber}.json`
+      return axios.get(url)
+    })
 
-  // https://saferoad-srialfb.firebaseio.com/${SerialNumber}.json
+    let online = 0
+    let offline = 0
 
-  let online = 0
-  let offline = 0
-
-  Promise.all(requests)
-    .then((responses) => {
-      responses.forEach((response) => {
-        const vehicle = result.find(
-          (vehicle) => vehicle.SerialNumber === response.data.SerialNumber
-        )
-        if (vehicle) {
-          if (response.data.EngineStatus) ++online
-          else ++offline
-          vehicle.EngineStatus = response.data.EngineStatus
-        }
+    Promise.all(requests)
+      .then((responses) => {
+        responses.forEach((response) => {
+          const vehicle = result.find(
+            (vehicle) => vehicle.SerialNumber == response.data.SerialNumber
+          )
+          if (vehicle) {
+            if (response.data.EngineStatus) ++online
+            else ++offline
+            vehicle.EngineStatus = response.data.EngineStatus
+          }
+        })
       })
-    })
-    .catch((error) => {
-      console.error(error)
-      res.status(500).send('An error occurred')
-    })
-    .finally(() => {
-      // delete result[0]._id
-      // result[0].nightDriving = 0
-      res.status(200).json({ ...result[0], online, offline })
-    })
+      .catch((error) => {
+        console.error(error)
+        res.status(500).send('An error occurred')
+      })
+      .finally(() => {
+        // delete result[0]._id
+        // result[0].nightDriving = 0
+        res.status(200).json({ ...result[0], online, offline })
+      })
+  } catch (error) {
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ message: 'Something went wrong' })
+  }
 }
 
 const nightDriving = async (req, res) => {
@@ -184,7 +188,39 @@ const vehicleViolations = async (req, res, next) => {
       })
     }
 
-    return res.status(StatusCodes.OK).json({ result, totalViolation })
+    const vehiclesSerial = result.map((vehicle) => vehicle.SerialNumber)
+
+    const requests = vehiclesSerial.map((serialNumber) => {
+      const url = `https://saferoad-srialfb.firebaseio.com/${serialNumber}.json`
+      return axios.get(url)
+    })
+
+    let online = 0
+    let offline = 0
+
+    Promise.all(requests)
+      .then((responses) => {
+        responses.forEach((response) => {
+          const vehicle = result.find(
+            (vehicle) => vehicle.SerialNumber == response.data.SerialNumber
+          )
+          if (vehicle) {
+            if (response.data.EngineStatus) ++online
+            else ++offline
+            vehicle.EngineStatus = response.data.EngineStatus
+          }
+        })
+      })
+      .catch((error) => {
+        console.error(error)
+        res.status(500).send('An error occurred')
+      })
+      .finally(() => {
+        res.status(StatusCodes.OK).json({
+          result,
+          totalViolation: { ...totalViolation[0], online, offline },
+        })
+      })
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json()
   }
