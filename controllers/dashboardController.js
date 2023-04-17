@@ -133,9 +133,9 @@ const vehicleViolations = async (req, res, next) => {
 
     if (usersDetails) {
       result.map((res) => {
-        const userDetails = usersDetails.find((user) => user.vid === res._id)
+        const userDetails = usersDetails.find((user) => user.vid == res._id)
 
-        if (userDetails) return { ...res, ...userDetails }
+        if (userDetails) return Object.assign(res, userDetails)
 
         return res
       })

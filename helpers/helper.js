@@ -637,13 +637,13 @@ async function getUserDetails(ids) {
           username: 1,
           phoneNumber: 1,
           email: 1,
-          password: 0,
+          vid: 1,
         },
       },
     ]
 
     const result = await configConnection
-      .db('ITC')
+      .useDb('ITC')
       .collection('users')
       .aggregate(agg)
       .toArray()
