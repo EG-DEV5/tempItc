@@ -1,15 +1,14 @@
-const { MongoClient } = require('mongodb')
-const { configConnection, stageDBConnection } = require('./mongodbConn')
-const User = require('../models/User')
-const axios = require('axios')
+const { MongoClient } = require('mongodb');
+const { configConnection, stageDBConnection } = require('./mongodbConn');
+const User = require('../models/User');
+const axios = require('axios');
+const { client, connect, close } = require('../db/connect');
 function bit_test(num, bit) {
-  return (num >> bit) % 2 != 0
+  return (num >> bit) % 2 != 0;
 }
 async function harshAccelerationQuery(strDate, endDate, vehIDs) {
-  const client = new MongoClient(process.env.MONGO_LIVELOCS)
   try {
-    await client.connect().then(console.log('MongoDB live locations connected'))
-    console.log(strDate)
+    await connect();
     let agg = [
       {
         $match: {
@@ -36,24 +35,23 @@ async function harshAccelerationQuery(strDate, endDate, vehIDs) {
       },
 
       { $sort: { _id: 1 } },
-    ]
+    ];
     const result = await client
       .db('StageDB')
       .collection('LiveLocations')
       .aggregate(agg)
-      .toArray()
-    return result
+      .toArray();
+    return result;
   } catch (e) {
-    return e.message
+    return e.message;
   } finally {
-    await client.close()
+    await close();
   }
 }
 
 async function HarshBreakingQuery(strDate, endDate, vehIDs) {
-  const client = new MongoClient(process.env.MONGO_LIVELOCS)
   try {
-    await client.connect().then(console.log('MongoDB live locations connected'))
+    await connect();
     let agg = [
       {
         $match: {
@@ -80,24 +78,23 @@ async function HarshBreakingQuery(strDate, endDate, vehIDs) {
       },
 
       { $sort: { _id: 1 } },
-    ]
+    ];
 
     const result = await client
       .db('StageDB')
       .collection('LiveLocations')
       .aggregate(agg)
-      .toArray()
-    return result
+      .toArray();
+    return result;
   } catch (e) {
-    return e.message
+    return e.message;
   } finally {
-    await client.close()
+    await close();
   }
 }
 async function IsOverSpeedQuery(strDate, endDate, vehIDs) {
-  const client = new MongoClient(process.env.MONGO_LIVELOCS)
   try {
-    await client.connect().then(console.log('MongoDB live locations connected'))
+    await connect();
     let agg = [
       {
         $match: {
@@ -124,29 +121,28 @@ async function IsOverSpeedQuery(strDate, endDate, vehIDs) {
       },
 
       { $sort: { _id: 1 } },
-    ]
+    ];
     const result = await client
       .db('StageDB')
       .collection('LiveLocations')
       .aggregate(agg)
-      .toArray()
-    return result
+      .toArray();
+    return result;
   } catch (e) {
-    return e.message
+    return e.message;
   } finally {
-    await client.close()
+    await close();
   }
 }
 async function seatBeltQuery(strDate, endDate, vehIDs) {
-  const client = new MongoClient(process.env.MONGO_LIVELOCS)
   try {
-    await client.connect().then(console.log('MongoDB live locations connected'))
+    await connect();
     let agg = [
       {
         $match: {
           VehicleID: { $in: vehIDs },
           RecordDateTime: { $gte: new Date(strDate), $lte: new Date(endDate) },
-          StatusCode: { $bitsAllSet: [3] },
+          StatusCode: { $bitsAllSet:[3] },
         },
       },
       vehIDs.length > 1000
@@ -167,24 +163,23 @@ async function seatBeltQuery(strDate, endDate, vehIDs) {
       },
 
       { $sort: { _id: 1 } },
-    ]
+    ];
     const result = await client
       .db('StageDB')
       .collection('LiveLocations')
       .aggregate(agg)
-      .toArray()
-    return result
+      .toArray();
+    return result;
   } catch (e) {
-    return e.message
+    return e.message;
   } finally {
-    await client.close()
+    await close();
   }
 }
 
 async function nightDriveQuery(strDate, endDate, vehIDs) {
-  const client = new MongoClient(process.env.MONGO_LIVELOCS)
   try {
-    await client.connect().then(console.log('MongoDB live locations connected'))
+    await connect();
     let agg = [
       {
         $match: {
@@ -246,17 +241,17 @@ async function nightDriveQuery(strDate, endDate, vehIDs) {
         },
       },
       { $sort: { _id: 1 } },
-    ]
+    ];
     const result = await client
       .db('StageDB')
       .collection('LiveLocations')
       .aggregate(agg)
-      .toArray()
-    return result
+      .toArray();
+    return result;
   } catch (e) {
-    return e.message
+    return e.message;
   } finally {
-    await client.close()
+    await close();
   }
 }
 async function getUserVehiclesFMS() {
@@ -264,25 +259,24 @@ async function getUserVehiclesFMS() {
     headers: {
       Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImVhMjM3NWM3LWZkMjAtNDYyOC1hNDg0LTc1MWE2NTgyZTA1NiIsInVzZXJuYW1lIjoidGQiLCJleHAiOjE2NzY1MzYwMDYsImFjY291bnRJZCI6MzY2LCJyb2xlIjoidXNlciIsImlhdCI6MTY3MTM1MjAwNn0.HpEzqi1BcF4ZJyjqkDwUh0wcZt26beqkyPNXz91shfI`,
     },
-  }
+  };
   const data = await axios
     .get('https://api.v6.saferoad.net/dashboard/vehicles', config)
     .then((apiResponse) => {
       // process the response
-      return apiResponse.data.Vehicles.map((e) => e.VehicleID)
-    })
-  return data
+      return apiResponse.data.Vehicles.map((e) => e.VehicleID);
+    });
+  return data;
 }
 async function getusersvehIDs() {
-  let uservehIDs = await User.find({ role: 'trainer' }, { vid: 1, _id: 0 })
-  uservehIDs = uservehIDs.map((e) => e.vid)
-  return uservehIDs
+  let uservehIDs = await User.find({ role: 'trainer' }, { vid: 1, _id: 0 });
+  uservehIDs = uservehIDs.map((e) => e.vid);
+  return uservehIDs;
 }
 
 async function mainDashboardQuery(strDate, endDate, vehIDs) {
-  const client = new MongoClient(process.env.MONGO_LIVELOCS)
   try {
-    await client.connect().then(console.log('MongoDB live locations connected'))
+    await connect();
     let agg = [
       {
         $match: {
@@ -385,23 +379,22 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
           Mileage: { $max: { $divide: ['$Mileage', 1000] } },
         },
       },
-    ]
+    ];
     const result = await client
       .db('StageDB')
       .collection('LiveLocations')
       .aggregate(agg)
-      .toArray()
-    return result
+      .toArray();
+    return result;
   } catch (e) {
-    return e.message
+    return e.message;
   } finally {
-    await client.close()
+    await close();
   }
 }
 async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
-  const client = new MongoClient(process.env.MONGO_LIVELOCS)
   try {
-    await client.connect().then(console.log('MongoDB live locations connected'))
+    await connect();
 
     let agg = [
       {
@@ -619,16 +612,76 @@ async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
           ],
         },
       },
-    ]
+    ];
     const result = await client
       .db('StageDB')
       .collection('LiveLocations')
       .aggregate(agg)
-      .toArray()
-    return result
-  } catch {}
+      .toArray();
+    return result;
+  } catch (e) {
+    return e.message;
+  } finally {
+    await close();
+  }
 }
+async function topDriversQuery(usersVehIds) {
+  try {
+    await connect();
+    let strDate = new Date();
+    strDate.setDate(strDate.getDate() - 7);
+    let endDate = new Date();
 
+    // aggregation query that take all the vehiclesids of the user and return data
+    // based on the number of violations and the duration of the drive of the last 7 days
+    let agg = [
+      {
+        $match: {
+          VehicleID: { $in: usersVehIds },
+          RecordDateTime: {
+            $gte: new Date(strDate),
+            $lte: new Date(endDate),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: '$VehicleID',
+          count: {
+            $sum: {
+              $cond: {
+                if: {
+                  $gte: ['$AlarmCode', 0],
+                },
+                then: 1,
+                else: 0,
+              },
+            },
+          },
+          Duration: { $sum: '$Duration' },
+        },
+      },
+      {
+        $sort: {
+          count: 1,
+          Duration: -1,
+        },
+      },
+    ];
+    const result = await client
+      .db('StageDB')
+      .collection('LiveLocations')
+      .aggregate(agg)
+      .toArray();
+    // take the top 3 drivers
+    const topDrivers = result.slice(0, 3);
+    return topDrivers;
+  } catch (e) {
+    return e.message;
+  } finally {
+    await close();
+  }
+}
 async function getUserDetails(ids) {
   try {
     const agg = [
@@ -645,15 +698,15 @@ async function getUserDetails(ids) {
           image: 1,
         },
       },
-    ]
+    ];
 
     const result = await configConnection
       .collection('users')
       .aggregate(agg)
-      .toArray()
-    return result
+      .toArray();
+    return result;
   } catch (error) {
-    await configConnection.close()
+    await configConnection.close();
   }
 }
 
@@ -668,4 +721,5 @@ module.exports = {
   vehicleViolationsQuery,
   nightDriveQuery,
   getUserDetails,
-}
+  topDriversQuery,
+};

@@ -15,6 +15,8 @@ const {
   vehicleViolationsQuery,
   nightDriveQuery,
   getUserDetails,
+  topDriversQuery,
+  getusersvehIDs,
 } = require('../helpers/helper')
 
 const harshAcceleration = async (req, res) => {
@@ -226,6 +228,34 @@ const vehicleViolations = async (req, res, next) => {
   }
 }
 
+const bestDrivers = async (req, res, next) => {
+  try {
+    // get all users veh ids
+    const usersVehIds = await getusersvehIDs()
+    // get top drivers from the last 7 days
+    let result  = await topDriversQuery(usersVehIds)
+
+    if (!result) {
+      throw new CustomError.BadRequestError(
+        '{"enMessage" : "there is no data", "arMessage" :"لا توجد بيانات "}'
+      )
+    }
+    //  extract top drivers ids
+    const topArray = result.map((vehs)=>{
+      return vehs._id
+    })
+    // get top drivers details
+    const usersDetails = await getUserDetails(topArray)
+
+    if (usersDetails) {
+      return res.status(200).json( {result:usersDetails})
+    }
+
+  
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json()
+  }
+}
 module.exports = {
   mainDashboard,
   HarshBreaking,
@@ -235,4 +265,5 @@ module.exports = {
   sharpTurns,
   seatBelt,
   vehicleViolations,
+  bestDrivers
 }
