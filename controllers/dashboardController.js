@@ -102,37 +102,29 @@ const mainDashboard = async (req, res) => {
 
     let result = await mainDashboardQuery(startDate, endDate, validVids)
 
-    const vehiclesSerial = result.map((vehicle) => vehicle.SerialNumber)
+    // const vehiclesSerial = result.map((vehicle) => vehicle.SerialNumber)
 
-    const requests = vehiclesSerial.map((serialNumber) => {
-      const url = `https://saferoad-srialfb.firebaseio.com/${serialNumber}.json`
-      return axios.get(url)
+    const requests = result.SerialNumbers.map((serialNumber) => {
+      return axios.get(`https://saferoad-srialfb.firebaseio.com/${serialNumber}.json`)
     })
 
     let online = 0
     let offline = 0
 
+
     Promise.all(requests)
       .then((responses) => {
         responses.forEach((response) => {
-          const vehicle = result.find(
-            (vehicle) => vehicle.SerialNumber == response.data.SerialNumber
-          )
-          if (vehicle) {
             if (response.data.EngineStatus) ++online
             else ++offline
-            vehicle.EngineStatus = response.data.EngineStatus
-          }
         })
       })
       .catch((error) => {
-        console.error(error)
         res.status(500).send('An error occurred')
       })
       .finally(() => {
-        // delete result[0]._id
-        // result[0].nightDriving = 0
-        res.status(200).json({ ...result[0], online, offline })
+        delete result.SerialNumbers
+        res.status(200).json({ ...result, online, offline })
       })
   } catch (error) {
     return res

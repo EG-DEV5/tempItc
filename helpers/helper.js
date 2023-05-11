@@ -375,8 +375,10 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
               },
             },
           },
-          SerialNumber: { $first: '$SerialNumber' },
-          Mileage: { $max: { $divide: ['$Mileage', 1000] } },
+          SerialNumbers: {
+            $addToSet: "$SerialNumber"
+          },
+          Mileage: { $max: { $divide: ['$Mileage', 10000] } },
         },
       },
     ];
@@ -385,7 +387,7 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
       .collection('LiveLocations')
       .aggregate(agg)
       .toArray();
-    return result;
+    return result[0];
   } catch (e) {
     return e.message;
   } finally {
