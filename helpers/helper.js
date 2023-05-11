@@ -1,14 +1,15 @@
-const { MongoClient } = require('mongodb');
-const { configConnection, stageDBConnection } = require('./mongodbConn');
-const User = require('../models/User');
-const axios = require('axios');
-const { client, connect, close } = require('../db/connect');
+const { MongoClient } = require('mongodb')
+const { configConnection, stageDBConnection } = require('./mongodbConn')
+const User = require('../models/User')
+const axios = require('axios')
+const { client, connect, close } = require('../db/connect')
+const moment = require('../utils/timezone')
 function bit_test(num, bit) {
-  return (num >> bit) % 2 != 0;
+  return (num >> bit) % 2 != 0
 }
 async function harshAccelerationQuery(strDate, endDate, vehIDs) {
   try {
-    await connect();
+    await connect()
     let agg = [
       {
         $match: {
@@ -35,23 +36,23 @@ async function harshAccelerationQuery(strDate, endDate, vehIDs) {
       },
 
       { $sort: { _id: 1 } },
-    ];
+    ]
     const result = await client
       .db('StageDB')
       .collection('LiveLocations')
       .aggregate(agg)
-      .toArray();
-    return result;
+      .toArray()
+    return result
   } catch (e) {
-    return e.message;
+    return e.message
   } finally {
-    await close();
+    await close()
   }
 }
 
 async function HarshBreakingQuery(strDate, endDate, vehIDs) {
   try {
-    await connect();
+    await connect()
     let agg = [
       {
         $match: {
@@ -78,23 +79,23 @@ async function HarshBreakingQuery(strDate, endDate, vehIDs) {
       },
 
       { $sort: { _id: 1 } },
-    ];
+    ]
 
     const result = await client
       .db('StageDB')
       .collection('LiveLocations')
       .aggregate(agg)
-      .toArray();
-    return result;
+      .toArray()
+    return result
   } catch (e) {
-    return e.message;
+    return e.message
   } finally {
-    await close();
+    await close()
   }
 }
 async function IsOverSpeedQuery(strDate, endDate, vehIDs) {
   try {
-    await connect();
+    await connect()
     let agg = [
       {
         $match: {
@@ -121,28 +122,28 @@ async function IsOverSpeedQuery(strDate, endDate, vehIDs) {
       },
 
       { $sort: { _id: 1 } },
-    ];
+    ]
     const result = await client
       .db('StageDB')
       .collection('LiveLocations')
       .aggregate(agg)
-      .toArray();
-    return result;
+      .toArray()
+    return result
   } catch (e) {
-    return e.message;
+    return e.message
   } finally {
-    await close();
+    await close()
   }
 }
 async function seatBeltQuery(strDate, endDate, vehIDs) {
   try {
-    await connect();
+    await connect()
     let agg = [
       {
         $match: {
           VehicleID: { $in: vehIDs },
           RecordDateTime: { $gte: new Date(strDate), $lte: new Date(endDate) },
-          StatusCode: { $bitsAllSet:[3] },
+          StatusCode: { $bitsAllSet: [3] },
         },
       },
       vehIDs.length > 1000
@@ -163,23 +164,23 @@ async function seatBeltQuery(strDate, endDate, vehIDs) {
       },
 
       { $sort: { _id: 1 } },
-    ];
+    ]
     const result = await client
       .db('StageDB')
       .collection('LiveLocations')
       .aggregate(agg)
-      .toArray();
-    return result;
+      .toArray()
+    return result
   } catch (e) {
-    return e.message;
+    return e.message
   } finally {
-    await close();
+    await close()
   }
 }
 
 async function nightDriveQuery(strDate, endDate, vehIDs) {
   try {
-    await connect();
+    await connect()
     let agg = [
       {
         $match: {
@@ -241,17 +242,17 @@ async function nightDriveQuery(strDate, endDate, vehIDs) {
         },
       },
       { $sort: { _id: 1 } },
-    ];
+    ]
     const result = await client
       .db('StageDB')
       .collection('LiveLocations')
       .aggregate(agg)
-      .toArray();
-    return result;
+      .toArray()
+    return result
   } catch (e) {
-    return e.message;
+    return e.message
   } finally {
-    await close();
+    await close()
   }
 }
 async function getUserVehiclesFMS() {
@@ -259,24 +260,24 @@ async function getUserVehiclesFMS() {
     headers: {
       Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImVhMjM3NWM3LWZkMjAtNDYyOC1hNDg0LTc1MWE2NTgyZTA1NiIsInVzZXJuYW1lIjoidGQiLCJleHAiOjE2NzY1MzYwMDYsImFjY291bnRJZCI6MzY2LCJyb2xlIjoidXNlciIsImlhdCI6MTY3MTM1MjAwNn0.HpEzqi1BcF4ZJyjqkDwUh0wcZt26beqkyPNXz91shfI`,
     },
-  };
+  }
   const data = await axios
     .get('https://api.v6.saferoad.net/dashboard/vehicles', config)
     .then((apiResponse) => {
       // process the response
-      return apiResponse.data.Vehicles.map((e) => e.VehicleID);
-    });
-  return data;
+      return apiResponse.data.Vehicles.map((e) => e.VehicleID)
+    })
+  return data
 }
 async function getusersvehIDs() {
-  let uservehIDs = await User.find({ role: 'trainer' }, { vid: 1, _id: 0 });
-  uservehIDs = uservehIDs.map((e) => e.vid);
-  return uservehIDs;
+  let uservehIDs = await User.find({ role: 'trainer' }, { vid: 1, _id: 0 })
+  uservehIDs = uservehIDs.map((e) => e.vid)
+  return uservehIDs
 }
 
 async function mainDashboardQuery(strDate, endDate, vehIDs) {
   try {
-    await connect();
+    await connect()
     let agg = [
       {
         $match: {
@@ -290,7 +291,7 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
       },
       {
         $addFields: {
-          harshAcceleration: {
+          HarshAcceleration: {
             $function: {
               body: `function(num, bit) {
                                     return ((num>>bit) % 2 != 0)
@@ -308,7 +309,7 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
               lang: 'js',
             },
           },
-          harshBrake: {
+          HarshBrake: {
             $function: {
               body: `function(num, bit) {
                                      return ((num>>bit) % 2 != 0)
@@ -375,28 +376,26 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
               },
             },
           },
-          SerialNumbers: {
-            $addToSet: "$SerialNumber"
-          },
-          Mileage: { $max: { $divide: ['$Mileage', 10000] } },
+          SerialNumber: { $first: '$SerialNumber' },
+          Mileage: { $max: { $divide: ['$Mileage', 1000] } },
         },
       },
-    ];
+    ]
     const result = await client
       .db('StageDB')
       .collection('LiveLocations')
       .aggregate(agg)
-      .toArray();
-    return result[0];
+      .toArray()
+    return result[0]
   } catch (e) {
-    return e.message;
+    return e.message
   } finally {
-    await close();
+    await close()
   }
 }
 async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
   try {
-    await connect();
+    await connect()
 
     let agg = [
       {
@@ -614,25 +613,25 @@ async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
           ],
         },
       },
-    ];
+    ]
     const result = await client
       .db('StageDB')
       .collection('LiveLocations')
       .aggregate(agg)
-      .toArray();
-    return result;
+      .toArray()
+    return result
   } catch (e) {
-    return e.message;
+    return e.message
   } finally {
-    await close();
+    await close()
   }
 }
 async function topDriversQuery(usersVehIds) {
   try {
-    await connect();
-    let strDate = new Date();
-    strDate.setDate(strDate.getDate() - 7);
-    let endDate = new Date();
+    await connect()
+    let strDate = new Date()
+    strDate.setDate(strDate.getDate() - 7)
+    let endDate = new Date()
 
     // aggregation query that take all the vehiclesids of the user and return data
     // based on the number of violations and the duration of the drive of the last 7 days
@@ -669,19 +668,19 @@ async function topDriversQuery(usersVehIds) {
           Duration: -1,
         },
       },
-    ];
+    ]
     const result = await client
       .db('StageDB')
       .collection('LiveLocations')
       .aggregate(agg)
-      .toArray();
+      .toArray()
     // take the top 3 drivers
-    const topDrivers = result.slice(0, 3);
-    return topDrivers;
+    const topDrivers = result.slice(0, 3)
+    return topDrivers
   } catch (e) {
-    return e.message;
+    return e.message
   } finally {
-    await close();
+    await close()
   }
 }
 async function getUserDetails(ids) {
@@ -700,15 +699,253 @@ async function getUserDetails(ids) {
           image: 1,
         },
       },
-    ];
+    ]
 
     const result = await configConnection
       .collection('users')
       .aggregate(agg)
-      .toArray();
-    return result;
+      .toArray()
+    return result
   } catch (error) {
-    await configConnection.close();
+    await configConnection.close()
+  }
+}
+
+async function getRatingsQuery(vehicles) {
+  try {
+    await connect()
+
+    let fourDays = new Date()
+    let endDateTime = new Date()
+    fourDays.setDate(endDateTime.getDate() - 3)
+
+    let agg = [
+      {
+        $match: {
+          VehicleID: { $in: vehicles },
+          RecordDateTime: { $gte: fourDays, $lte: endDateTime },
+          $or: [
+            { AlarmCode: { $bitsAnySet: [0, 1, 2] } },
+            { StatusCode: { $bitsAllSet: [3] } },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          harshAcceleration: {
+            $function: {
+              body: `function(num, bit) {
+                                    return ((num>>bit) % 2 != 0)
+                                }`,
+              args: ['$AlarmCode', 0],
+              lang: 'js',
+            },
+          },
+          IsOverSpeed: {
+            $function: {
+              body: `function(num, bit) {
+                                     return ((num>>bit) % 2 != 0)
+                                 }`,
+              args: ['$AlarmCode', 2],
+              lang: 'js',
+            },
+          },
+          harshBrake: {
+            $function: {
+              body: `function(num, bit) {
+                                     return ((num>>bit) % 2 != 0)
+                                 }`,
+              args: ['$AlarmCode', 1],
+              lang: 'js',
+            },
+          },
+          SeatBelt: {
+            $function: {
+              body: `function(num, bit) {
+                                     return ((num>>bit) % 2 != 0)
+                                 }`,
+              args: ['$StatusCode', 3],
+              lang: 'js',
+            },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            day: {
+              $cond: [
+                { $lt: [{ $dayOfMonth: '$RecordDateTime' }, 5] },
+                {
+                  $dateToString: {
+                    format: '%Y-%m-%d',
+                    date: '$RecordDateTime',
+                  },
+                },
+                {
+                  $dateToString: {
+                    format: '%Y-%m-%d',
+                    date: {
+                      $subtract: ['$RecordDateTime', 3 * 24 * 60 * 60 * 1000],
+                    },
+                  },
+                },
+              ],
+            },
+            VehicleID: '$VehicleID',
+          },
+          harshAcceleration: {
+            $sum: {
+              $cond: {
+                if: {
+                  $eq: ['$harshAcceleration', true],
+                },
+                then: 1,
+                else: 0,
+              },
+            },
+          },
+          OverSpeed: {
+            $sum: {
+              $cond: {
+                if: {
+                  $eq: ['$IsOverSpeed', true],
+                },
+                then: 1,
+                else: 0,
+              },
+            },
+          },
+          SeatBelt: {
+            $sum: {
+              $cond: {
+                if: {
+                  $eq: ['$SeatBelt', true],
+                },
+                then: 1,
+                else: 0,
+              },
+            },
+          },
+          harshBrake: {
+            $sum: {
+              $cond: {
+                if: {
+                  $eq: ['$harshBrake', true],
+                },
+                then: 1,
+                else: 0,
+              },
+            },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            day: '$_id.day',
+            VehicleID: '$_id.VehicleID',
+          },
+          harshAcceleration: { $sum: '$harshAcceleration' },
+          OverSpeed: { $sum: '$OverSpeed' },
+          SeatBelt: { $sum: '$SeatBelt' },
+          harshBrake: { $sum: '$harshBrake' },
+          total: {
+            $sum: {
+              $add: [
+                '$harshAcceleration',
+                '$OverSpeed',
+                '$SeatBelt',
+                '$harshBrake',
+              ],
+            },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: '$_id.day',
+          data: {
+            $push: {
+              VehicleID: '$_id.VehicleID',
+              value: {
+                $sum: {
+                  $add: [
+                    '$harshAcceleration',
+                    '$OverSpeed',
+                    '$SeatBelt',
+                    '$harshBrake',
+                  ],
+                },
+              },
+            },
+          },
+          total: {
+            $sum: {
+              $add: [
+                '$harshAcceleration',
+                '$OverSpeed',
+                '$SeatBelt',
+                '$harshBrake',
+              ],
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          positive: {
+            $reduce: {
+              input: '$data',
+              initialValue: 0,
+              in: {
+                $cond: {
+                  if: {
+                    $lt: ['$$this.value', { $divide: ['$total', 2] }],
+                  },
+                  then: { $add: ['$$value', 1] },
+                  else: '$$value',
+                },
+              },
+            },
+          },
+          negative: {
+            $reduce: {
+              input: '$data',
+              initialValue: 0,
+              in: {
+                $cond: {
+                  if: {
+                    $gt: ['$$this.value', { $divide: ['$total', 2] }],
+                  },
+                  then: { $add: ['$$value', 1] },
+                  else: '$$value',
+                },
+              },
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          day: '$_id',
+          positive: 1,
+          negative: 1,
+        },
+      },
+    ]
+
+    const result = await client
+      .db('StageDB')
+      .collection('LiveLocations')
+      .aggregate(agg)
+      .toArray()
+    return result
+  } catch (e) {
+    return e.message
+  } finally {
+    await close()
   }
 }
 
@@ -724,4 +961,5 @@ module.exports = {
   nightDriveQuery,
   getUserDetails,
   topDriversQuery,
-};
+  getRatingsQuery,
+}
