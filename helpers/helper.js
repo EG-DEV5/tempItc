@@ -142,7 +142,7 @@ async function seatBeltQuery(strDate, endDate, vehIDs) {
         $match: {
           VehicleID: { $in: vehIDs },
           RecordDateTime: { $gte: new Date(strDate), $lte: new Date(endDate) },
-          StatusCode: { $bitsAllSet: [3] },
+          StatusCode: { $bitsAllSet:[3] },
         },
       },
       vehIDs.length > 1000
@@ -276,6 +276,7 @@ async function getusersvehIDs() {
 
 async function mainDashboardQuery(strDate, endDate, vehIDs) {
   try {
+    await connect();
     let agg = [
       {
         $match: {
@@ -378,15 +379,15 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
           Mileage: { $max: { $divide: ['$Mileage', 1000] } },
         },
       },
-    ]
+    ];
     const result = await client
       .db('StageDB')
       .collection('LiveLocations')
       .aggregate(agg)
-      .toArray()
-    return result
+      .toArray();
+    return result;
   } catch (e) {
-    return e.message
+    return e.message;
   } finally {
     await close();
   }
@@ -624,7 +625,63 @@ async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
     await close();
   }
 }
+async function topDriversQuery(usersVehIds) {
+  try {
+    await connect();
+    let strDate = new Date();
+    strDate.setDate(strDate.getDate() - 7);
+    let endDate = new Date();
 
+    // aggregation query that take all the vehiclesids of the user and return data
+    // based on the number of violations and the duration of the drive of the last 7 days
+    let agg = [
+      {
+        $match: {
+          VehicleID: { $in: usersVehIds },
+          RecordDateTime: {
+            $gte: new Date(strDate),
+            $lte: new Date(endDate),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: '$VehicleID',
+          count: {
+            $sum: {
+              $cond: {
+                if: {
+                  $gte: ['$AlarmCode', 0],
+                },
+                then: 1,
+                else: 0,
+              },
+            },
+          },
+          Duration: { $sum: '$Duration' },
+        },
+      },
+      {
+        $sort: {
+          count: 1,
+          Duration: -1,
+        },
+      },
+    ];
+    const result = await client
+      .db('StageDB')
+      .collection('LiveLocations')
+      .aggregate(agg)
+      .toArray();
+    // take the top 3 drivers
+    const topDrivers = result.slice(0, 3);
+    return topDrivers;
+  } catch (e) {
+    return e.message;
+  } finally {
+    await close();
+  }
+}
 async function getUserDetails(ids) {
   try {
     const agg = [
@@ -664,4 +721,5 @@ module.exports = {
   vehicleViolationsQuery,
   nightDriveQuery,
   getUserDetails,
+  topDriversQuery,
 };
