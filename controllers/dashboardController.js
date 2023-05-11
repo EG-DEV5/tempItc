@@ -17,6 +17,7 @@ const {
   getUserDetails,
   topDriversQuery,
   getusersvehIDs,
+  getRatingsQuery,
 } = require('../helpers/helper')
 
 const harshAcceleration = async (req, res) => {
@@ -33,6 +34,7 @@ const harshAcceleration = async (req, res) => {
   }
   res.status(200).json({ result })
 }
+
 const HarshBreaking = async (req, res) => {
   // const data = await getusersVhs();
   let { strDate, endDate, vehIDs } = req.query
@@ -47,6 +49,7 @@ const HarshBreaking = async (req, res) => {
   }
   res.status(200).json({ result })
 }
+
 const IsOverSpeed = async (req, res) => {
   // const data = await getusersVhs();
   let { strDate, endDate, vehIDs } = req.query
@@ -61,6 +64,7 @@ const IsOverSpeed = async (req, res) => {
   }
   res.status(200).json({ result })
 }
+
 const seatBelt = async (req, res) => {
   // const vhs = await getusersVhs();
   let { strDate, endDate, vehIDs } = req.query
@@ -102,21 +106,20 @@ const mainDashboard = async (req, res) => {
 
     let result = await mainDashboardQuery(startDate, endDate, validVids)
 
-    // const vehiclesSerial = result.map((vehicle) => vehicle.SerialNumber)
-
     const requests = result.SerialNumbers.map((serialNumber) => {
-      return axios.get(`https://saferoad-srialfb.firebaseio.com/${serialNumber}.json`)
+      return axios.get(
+        `https://saferoad-srialfb.firebaseio.com/${serialNumber}.json`
+      )
     })
 
     let online = 0
     let offline = 0
 
-
     Promise.all(requests)
       .then((responses) => {
         responses.forEach((response) => {
-            if (response.data.EngineStatus) ++online
-            else ++offline
+          if (response.data.EngineStatus) ++online
+          else ++offline
         })
       })
       .catch((error) => {
@@ -146,11 +149,13 @@ const nightDriving = async (req, res) => {
   }
   res.send({ result })
 }
+
 const sharpTurns = (req, res) => {
   res.status(200).json({
     result: [],
   })
 }
+
 const vehicleViolations = async (req, res, next) => {
   let { strDate, endDate, vehIDs } = req.query
   try {
@@ -225,7 +230,7 @@ const bestDrivers = async (req, res, next) => {
     // get all users veh ids
     const usersVehIds = await getusersvehIDs()
     // get top drivers from the last 7 days
-    let result  = await topDriversQuery(usersVehIds)
+    let result = await topDriversQuery(usersVehIds)
 
     if (!result) {
       throw new CustomError.BadRequestError(
@@ -233,21 +238,37 @@ const bestDrivers = async (req, res, next) => {
       )
     }
     //  extract top drivers ids
-    const topArray = result.map((vehs)=>{
+    const topArray = result.map((vehs) => {
       return vehs._id
     })
     // get top drivers details
     const usersDetails = await getUserDetails(topArray)
 
     if (usersDetails) {
-      return res.status(200).json( {result:usersDetails})
+      return res.status(200).json({ result: usersDetails })
     }
-
-  
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json()
   }
 }
+
+const getRatings = async (req, res) => {
+  try {
+    const vehicles = await User.find(
+      { vid: { $ne: null, $exists: true } },
+      { vid: 1 }
+    )
+
+    const validVids = vehicles.map((vehicle) => vehicle.vid)
+
+    const result = await getRatingsQuery(validVids)
+
+    return res.status(StatusCodes.OK).json({ result })
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json()
+  }
+}
+
 module.exports = {
   mainDashboard,
   HarshBreaking,
@@ -257,5 +278,6 @@ module.exports = {
   sharpTurns,
   seatBelt,
   vehicleViolations,
-  bestDrivers
+  bestDrivers,
+  getRatings,
 }
