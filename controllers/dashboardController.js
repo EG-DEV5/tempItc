@@ -229,7 +229,6 @@ const vehicleViolations = async (req, res, next) => {
 }
 
 const bestDrivers = async (req, res, next) => {
-  console.log(req.user)
   try {
     // get all users veh ids
     const usersVehIds = await getusersvehIDs()
