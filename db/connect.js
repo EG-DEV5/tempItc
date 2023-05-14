@@ -8,8 +8,13 @@ const connectDB = (url) => {
     .catch((error) => console.log(error.message));
 };
 
+const options = {
+  connectTimeoutMS: 10000, // Set the connection timeout to 5000 milliseconds (5 seconds)
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+}
 const uri = process.env.MONGO_LIVELOCS;
-const client = new MongoClient(uri);
+const client = new MongoClient(uri, options);
 
 async function connect() {
   await client.connect();
