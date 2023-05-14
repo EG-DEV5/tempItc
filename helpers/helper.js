@@ -376,7 +376,9 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
               },
             },
           },
-          SerialNumber: { $first: '$SerialNumber' },
+          SerialNumbers: {
+            $addToSet: "$SerialNumber"
+          },
           Mileage: { $max: { $divide: ['$Mileage', 1000] } },
         },
       },
