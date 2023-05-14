@@ -377,7 +377,7 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
             },
           },
           SerialNumbers: {
-            $addToSet: "$SerialNumber"
+            $addToSet: '$SerialNumber',
           },
           Mileage: { $max: { $divide: ['$Mileage', 1000] } },
         },
@@ -395,7 +395,7 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
     await close()
   }
 }
-async function vehicleViolationsQuery(strDate, endDate,validVids) {
+async function vehicleViolationsQuery(strDate, endDate, validVids) {
   try {
     await connect()
 
@@ -777,7 +777,12 @@ async function getRatingsQuery(vehicles) {
           _id: {
             day: {
               $cond: [
-                { $eq: [{ $dayOfMonth: "$RecordDateTime" }, { $dayOfMonth: "$RecordDateTime" }] },
+                {
+                  $eq: [
+                    { $dayOfMonth: '$RecordDateTime' },
+                    { $dayOfMonth: '$RecordDateTime' },
+                  ],
+                },
                 {
                   $dateToString: {
                     format: '%Y-%m-%d',
@@ -939,8 +944,256 @@ async function getRatingsQuery(vehicles) {
       {
         $sort: {
           day: 1,
-        }
-      }
+        },
+      },
+    ]
+
+    const result = await client
+      .db('StageDB')
+      .collection('LiveLocations')
+      .aggregate(agg)
+      .toArray()
+    return result
+  } catch (e) {
+    return e.message
+  } finally {
+    await close()
+  }
+}
+
+async function getRatingsQueryById(id) {
+  try {
+    await connect()
+
+    let fourDays = new Date()
+    let endDateTime = new Date()
+    fourDays.setDate(endDateTime.getDate() - 3)
+
+    let agg = [
+      {
+        $match: {
+          VehicleID: +id ,
+          RecordDateTime: { $gte: fourDays, $lte: endDateTime },
+          $or: [
+            { AlarmCode: { $bitsAnySet: [0, 1, 2] } },
+            { StatusCode: { $bitsAllSet: [3] } },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          harshAcceleration: {
+            $function: {
+              body: `function(num, bit) {
+                                    return ((num>>bit) % 2 != 0)
+                                }`,
+              args: ['$AlarmCode', 0],
+              lang: 'js',
+            },
+          },
+          IsOverSpeed: {
+            $function: {
+              body: `function(num, bit) {
+                                     return ((num>>bit) % 2 != 0)
+                                 }`,
+              args: ['$AlarmCode', 2],
+              lang: 'js',
+            },
+          },
+          harshBrake: {
+            $function: {
+              body: `function(num, bit) {
+                                     return ((num>>bit) % 2 != 0)
+                                 }`,
+              args: ['$AlarmCode', 1],
+              lang: 'js',
+            },
+          },
+          SeatBelt: {
+            $function: {
+              body: `function(num, bit) {
+                                     return ((num>>bit) % 2 != 0)
+                                 }`,
+              args: ['$StatusCode', 3],
+              lang: 'js',
+            },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            day: {
+              $cond: [
+                {
+                  $eq: [
+                    { $dayOfMonth: '$RecordDateTime' },
+                    { $dayOfMonth: '$RecordDateTime' },
+                  ],
+                },
+                {
+                  $dateToString: {
+                    format: '%Y-%m-%d',
+                    date: '$RecordDateTime',
+                  },
+                },
+                {
+                  $dateToString: {
+                    format: '%Y-%m-%d',
+                    date: {
+                      $subtract: ['$RecordDateTime', 3 * 24 * 60 * 60 * 1000],
+                    },
+                  },
+                },
+              ],
+            },
+            VehicleID: '$VehicleID',
+          },
+          harshAcceleration: {
+            $sum: {
+              $cond: {
+                if: {
+                  $eq: ['$harshAcceleration', true],
+                },
+                then: 1,
+                else: 0,
+              },
+            },
+          },
+          OverSpeed: {
+            $sum: {
+              $cond: {
+                if: {
+                  $eq: ['$IsOverSpeed', true],
+                },
+                then: 1,
+                else: 0,
+              },
+            },
+          },
+          SeatBelt: {
+            $sum: {
+              $cond: {
+                if: {
+                  $eq: ['$SeatBelt', true],
+                },
+                then: 1,
+                else: 0,
+              },
+            },
+          },
+          harshBrake: {
+            $sum: {
+              $cond: {
+                if: {
+                  $eq: ['$harshBrake', true],
+                },
+                then: 1,
+                else: 0,
+              },
+            },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            day: '$_id.day',
+            VehicleID: '$_id.VehicleID',
+          },
+          harshAcceleration: { $sum: '$harshAcceleration' },
+          OverSpeed: { $sum: '$OverSpeed' },
+          SeatBelt: { $sum: '$SeatBelt' },
+          harshBrake: { $sum: '$harshBrake' },
+          total: {
+            $sum: {
+              $add: [
+                '$harshAcceleration',
+                '$OverSpeed',
+                '$SeatBelt',
+                '$harshBrake',
+              ],
+            },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: '$_id.day',
+          data: {
+            $push: {
+              VehicleID: '$_id.VehicleID',
+              value: {
+                $sum: {
+                  $add: [
+                    '$harshAcceleration',
+                    '$OverSpeed',
+                    '$SeatBelt',
+                    '$harshBrake',
+                  ],
+                },
+              },
+            },
+          },
+          total: {
+            $sum: {
+              $add: [
+                '$harshAcceleration',
+                '$OverSpeed',
+                '$SeatBelt',
+                '$harshBrake',
+              ],
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          positive: {
+            $reduce: {
+              input: '$data',
+              initialValue: 0,
+              in: {
+                $cond: {
+                  if: {
+                    $lt: ['$$this.value', { $divide: ['$total', 2] }],
+                  },
+                  then: { $add: ['$$value', 1] },
+                  else: '$$value',
+                },
+              },
+            },
+          },
+          negative: {
+            $reduce: {
+              input: '$data',
+              initialValue: 0,
+              in: {
+                $cond: {
+                  if: {
+                    $gt: ['$$this.value', { $divide: ['$total', 2] }],
+                  },
+                  then: { $add: ['$$value', 1] },
+                  else: '$$value',
+                },
+              },
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          day: '$_id',
+          positive: 1,
+          negative: 1,
+        },
+      },
+      {
+        $sort: {
+          day: 1,
+        },
+      },
     ]
 
     const result = await client
@@ -969,4 +1222,5 @@ module.exports = {
   getUserDetails,
   topDriversQuery,
   getRatingsQuery,
+  getRatingsQueryById
 }

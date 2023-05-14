@@ -18,6 +18,7 @@ const {
   topDriversQuery,
   getusersvehIDs,
   getRatingsQuery,
+  getRatingsQueryById,
 } = require('../helpers/helper')
 
 const harshAcceleration = async (req, res) => {
@@ -212,6 +213,23 @@ const bestDrivers = async (req, res, next) => {
   }
 }
 
+const getRatingsById = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    let result = await getRatingsQueryById(id)
+     // loop over the result array and convert the day to the day name
+     result = result.map((item) => {
+      const date = new Date(item.day)
+      const day = date.toLocaleString('default', { weekday: 'long' })
+      return { ...item, day }
+    })
+
+    return res.status(StatusCodes.OK).json({ result })
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json()
+  }
+}
 const getRatings = async (req, res) => {
   try {
     const vehicles = await User.find(
@@ -246,4 +264,5 @@ module.exports = {
   vehicleViolations,
   bestDrivers,
   getRatings,
+  getRatingsById
 }
