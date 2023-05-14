@@ -17,10 +17,12 @@ const {
   vehicleViolations,
   bestDrivers,
   getRatings,
+  getRatingsById
 } = require('../controllers/dashboardController')
 
 router.get('/mainDashboard', authenticateUser, mainDashboard)
 router.get('/ratings', authenticateUser, getRatings)
+router.get('/ratings/:id', authenticateUser, getRatingsById)
 router.get('/violations', authenticateUser, vehicleViolations)
 router.get('/topDrivers', authenticateUser, bestDrivers)
 router.get('/harshAcceleration', authenticateUser, harshAcceleration)
