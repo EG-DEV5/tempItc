@@ -157,69 +157,29 @@ const sharpTurns = (req, res) => {
 }
 
 const vehicleViolations = async (req, res, next) => {
-  let { strDate, endDate, vehIDs } = req.query
   try {
-    if (vehIDs || vehIDs == 'string') {
-      vehIDs = JSON.parse(vehIDs)
-    }
-
-    let [{ result, totalViolation }] = await vehicleViolationsQuery(
-      strDate,
-      endDate,
-      vehIDs
+    const strDate = new Date()
+    const endDate = new Date()
+    strDate.setDate(strDate.getDate() - 7)
+    const vehicles = await User.find(
+      { vid: { $ne: null, $exists: true } },
+      { vid: 1 }
     )
 
-    if (!result) {
+    const validVids = vehicles.map((vehicle) => vehicle.vid)
+
+    let totalViolation = await vehicleViolationsQuery(
+      strDate,
+      endDate,
+      validVids
+    )
+    if (!totalViolation) {
       throw new CustomError.BadRequestError(
         '{"enMessage" : "there is no data in this period", "arMessage" :"لا توجد بيانات فى هذه الفترة"}'
       )
-    }
+    }    
+    res.status(StatusCodes.OK).json({ ...totalViolation[0]})
 
-    const usersDetails = await getUserDetails(vehIDs)
-
-    if (usersDetails) {
-      result.map((res) => {
-        const userDetails = usersDetails.find((user) => user.vid == res._id)
-
-        if (userDetails) return Object.assign(res, userDetails)
-
-        return res
-      })
-    }
-
-    const vehiclesSerial = result.map((vehicle) => vehicle.SerialNumber)
-
-    const requests = vehiclesSerial.map((serialNumber) => {
-      const url = `https://saferoad-srialfb.firebaseio.com/${serialNumber}.json`
-      return axios.get(url)
-    })
-
-    let online = 0
-    let offline = 0
-
-    Promise.all(requests)
-      .then((responses) => {
-        responses.forEach((response) => {
-          const vehicle = result.find(
-            (vehicle) => vehicle.SerialNumber == response.data.SerialNumber
-          )
-          if (vehicle) {
-            if (response.data.EngineStatus) ++online
-            else ++offline
-            vehicle.EngineStatus = response.data.EngineStatus
-          }
-        })
-      })
-      .catch((error) => {
-        console.error(error)
-        res.status(500).send('An error occurred')
-      })
-      .finally(() => {
-        res.status(StatusCodes.OK).json({
-          result,
-          totalViolation: { ...totalViolation[0], online, offline },
-        })
-      })
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json()
   }
@@ -261,7 +221,13 @@ const getRatings = async (req, res) => {
 
     const validVids = vehicles.map((vehicle) => vehicle.vid)
 
-    const result = await getRatingsQuery(validVids)
+    let result = await getRatingsQuery(validVids)
+     // loop over the result array and convert the day to the day name
+     result = result.map((item) => {
+      const date = new Date(item.day)
+      const day = date.toLocaleString('default', { weekday: 'long' })
+      return { ...item, day }
+    })
 
     return res.status(StatusCodes.OK).json({ result })
   } catch (error) {
