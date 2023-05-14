@@ -261,7 +261,13 @@ const getRatings = async (req, res) => {
 
     const validVids = vehicles.map((vehicle) => vehicle.vid)
 
-    const result = await getRatingsQuery(validVids)
+    let result = await getRatingsQuery(validVids)
+     // loop over the result array and convert the day to the day name
+     result = result.map((item) => {
+      const date = new Date(item.day)
+      const day = date.toLocaleString('default', { weekday: 'long' })
+      return { ...item, day }
+    })
 
     return res.status(StatusCodes.OK).json({ result })
   } catch (error) {
