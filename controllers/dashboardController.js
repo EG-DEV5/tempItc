@@ -131,6 +131,10 @@ const mainDashboard = async (req, res) => {
         res.status(200).json({ ...result, online, offline })
       })
   } catch (error) {
+    console.log(
+      '🚀 ~ file: dashboardController.js:134 ~ mainDashboard ~ error:',
+      error
+    )
     return res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
       .json({ message: 'Something went wrong' })
@@ -180,7 +184,7 @@ const vehicleViolations = async (req, res, next) => {
       validVids = allVehicles.map((vehicle) => vehicle.vid)
     }
 
-    let [{ result,totalViolation }] = await vehicleViolationsQuery(
+    let [{ result, totalViolation }] = await vehicleViolationsQuery(
       strDate,
       endDate,
       validVids
@@ -193,37 +197,39 @@ const vehicleViolations = async (req, res, next) => {
     if (userId) {
       const SerialNumbers = result.map((vehicle) => vehicle.SerialNumber[0])
 
-    const requests = SerialNumbers.map((SerialNumber) => {
-      const url = `https://saferoad-srialfb.firebaseio.com/${SerialNumber}.json`
-      return axios.get(url)
-    })
-    let online = 0
-    let offline = 0
+      const requests = SerialNumbers.map((SerialNumber) => {
+        const url = `https://saferoad-srialfb.firebaseio.com/${SerialNumber}.json`
+        return axios.get(url)
+      })
+      let online = 0
+      let offline = 0
 
-    Promise.all(requests)
-      .then((responses) => {
-        responses.forEach((response) => {
-          const vehicle = result.find(
-            (vehicle) => vehicle.SerialNumber == response.data.SerialNumber
-          )
-          if (vehicle) {
-            if (response.data.EngineStatus) ++online
-            else ++offline
-            vehicle.EngineStatus = response.data.EngineStatus
-          }
+      Promise.all(requests)
+        .then((responses) => {
+          responses.forEach((response) => {
+            const vehicle = result.find(
+              (vehicle) => vehicle.SerialNumber == response.data.SerialNumber
+            )
+            if (vehicle) {
+              if (response.data.EngineStatus) ++online
+              else ++offline
+              vehicle.EngineStatus = response.data.EngineStatus
+            }
+          })
         })
-      })
-      .catch((error) => {
-        console.error(error)
-        res.status(500).send('An error occurred')
-      })
-      .finally(() => {
-        res.status(StatusCodes.OK).json({
-          totalViolation: { ...totalViolation[0], online, offline },
+        .catch((error) => {
+          console.error(error)
+          res.status(500).send('An error occurred')
         })
-      })
-    } else {  
-      return res.status(StatusCodes.OK).json({  totalViolation: { ...totalViolation[0]}})
+        .finally(() => {
+          res.status(StatusCodes.OK).json({
+            totalViolation: { ...totalViolation[0], online, offline },
+          })
+        })
+    } else {
+      return res
+        .status(StatusCodes.OK)
+        .json({ totalViolation: { ...totalViolation[0] } })
     }
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(error.message)
