@@ -479,74 +479,74 @@ async function vehicleViolationsQuery(strDate, endDate, validVids) {
 
       {
         $facet: {
-          // result: [
-          //   {
-          //     $group: {
-          //       _id: '$VehicleID',
-          //       harshAcceleration: {
-          //         $sum: {
-          //           $cond: {
-          //             if: {
-          //               $eq: ['$harshAcceleration', true],
-          //             },
-          //             then: 1,
-          //             else: 0,
-          //           },
-          //         },
-          //       },
-          //       OverSpeed: {
-          //         $sum: {
-          //           $cond: {
-          //             if: {
-          //               $eq: ['$IsOverSpeed', true],
-          //             },
-          //             then: 1,
-          //             else: 0,
-          //           },
-          //         },
-          //       },
-          //       SeatBelt: {
-          //         $sum: {
-          //           $cond: {
-          //             if: {
-          //               $eq: ['$SeatBelt', true],
-          //             },
-          //             then: 1,
-          //             else: 0,
-          //           },
-          //         },
-          //       },
-          //       harshBrake: {
-          //         $sum: {
-          //           $cond: {
-          //             if: {
-          //               $eq: ['$harshBrake', true],
-          //             },
-          //             then: 1,
-          //             else: 0,
-          //           },
-          //         },
-          //       },
-          //       nightDrive: {
-          //         $sum: {
-          //           $cond: [
-          //             {
-          //               $and: [
-          //                 { $gte: ['$RecordDateTime', '$startnight'] },
-          //                 { $lte: ['$RecordDateTime', '$endnight'] },
-          //               ],
-          //             },
-          //             1,
-          //             0,
-          //           ],
-          //         },
-          //       },
-          //       Mileage: { $max: { $divide: ['$Mileage', 1000] } },
-          //       SerialNumber: { $first: '$SerialNumber' },
-          //     },
-          //   },
-          //   { $sort: { OverSpeed: 1 } },
-          // ],
+          result: [
+            {
+              $group: {
+                _id: '$VehicleID',
+                harshAcceleration: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$harshAcceleration', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                OverSpeed: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$IsOverSpeed', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                SeatBelt: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$SeatBelt', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                harshBrake: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$harshBrake', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                nightDrive: {
+                  $sum: {
+                    $cond: [
+                      {
+                        $and: [
+                          { $gte: ['$RecordDateTime', '$startnight'] },
+                          { $lte: ['$RecordDateTime', '$endnight'] },
+                        ],
+                      },
+                      1,
+                      0,
+                    ],
+                  },
+                },
+                Mileage: { $max: { $divide: ['$Mileage', 1000] } },
+                SerialNumber: { $addToSet: '$SerialNumber' },
+              },
+            },
+            { $sort: { OverSpeed: 1 } },
+          ],
           totalViolation: [
             {
               $group: {

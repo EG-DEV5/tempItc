@@ -159,17 +159,28 @@ const sharpTurns = (req, res) => {
 
 const vehicleViolations = async (req, res, next) => {
   try {
+    const { userId } = req.query
+    let allVehicles
+    let validVids
     const strDate = new Date()
     const endDate = new Date()
     strDate.setDate(strDate.getDate() - 7)
-    const vehicles = await User.find(
-      { vid: { $ne: null, $exists: true } },
-      { vid: 1 }
-    )
 
-    const validVids = vehicles.map((vehicle) => vehicle.vid)
+    if (userId) {
+      allVehicles = await User.find(
+        { custodyId: userId, vid: { $ne: null, $exists: true } },
+        { vid: 1 }
+      )
+      validVids = allVehicles.map((vehicle) => vehicle.vid)
+    } else {
+      allVehicles = await User.find(
+        { vid: { $ne: null, $exists: true } },
+        { vid: 1 }
+      )
+      validVids = allVehicles.map((vehicle) => vehicle.vid)
+    }
 
-    let totalViolation = await vehicleViolationsQuery(
+    let [{ result,totalViolation }] = await vehicleViolationsQuery(
       strDate,
       endDate,
       validVids
@@ -178,12 +189,51 @@ const vehicleViolations = async (req, res, next) => {
       throw new CustomError.BadRequestError(
         '{"enMessage" : "there is no data in this period", "arMessage" :"لا توجد بيانات فى هذه الفترة"}'
       )
-    }    
-    res.status(StatusCodes.OK).json({ ...totalViolation[0]})
+    }
+    if (userId) {
+      const SerialNumbers = result.map((vehicle) => vehicle.SerialNumber[0])
 
+    const requests = SerialNumbers.map((SerialNumber) => {
+      const url = `https://saferoad-srialfb.firebaseio.com/${SerialNumber}.json`
+      return axios.get(url)
+    })
+    let online = 0
+    let offline = 0
+
+    Promise.all(requests)
+      .then((responses) => {
+        responses.forEach((response) => {
+          const vehicle = result.find(
+            (vehicle) => vehicle.SerialNumber == response.data.SerialNumber
+          )
+          if (vehicle) {
+            if (response.data.EngineStatus) ++online
+            else ++offline
+            vehicle.EngineStatus = response.data.EngineStatus
+          }
+        })
+      })
+      .catch((error) => {
+        console.error(error)
+        res.status(500).send('An error occurred')
+      })
+      .finally(() => {
+        res.status(StatusCodes.OK).json({
+          totalViolation: { ...totalViolation[0], online, offline },
+        })
+      })
+    } else {  
+      return res.status(StatusCodes.OK).json({  totalViolation: { ...totalViolation[0]}})
+    }
   } catch (error) {
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json()
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(error.message)
   }
+  // .finally(() => {
+  //   res.status(StatusCodes.OK).json({
+  //     result,
+  //     totalViolation: { ...totalViolation[0], online, offline },
+  //   })
+  // })
 }
 
 const bestDrivers = async (req, res, next) => {
@@ -209,7 +259,7 @@ const bestDrivers = async (req, res, next) => {
       return res.status(200).json({ result: usersDetails })
     }
   } catch (error) {
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json()
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(error.message)
   }
 }
 
@@ -218,8 +268,8 @@ const getRatingsById = async (req, res) => {
     const { id } = req.params
 
     let result = await getRatingsQueryById(id)
-     // loop over the result array and convert the day to the day name
-     result = result.map((item) => {
+    // loop over the result array and convert the day to the day name
+    result = result.map((item) => {
       const date = new Date(item.day)
       const day = date.toLocaleString('default', { weekday: 'long' })
       return { ...item, day }
@@ -240,8 +290,8 @@ const getRatings = async (req, res) => {
     const validVids = vehicles.map((vehicle) => vehicle.vid)
 
     let result = await getRatingsQuery(validVids)
-     // loop over the result array and convert the day to the day name
-     result = result.map((item) => {
+    // loop over the result array and convert the day to the day name
+    result = result.map((item) => {
       const date = new Date(item.day)
       const day = date.toLocaleString('default', { weekday: 'long' })
       return { ...item, day }
@@ -264,5 +314,5 @@ module.exports = {
   vehicleViolations,
   bestDrivers,
   getRatings,
-  getRatingsById
+  getRatingsById,
 }
