@@ -201,7 +201,9 @@ const vehicleViolations = async (req, res, next) => {
       }
     })
 
-    return res.status(StatusCodes.OK).json({ result, totalViolation })
+    return res
+      .status(StatusCodes.OK)
+      .json({ result, totalViolation: totalViolation[0] })
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json()
   }
