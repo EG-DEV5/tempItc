@@ -98,7 +98,7 @@ const mainDashboard = async (req, res) => {
   try {
     const startDate = new Date()
     const endDate = new Date()
-    startDate.setDate(startDate.getDate() - 7)
+    startDate.setDate(startDate.getDate() - 1)
 
     const vehicles = await User.find(
       { vid: { $ne: null, $exists: true } },
