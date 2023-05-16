@@ -98,7 +98,7 @@ const mainDashboard = async (req, res) => {
   try {
     const startDate = new Date()
     const endDate = new Date()
-    startDate.setDate(startDate.getDate() - 7)
+    startDate.setDate(startDate.getDate() - 1)
 
     const vehicles = await User.find(
       { vid: { $ne: null, $exists: true } },
@@ -217,7 +217,7 @@ const vehicleViolationsById = async (req, res, next) => {
     let totalViolation
     const strDate = new Date()
     const endDate = new Date()
-    strDate.setDate(strDate.getDate() - 7)
+    strDate.setDate(strDate.getDate() - 1)
     // handle user violation (trainee)
     if (userId) {
       // get the user data
@@ -280,7 +280,7 @@ const vehicleViolationsById = async (req, res, next) => {
       .finally(() => {
         res.status(StatusCodes.OK).json({
           result,
-          users: allVehicles,
+          ...(userId ? { users: allVehicles } : []),
           totalViolation: { ...totalViolation[0], online, offline },
         })
       })
@@ -293,7 +293,7 @@ const bestDrivers = async (req, res, next) => {
   try {
     // get all users veh ids
     const usersVehIds = await getusersvehIDs()
-    // get top drivers from the last 7 days
+    // get top drivers from the last 24 hours
     let result = await topDriversQuery(usersVehIds)
 
     if (!result) {

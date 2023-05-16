@@ -1124,11 +1124,11 @@ async function topDriversQuery(usersVehIds) {
   try {
     await connect()
     let strDate = new Date()
-    strDate.setDate(strDate.getDate() - 7)
+    strDate.setDate(strDate.getDate() - 1)
     let endDate = new Date()
 
     // aggregation query that take all the vehiclesids of the user and return data
-    // based on the number of violations and the duration of the drive of the last 7 days
+    // based on the number of violations and the duration of the drive of the last 24 hours
     let agg = [
       {
         $match: {
@@ -1172,6 +1172,7 @@ async function topDriversQuery(usersVehIds) {
     const topDrivers = result.slice(0, 3)
     return topDrivers
   } catch (e) {
+    console.log(e)
     return e.message
   } finally {
     await close()
@@ -1209,15 +1210,15 @@ async function getRatingsQuery(vehicles) {
   try {
     await connect()
 
-    let fourDays = new Date()
+    let strDate = new Date()
     let endDateTime = new Date()
-    fourDays.setDate(endDateTime.getDate() - 3)
+    strDate.setDate(endDateTime.getDate() - 1)
 
     let agg = [
       {
         $match: {
           VehicleID: { $in: vehicles },
-          RecordDateTime: { $gte: fourDays, $lte: endDateTime },
+          RecordDateTime: { $gte: strDate, $lte: endDateTime },
           $or: [
             { AlarmCode: { $bitsAnySet: [0, 1, 2] } },
             { StatusCode: { $bitsAllSet: [3] } },
@@ -1457,15 +1458,15 @@ async function getRatingsQueryById(id) {
   try {
     await connect()
 
-    let fourDays = new Date()
+    let strDate = new Date()
     let endDateTime = new Date()
-    fourDays.setDate(endDateTime.getDate() - 3)
+    strDate.setDate(endDateTime.getDate() - 1)
 
     let agg = [
       {
         $match: {
           VehicleID: +id,
-          RecordDateTime: { $gte: fourDays, $lte: endDateTime },
+          RecordDateTime: { $gte: strDate, $lte: endDateTime },
           $or: [
             { AlarmCode: { $bitsAnySet: [0, 1, 2] } },
             { StatusCode: { $bitsAllSet: [3] } },
