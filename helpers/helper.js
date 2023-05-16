@@ -432,7 +432,235 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
     await close()
   }
 }
-async function vehicleViolationsQuery(strDate, endDate, validVids) {
+async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
+  try {
+    await connect()
+
+    let agg = [
+      {
+        $match: {
+          VehicleID: { $in: vehIDs },
+          RecordDateTime: {
+            $gte: new Date(strDate),
+            $lte: new Date(endDate),
+          },
+        },
+      },
+      {
+        $addFields: {
+          harshAcceleration: {
+            $function: {
+              body: `function(num, bit) {
+                                   return ((num>>bit) % 2 != 0)
+                               }`,
+              args: ['$AlarmCode', 0],
+              lang: 'js',
+            },
+          },
+          IsOverSpeed: {
+            $function: {
+              body: `function(num, bit) {
+                                    return ((num>>bit) % 2 != 0)
+                                }`,
+              args: ['$AlarmCode', 2],
+              lang: 'js',
+            },
+          },
+          harshBrake: {
+            $function: {
+              body: `function(num, bit) {
+                                    return ((num>>bit) % 2 != 0)
+                                }`,
+              args: ['$AlarmCode', 1],
+              lang: 'js',
+            },
+          },
+          SeatBelt: {
+            $function: {
+              body: `function(num, bit) {
+                                    return ((num>>bit) % 2 != 0)
+                                }`,
+              args: ['$StatusCode', 3],
+              lang: 'js',
+            },
+          },
+          startnight: {
+            $function: {
+              body: `function(dateTime) {
+                                    let start = new Date(dateTime);
+                                    start.setHours(16,0,0,0);
+                                   return start
+                                }`,
+              args: ['$RecordDateTime'],
+              lang: 'js',
+            },
+          },
+          endnight: {
+            $function: {
+              body: `function(dateTime) {
+                                    let end = new Date(dateTime);
+                                    end.setDate(end.getDate()+1)
+                                    end.setHours(04,0,0,0);
+                                   return end
+                                }`,
+              args: ['$RecordDateTime'],
+              lang: 'js',
+            },
+          },
+        },
+      },
+
+      {
+        $facet: {
+          result: [
+            {
+              $group: {
+                _id: '$VehicleID',
+                harshAcceleration: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$harshAcceleration', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                OverSpeed: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$IsOverSpeed', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                SeatBelt: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$SeatBelt', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                harshBrake: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$harshBrake', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                nightDrive: {
+                  $sum: {
+                    $cond: [
+                      {
+                        $and: [
+                          { $gte: ['$RecordDateTime', '$startnight'] },
+                          { $lte: ['$RecordDateTime', '$endnight'] },
+                        ],
+                      },
+                      1,
+                      0,
+                    ],
+                  },
+                },
+                Mileage: { $max: { $divide: ['$Mileage', 1.60934] } },
+              },
+            },
+            { $sort: { OverSpeed: 1 } },
+          ],
+          totalViolation: [
+            {
+              $group: {
+                _id: null,
+                harshAcceleration: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$harshAcceleration', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                OverSpeed: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$IsOverSpeed', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                SeatBelt: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$SeatBelt', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                harshBrake: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$harshBrake', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                nightDrive: {
+                  $sum: {
+                    $cond: [
+                      {
+                        $and: [
+                          { $gte: ['$RecordDateTime', '$startnight'] },
+                          { $lte: ['$RecordDateTime', '$endnight'] },
+                        ],
+                      },
+                      1,
+                      0,
+                    ],
+                  },
+                },
+                Mileage: { $max: { $divide: ['$Mileage', 1.60934] } },
+              },
+            },
+          ],
+        },
+      },
+    ]
+    const result = await client
+      .db('StageDB')
+      .collection('LiveLocations')
+      .aggregate(agg)
+      .toArray()
+    return result
+  } catch (e) {
+    return e.message
+  } finally {
+    await close()
+  }
+}
+async function violationsQueryById(strDate, endDate, validVids) {
   try {
     await connect()
 
@@ -520,65 +748,65 @@ async function vehicleViolationsQuery(strDate, endDate, validVids) {
             {
               $group: {
                 _id: '$VehicleID',
-                // harshAcceleration: {
-                //   $sum: {
-                //     $cond: {
-                //       if: {
-                //         $eq: ['$harshAcceleration', true],
-                //       },
-                //       then: 1,
-                //       else: 0,
-                //     },
-                //   },
-                // },
-                // OverSpeed: {
-                //   $sum: {
-                //     $cond: {
-                //       if: {
-                //         $eq: ['$IsOverSpeed', true],
-                //       },
-                //       then: 1,
-                //       else: 0,
-                //     },
-                //   },
-                // },
-                // SeatBelt: {
-                //   $sum: {
-                //     $cond: {
-                //       if: {
-                //         $eq: ['$SeatBelt', true],
-                //       },
-                //       then: 1,
-                //       else: 0,
-                //     },
-                //   },
-                // },
-                // harshBrake: {
-                //   $sum: {
-                //     $cond: {
-                //       if: {
-                //         $eq: ['$harshBrake', true],
-                //       },
-                //       then: 1,
-                //       else: 0,
-                //     },
-                //   },
-                // },
-                // nightDrive: {
-                //   $sum: {
-                //     $cond: [
-                //       {
-                //         $and: [
-                //           { $gte: ['$RecordDateTime', '$startnight'] },
-                //           { $lte: ['$RecordDateTime', '$endnight'] },
-                //         ],
-                //       },
-                //       1,
-                //       0,
-                //     ],
-                //   },
-                // },
-                // Mileage: { $max: { $divide: ['$Mileage', 1.60934] } },
+                harshAcceleration: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$harshAcceleration', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                OverSpeed: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$IsOverSpeed', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                SeatBelt: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$SeatBelt', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                harshBrake: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$harshBrake', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                nightDrive: {
+                  $sum: {
+                    $cond: [
+                      {
+                        $and: [
+                          { $gte: ['$RecordDateTime', '$startnight'] },
+                          { $lte: ['$RecordDateTime', '$endnight'] },
+                        ],
+                      },
+                      1,
+                      0,
+                    ],
+                  },
+                },
+                Mileage: { $max: { $divide: ['$Mileage', 1.60934] } },
                 SerialNumber: { $addToSet: '$SerialNumber' },
               },
             },
@@ -653,12 +881,239 @@ async function vehicleViolationsQuery(strDate, endDate, validVids) {
         },
       },
     ]
-    const result = await client
+    const [{ result, totalViolation }] = await client
       .db('StageDB')
       .collection('LiveLocations')
       .aggregate(agg)
       .toArray()
-    return result
+    return { result, totalViolation }
+  } catch (e) {
+    return e.message
+  } finally {
+    await close()
+  }
+}
+async function getTraineeViolations(strDate, endDate, validVids) {
+  try {
+    await connect()
+    let agg = [
+      {
+        $match: {
+          VehicleID: { $in: validVids },
+          RecordDateTime: {
+            $gte: new Date(strDate),
+            $lte: new Date(endDate),
+          },
+        },
+      },
+      {
+        $addFields: {
+          harshAcceleration: {
+            $function: {
+              body: `function(num, bit) {
+                                   return ((num>>bit) % 2 != 0)
+                               }`,
+              args: ['$AlarmCode', 0],
+              lang: 'js',
+            },
+          },
+          IsOverSpeed: {
+            $function: {
+              body: `function(num, bit) {
+                                    return ((num>>bit) % 2 != 0)
+                                }`,
+              args: ['$AlarmCode', 2],
+              lang: 'js',
+            },
+          },
+          harshBrake: {
+            $function: {
+              body: `function(num, bit) {
+                                    return ((num>>bit) % 2 != 0)
+                                }`,
+              args: ['$AlarmCode', 1],
+              lang: 'js',
+            },
+          },
+          SeatBelt: {
+            $function: {
+              body: `function(num, bit) {
+                                    return ((num>>bit) % 2 != 0)
+                                }`,
+              args: ['$StatusCode', 3],
+              lang: 'js',
+            },
+          },
+          startnight: {
+            $function: {
+              body: `function(dateTime) {
+                                    let start = new Date(dateTime);
+                                    start.setHours(16,0,0,0);
+                                   return start
+                                }`,
+              args: ['$RecordDateTime'],
+              lang: 'js',
+            },
+          },
+          endnight: {
+            $function: {
+              body: `function(dateTime) {
+                                    let end = new Date(dateTime);
+                                    end.setDate(end.getDate()+1)
+                                    end.setHours(04,0,0,0);
+                                   return end
+                                }`,
+              args: ['$RecordDateTime'],
+              lang: 'js',
+            },
+          },
+        },
+      },
+      {
+        $facet: {
+          result: [
+            {
+              $group: {
+                _id: '$VehicleID',
+                harshAcceleration: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$harshAcceleration', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                OverSpeed: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$IsOverSpeed', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                SeatBelt: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$SeatBelt', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                harshBrake: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$harshBrake', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                nightDrive: {
+                  $sum: {
+                    $cond: [
+                      {
+                        $and: [
+                          { $gte: ['$RecordDateTime', '$startnight'] },
+                          { $lte: ['$RecordDateTime', '$endnight'] },
+                        ],
+                      },
+                      1,
+                      0,
+                    ],
+                  },
+                },
+                Mileage: { $max: { $divide: ['$Mileage', 1.60934] } },
+                SerialNumber: { $addToSet: '$SerialNumber' },
+              },
+            },
+            { $sort: { OverSpeed: 1 } },
+          ],
+          totalViolation: [
+            {
+              $group: {
+                _id: null,
+                harshAcceleration: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$harshAcceleration', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                OverSpeed: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$IsOverSpeed', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                SeatBelt: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$SeatBelt', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                harshBrake: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$harshBrake', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                nightDrive: {
+                  $sum: {
+                    $cond: [
+                      {
+                        $and: [
+                          { $gte: ['$RecordDateTime', '$startnight'] },
+                          { $lte: ['$RecordDateTime', '$endnight'] },
+                        ],
+                      },
+                      1,
+                      0,
+                    ],
+                  },
+                },
+                Mileage: { $sum: { $max: { $divide: ['$Mileage', 1.60934] } } },
+              },
+            },
+          ],
+        },
+      },
+    ]
+    const [{ result, totalViolation }] = await client
+      .db('StageDB')
+      .collection('LiveLocations')
+      .aggregate(agg)
+      .toArray()
+    return { result, totalViolation }
   } catch (e) {
     return e.message
   } finally {
@@ -1255,6 +1710,8 @@ module.exports = {
   getusersvehIDs,
   mainDashboardQuery,
   vehicleViolationsQuery,
+  violationsQueryById,
+  getTraineeViolations,
   nightDriveQuery,
   getUserDetails,
   topDriversQuery,
