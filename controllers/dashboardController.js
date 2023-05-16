@@ -19,6 +19,8 @@ const {
   getusersvehIDs,
   getRatingsQuery,
   getRatingsQueryById,
+  getTraineeViolations,
+  violationsQueryById,
 } = require('../helpers/helper')
 
 const harshAcceleration = async (req, res) => {
@@ -162,84 +164,152 @@ const sharpTurns = (req, res) => {
 }
 
 const vehicleViolations = async (req, res, next) => {
+  let { strDate, endDate, vehIDs } = req.query
   try {
-    const { userId } = req.query
-    let allVehicles
-    let validVids
-    const strDate = new Date()
-    const endDate = new Date()
-    strDate.setDate(strDate.getDate() - 7)
-
-    if (userId) {
-      allVehicles = await User.find(
-        { custodyId: userId, vid: { $ne: null, $exists: true } },
-        { vid: 1 }
-      )
-      validVids = allVehicles.map((vehicle) => vehicle.vid)
-    } else {
-      allVehicles = await User.find(
-        { vid: { $ne: null, $exists: true } },
-        { vid: 1 }
-      )
-      validVids = allVehicles.map((vehicle) => vehicle.vid)
+    if (vehIDs || vehIDs == 'string') {
+      vehIDs = JSON.parse(vehIDs)
     }
 
     let [{ result, totalViolation }] = await vehicleViolationsQuery(
       strDate,
       endDate,
-      validVids
+      vehIDs
     )
+
+    if (!result) {
+      throw new CustomError.BadRequestError(
+        '{"enMessage" : "there is no data in this period", "arMessage" :"لا توجد بيانات فى هذه الفترة"}'
+      )
+    }
+
+    const usersDetails = await getUserDetails(vehIDs)
+
+    if (usersDetails) {
+      result.map((res) => {
+        const userDetails = usersDetails.find((user) => user.vid == res._id)
+
+        if (userDetails) return Object.assign(res, userDetails)
+
+        return res
+      })
+    }
+
+    const vehiclesSerial = result.map((vehicle) => vehicle.SerialNumber[0])
+
+    const requests = vehiclesSerial.map((serialNumber) => {
+      const url = `https://saferoad-srialfb.firebaseio.com/${serialNumber}.json`
+      return axios.get(url)
+    })
+
+    let online = 0
+    let offline = 0
+
+    Promise.all(requests)
+      .then((responses) => {
+        responses.forEach((response) => {
+          const vehicle = result.find(
+            (vehicle) => vehicle.SerialNumber == response.data.SerialNumber
+          )
+          if (vehicle) {
+            if (response.data.EngineStatus) ++online
+            else ++offline
+            vehicle.EngineStatus = response.data.EngineStatus
+          }
+        })
+      })
+      .catch((error) => {
+        console.error(error)
+        res.status(500).send('An error occurred')
+      })
+      .finally(() => {
+        res.status(StatusCodes.OK).json({
+          result,
+          totalViolation: { ...totalViolation[0], online, offline },
+        })
+      })
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json()
+  }
+}
+const vehicleViolationsById = async (req, res, next) => {
+  try {
+    const { userId, custodyId } = req.query
+    let allVehicles
+    let validVids
+    let result
+    let totalViolation
+    const strDate = new Date()
+    const endDate = new Date()
+    strDate.setDate(strDate.getDate() - 7)
+    // handle user violation (trainee)
+    if (userId) {
+      // get the user data
+      allVehicles = await User.find(
+        { _id: userId, vid: { $ne: null, $exists: true } },
+        { password: 0 }
+      )
+      // get the user vehicles ids
+      validVids = allVehicles.map((vehicle) => vehicle.vid)
+      // get the user violations
+      let queryResult = await getTraineeViolations(strDate, endDate, validVids)
+      result = queryResult.result
+      totalViolation = queryResult.totalViolation
+    } else if (custodyId) {
+      // handle custody violation
+      // get the custody data
+      allVehicles = await User.find(
+        { custodyId: custodyId, vid: { $ne: null, $exists: true } },
+        { password: 0 }
+      )
+      // get the custody vehicles ids
+      validVids = allVehicles.map((vehicle) => vehicle.vid)
+      // get the custody violations
+      let queryResult = await violationsQueryById(strDate, endDate, validVids)
+      result = queryResult.result
+      totalViolation = queryResult.totalViolation
+    }
+
     if (!totalViolation) {
       throw new CustomError.BadRequestError(
         '{"enMessage" : "there is no data in this period", "arMessage" :"لا توجد بيانات فى هذه الفترة"}'
       )
     }
-    if (userId) {
-      const SerialNumbers = result.map((vehicle) => vehicle.SerialNumber[0])
+    // handle the online/offline status
+    const SerialNumbers = result.map((vehicle) => vehicle.SerialNumber[0])
+    const requests = SerialNumbers.map((SerialNumber) => {
+      const url = `https://saferoad-srialfb.firebaseio.com/${SerialNumber}.json`
+      return axios.get(url)
+    })
+    let online = 0
+    let offline = 0
 
-      const requests = SerialNumbers.map((SerialNumber) => {
-        const url = `https://saferoad-srialfb.firebaseio.com/${SerialNumber}.json`
-        return axios.get(url)
+    Promise.all(requests)
+      .then((responses) => {
+        responses.forEach((response) => {
+          const vehicle = result.find(
+            (vehicle) => vehicle.SerialNumber == response.data.SerialNumber
+          )
+          if (vehicle) {
+            if (response.data.EngineStatus) ++online
+            else ++offline
+            vehicle.EngineStatus = response.data.EngineStatus
+          }
+        })
       })
-      let online = 0
-      let offline = 0
-
-      Promise.all(requests)
-        .then((responses) => {
-          responses.forEach((response) => {
-            const vehicle = result.find(
-              (vehicle) => vehicle.SerialNumber == response.data.SerialNumber
-            )
-            if (vehicle) {
-              if (response.data.EngineStatus) ++online
-              else ++offline
-              vehicle.EngineStatus = response.data.EngineStatus
-            }
-          })
+      .catch((error) => {
+        console.error(error)
+        res.status(500).send('An error occurred')
+      })
+      .finally(() => {
+        res.status(StatusCodes.OK).json({
+          result,
+          users: allVehicles,
+          totalViolation: { ...totalViolation[0], online, offline },
         })
-        .catch((error) => {
-          console.error(error)
-          res.status(500).send('An error occurred')
-        })
-        .finally(() => {
-          res.status(StatusCodes.OK).json({
-            totalViolation: { ...totalViolation[0], online, offline },
-          })
-        })
-    } else {
-      return res
-        .status(StatusCodes.OK)
-        .json({ totalViolation: { ...totalViolation[0] } })
-    }
+      })
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(error.message)
   }
-  // .finally(() => {
-  //   res.status(StatusCodes.OK).json({
-  //     result,
-  //     totalViolation: { ...totalViolation[0], online, offline },
-  //   })
-  // })
 }
 
 const bestDrivers = async (req, res, next) => {
@@ -317,6 +387,7 @@ module.exports = {
   nightDriving,
   sharpTurns,
   seatBelt,
+  vehicleViolationsById,
   vehicleViolations,
   bestDrivers,
   getRatings,
