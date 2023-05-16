@@ -184,49 +184,24 @@ const vehicleViolations = async (req, res, next) => {
 
     const usersDetails = await getUserDetails(vehIDs)
 
-    if (usersDetails) {
-      result.map((res) => {
-        const userDetails = usersDetails.find((user) => user.vid == res._id)
+    result.map((res) => {
+      const userDetails = usersDetails.find((user) => user.vid == res._id)
 
-        if (userDetails) return Object.assign(res, userDetails)
-
-        return res
-      })
-    }
-
-    const vehiclesSerial = result.map((vehicle) => vehicle.SerialNumber[0])
-
-    const requests = vehiclesSerial.map((serialNumber) => {
-      const url = `https://saferoad-srialfb.firebaseio.com/${serialNumber}.json`
-      return axios.get(url)
+      if (userDetails) {
+        return Object.assign(res, userDetails)
+      } else {
+        // Add dummy data when userDetails is not found
+        return Object.assign(res, {
+          username: 'No Data',
+          email: 'No Data',
+          phoneNumber: 'No Data',
+          image: 'No Data',
+          username: 'No Data',
+        })
+      }
     })
 
-    let online = 0
-    let offline = 0
-
-    Promise.all(requests)
-      .then((responses) => {
-        responses.forEach((response) => {
-          const vehicle = result.find(
-            (vehicle) => vehicle.SerialNumber == response.data.SerialNumber
-          )
-          if (vehicle) {
-            if (response.data.EngineStatus) ++online
-            else ++offline
-            vehicle.EngineStatus = response.data.EngineStatus
-          }
-        })
-      })
-      .catch((error) => {
-        console.error(error)
-        res.status(500).send('An error occurred')
-      })
-      .finally(() => {
-        res.status(StatusCodes.OK).json({
-          result,
-          totalViolation: { ...totalViolation[0], online, offline },
-        })
-      })
+    return res.status(StatusCodes.OK).json({ result, totalViolation })
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json()
   }
