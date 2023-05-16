@@ -444,10 +444,6 @@ async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
             $gte: new Date(strDate),
             $lte: new Date(endDate),
           },
-          $or: [
-            { AlarmCode: { $bitsAnySet: [0, 1, 2, 3, 4] } },
-            { StatusCode: { $bitsAllSet: [3] } },
-          ],
         },
       },
       {
@@ -578,17 +574,7 @@ async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
                     ],
                   },
                 },
-                total: {
-                  $sum: [
-                    '$harshAcceleration',
-                    '$SeatBelt',
-                    '$harshBrake',
-                    '$OverSpeed',
-                    '$nightDrive',
-                  ],
-                },
-                Mileage: { $max: { $divide: ['$Mileage', 1000] } },
-                SerialNumber: { $addToSet: '$SerialNumber' },
+                Mileage: { $max: { $divide: ['$Mileage', 1.60934] } },
               },
             },
             { $sort: { OverSpeed: 1 } },
@@ -655,7 +641,7 @@ async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
                     ],
                   },
                 },
-                Mileage: { $sum: { $max: { $divide: ['$Mileage', 1000] } } },
+                Mileage: { $max: { $divide: ['$Mileage', 1.60934] } },
               },
             },
           ],
