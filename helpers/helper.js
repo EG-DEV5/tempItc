@@ -9,7 +9,7 @@ function bit_test(num, bit) {
 }
 async function harshAccelerationQuery(strDate, endDate, vehIDs) {
   try {
-    await connect()
+    // await connect()
     let agg = [
       {
         $match: {
@@ -37,8 +37,7 @@ async function harshAccelerationQuery(strDate, endDate, vehIDs) {
 
       { $sort: { _id: 1 } },
     ]
-    const result = await client
-      .db('StageDB')
+    const result = await stageDBConnection
       .collection('LiveLocations')
       .aggregate(agg)
       .toArray()
@@ -46,13 +45,13 @@ async function harshAccelerationQuery(strDate, endDate, vehIDs) {
   } catch (e) {
     return e.message
   } finally {
-    await close()
+    // await close()
   }
 }
 
 async function HarshBreakingQuery(strDate, endDate, vehIDs) {
   try {
-    await connect()
+    // await connect()
     let agg = [
       {
         $match: {
@@ -81,8 +80,7 @@ async function HarshBreakingQuery(strDate, endDate, vehIDs) {
       { $sort: { _id: 1 } },
     ]
 
-    const result = await client
-      .db('StageDB')
+    const result = await stageDBConnection
       .collection('LiveLocations')
       .aggregate(agg)
       .toArray()
@@ -90,12 +88,12 @@ async function HarshBreakingQuery(strDate, endDate, vehIDs) {
   } catch (e) {
     return e.message
   } finally {
-    await close()
+    // await close()
   }
 }
 async function IsOverSpeedQuery(strDate, endDate, vehIDs) {
   try {
-    await connect()
+    // await connect()
     let agg = [
       {
         $match: {
@@ -123,8 +121,7 @@ async function IsOverSpeedQuery(strDate, endDate, vehIDs) {
 
       { $sort: { _id: 1 } },
     ]
-    const result = await client
-      .db('StageDB')
+    const result = await stageDBConnection
       .collection('LiveLocations')
       .aggregate(agg)
       .toArray()
@@ -132,12 +129,12 @@ async function IsOverSpeedQuery(strDate, endDate, vehIDs) {
   } catch (e) {
     return e.message
   } finally {
-    await close()
+    // await close()
   }
 }
 async function seatBeltQuery(strDate, endDate, vehIDs) {
   try {
-    await connect()
+    // await connect()
     let agg = [
       {
         $match: {
@@ -165,8 +162,7 @@ async function seatBeltQuery(strDate, endDate, vehIDs) {
 
       { $sort: { _id: 1 } },
     ]
-    const result = await client
-      .db('StageDB')
+    const result = await stageDBConnection
       .collection('LiveLocations')
       .aggregate(agg)
       .toArray()
@@ -174,13 +170,13 @@ async function seatBeltQuery(strDate, endDate, vehIDs) {
   } catch (e) {
     return e.message
   } finally {
-    await close()
+    // await close()
   }
 }
 
 async function nightDriveQuery(strDate, endDate, vehIDs) {
   try {
-    await connect()
+    // await connect()
     let agg = [
       {
         $match: {
@@ -243,8 +239,7 @@ async function nightDriveQuery(strDate, endDate, vehIDs) {
       },
       { $sort: { _id: 1 } },
     ]
-    const result = await client
-      .db('StageDB')
+    const result = await stageDBConnection
       .collection('LiveLocations')
       .aggregate(agg)
       .toArray()
@@ -252,7 +247,7 @@ async function nightDriveQuery(strDate, endDate, vehIDs) {
   } catch (e) {
     return e.message
   } finally {
-    await close()
+    // await close()
   }
 }
 async function getUserVehiclesFMS() {
@@ -277,7 +272,7 @@ async function getusersvehIDs() {
 
 async function mainDashboardQuery(strDate, endDate, vehIDs) {
   try {
-    await connect()
+    // await connect()
     let agg = [
       {
         $match: {
@@ -420,8 +415,7 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
         },
       },
     ]
-    const result = await client
-      .db('StageDB')
+    const result = await stageDBConnection
       .collection('LiveLocations')
       .aggregate(agg)
       .toArray()
@@ -429,12 +423,12 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
   } catch (e) {
     return e.message
   } finally {
-    await close()
+    // await close()
   }
 }
 async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
   try {
-    await connect()
+    // await connect()
 
     let agg = [
       {
@@ -648,8 +642,7 @@ async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
         },
       },
     ]
-    const result = await client
-      .db('StageDB')
+    const result = await stageDBConnection
       .collection('LiveLocations')
       .aggregate(agg)
       .toArray()
@@ -657,12 +650,12 @@ async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
   } catch (e) {
     return e.message
   } finally {
-    await close()
+    // await close()
   }
 }
 async function violationsQueryById(strDate, endDate, validVids) {
   try {
-    await connect()
+    // await connect()
 
     let agg = [
       {
@@ -881,8 +874,7 @@ async function violationsQueryById(strDate, endDate, validVids) {
         },
       },
     ]
-    const [{ result, totalViolation }] = await client
-      .db('StageDB')
+    const [{ result, totalViolation }] = await stageDBConnection
       .collection('LiveLocations')
       .aggregate(agg)
       .toArray()
@@ -890,12 +882,12 @@ async function violationsQueryById(strDate, endDate, validVids) {
   } catch (e) {
     return e.message
   } finally {
-    await close()
+    // await close()
   }
 }
 async function getTraineeViolations(strDate, endDate, validVids) {
   try {
-    await connect()
+    // await connect()
     let agg = [
       {
         $match: {
@@ -1108,8 +1100,7 @@ async function getTraineeViolations(strDate, endDate, validVids) {
         },
       },
     ]
-    const [{ result, totalViolation }] = await client
-      .db('StageDB')
+    const [{ result, totalViolation }] = await stageDBConnection
       .collection('LiveLocations')
       .aggregate(agg)
       .toArray()
@@ -1117,12 +1108,12 @@ async function getTraineeViolations(strDate, endDate, validVids) {
   } catch (e) {
     return e.message
   } finally {
-    await close()
+    // await close()
   }
 }
 async function topDriversQuery(usersVehIds) {
   try {
-    await connect()
+    // await connect()
     let strDate = new Date()
     strDate.setDate(strDate.getDate() - 1)
     let endDate = new Date()
@@ -1163,8 +1154,7 @@ async function topDriversQuery(usersVehIds) {
         },
       },
     ]
-    const result = await client
-      .db('StageDB')
+    const result = await stageDBConnection
       .collection('LiveLocations')
       .aggregate(agg)
       .toArray()
@@ -1175,7 +1165,7 @@ async function topDriversQuery(usersVehIds) {
     console.log(e)
     return e.message
   } finally {
-    await close()
+    // await close()
   }
 }
 async function getUserDetails(ids) {
@@ -1208,7 +1198,7 @@ async function getUserDetails(ids) {
 
 async function getRatingsQuery(vehicles) {
   try {
-    await connect()
+    // await connect()
 
     let strDate = new Date()
     let endDateTime = new Date()
@@ -1441,8 +1431,7 @@ async function getRatingsQuery(vehicles) {
       },
     ]
 
-    const result = await client
-      .db('StageDB')
+    const result = await await stageDBConnection
       .collection('LiveLocations')
       .aggregate(agg)
       .toArray()
@@ -1450,13 +1439,13 @@ async function getRatingsQuery(vehicles) {
   } catch (e) {
     return e.message
   } finally {
-    await close()
+    // await close()
   }
 }
 
 async function getRatingsQueryById(id) {
   try {
-    await connect()
+    // await connect()
 
     let strDate = new Date()
     let endDateTime = new Date()
@@ -1689,8 +1678,7 @@ async function getRatingsQueryById(id) {
       },
     ]
 
-    const result = await client
-      .db('StageDB')
+    const result = await stageDBConnection
       .collection('LiveLocations')
       .aggregate(agg)
       .toArray()
@@ -1698,7 +1686,7 @@ async function getRatingsQueryById(id) {
   } catch (e) {
     return e.message
   } finally {
-    await close()
+    // await close()
   }
 }
 
