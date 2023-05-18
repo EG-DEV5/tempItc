@@ -1,7 +1,7 @@
-const moment = require('moment-timezone')
+// const moment = require('moment-timezone')
 
-moment.tz.setDefault(moment.tz.guess())
+// moment.tz.setDefault(moment.tz.guess())
 
-moment.defaultFormat = 'YYYY-MM-DDTHH:mm:ss.SSS[Z]'
+// moment.defaultFormat = 'YYYY-MM-DDTHH:mm:ss.SSS[Z]'
 
-module.exports = moment
+// module.exports = moment
