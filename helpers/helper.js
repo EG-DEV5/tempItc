@@ -2,8 +2,8 @@ const { MongoClient } = require('mongodb')
 const { configConnection, stageDBConnection } = require('./mongodbConn')
 const User = require('../models/User')
 const axios = require('axios')
-const { client, connect, close } = require('../db/connect')
-const moment = require('../utils/timezone')
+// const { client, connect, close } = require('../db/connect')
+// const moment = require('../utils/timezone')
 function bit_test(num, bit) {
   return (num >> bit) % 2 != 0
 }
@@ -278,10 +278,10 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
         $match: {
           VehicleID: { $in: vehIDs },
           RecordDateTime: { $gte: new Date(strDate), $lte: new Date(endDate) },
-          $or: [
-            { AlarmCode: { $bitsAnySet: [0, 1, 2, 4] } },
-            { StatusCode: { $bitsAllSet: [3] } },
-          ],
+          // $or: [
+          //   { AlarmCode: { $bitsAnySet: [0, 1, 2, 4] } },
+          //   { StatusCode: { $bitsAllSet: [3] } },
+          // ],
         },
       },
       {
@@ -411,7 +411,7 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
           SerialNumbers: {
             $addToSet: '$SerialNumber',
           },
-          Mileage: { $sum: { $max: { $divide: ['$Mileage', 1.60934] } } },
+          Mileage: { $sum: { $max: { $divide: ['$Mileage', 1000] } } },
         },
       },
     ]
@@ -422,9 +422,10 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
     return result[0]
   } catch (e) {
     return e.message
-  } finally {
-    // await close()
   }
+  // finally {
+  //   // await close()
+  // }
 }
 async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
   try {
@@ -568,7 +569,7 @@ async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
                     ],
                   },
                 },
-                Mileage: { $max: { $divide: ['$Mileage', 1.60934] } },
+                Mileage: { $max: { $divide: ['$Mileage', 1000] } },
               },
             },
             { $sort: { OverSpeed: 1 } },
@@ -635,7 +636,7 @@ async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
                     ],
                   },
                 },
-                Mileage: { $max: { $divide: ['$Mileage', 1.60934] } },
+                Mileage: { $max: { $divide: ['$Mileage', 1000] } },
               },
             },
           ],
@@ -799,7 +800,7 @@ async function violationsQueryById(strDate, endDate, validVids) {
                     ],
                   },
                 },
-                Mileage: { $max: { $divide: ['$Mileage', 1.60934] } },
+                Mileage: { $max: { $divide: ['$Mileage', 1000] } },
                 SerialNumber: { $addToSet: '$SerialNumber' },
               },
             },
@@ -867,7 +868,7 @@ async function violationsQueryById(strDate, endDate, validVids) {
                     ],
                   },
                 },
-                Mileage: { $sum: { $max: { $divide: ['$Mileage', 1.60934] } } },
+                Mileage: { $sum: { $max: { $divide: ['$Mileage', 1000] } } },
               },
             },
           ],
@@ -1025,7 +1026,7 @@ async function getTraineeViolations(strDate, endDate, validVids) {
                     ],
                   },
                 },
-                Mileage: { $max: { $divide: ['$Mileage', 1.60934] } },
+                Mileage: { $max: { $divide: ['$Mileage', 1000] } },
                 SerialNumber: { $addToSet: '$SerialNumber' },
               },
             },
@@ -1093,7 +1094,7 @@ async function getTraineeViolations(strDate, endDate, validVids) {
                     ],
                   },
                 },
-                Mileage: { $sum: { $max: { $divide: ['$Mileage', 1.60934] } } },
+                Mileage: { $sum: { $max: { $divide: ['$Mileage', 1000] } } },
               },
             },
           ],

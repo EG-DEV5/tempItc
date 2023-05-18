@@ -22,6 +22,7 @@ const {
   getTraineeViolations,
   violationsQueryById,
 } = require('../helpers/helper')
+const moment = require('moment/moment')
 
 const harshAcceleration = async (req, res) => {
   // const vhs = await getusersVhs();
@@ -96,15 +97,13 @@ const seatBelt = async (req, res) => {
 
 const mainDashboard = async (req, res) => {
   try {
-    const startDate = new Date()
-    const endDate = new Date()
-    startDate.setDate(startDate.getDate() - 1)
+    const startDate = moment.utc().subtract(1, 'days').toDate()
+    const endDate = moment.utc().toDate()
 
     const vehicles = await User.find(
       { vid: { $ne: null, $exists: true } },
       { vid: 1 }
     )
-
     const validVids = vehicles.map((vehicle) => vehicle.vid)
 
     let result = await mainDashboardQuery(startDate, endDate, validVids)
@@ -215,9 +214,8 @@ const vehicleViolationsById = async (req, res, next) => {
     let validVids
     let result
     let totalViolation
-    const strDate = new Date()
-    const endDate = new Date()
-    strDate.setDate(strDate.getDate() - 1)
+    const strDate = moment.utc().subtract(1, 'days').toDate()
+    const endDate = moment.utc().toDate()
     // handle user violation (trainee)
     if (userId) {
       // get the user data

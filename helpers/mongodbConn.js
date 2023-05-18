@@ -10,7 +10,7 @@ stageDBConnection.on('error', (err) => {
   console.log('Error in StageDB connection: ' + err)
 })
 stageDBConnection.on('connected', () => {
-  console.log('StageDB connection: ')
+  console.log('StageDB connected')
 })
 stageDBConnection.on('disconnected', () => {
   console.log('StageDB disconnected ')
