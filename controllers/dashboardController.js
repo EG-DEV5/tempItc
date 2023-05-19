@@ -22,7 +22,7 @@ const {
   getTraineeViolations,
   violationsQueryById,
 } = require('../helpers/helper')
-const moment = require('moment/moment')
+const moment = require('moment')
 
 const harshAcceleration = async (req, res) => {
   // const vhs = await getusersVhs();
@@ -97,8 +97,8 @@ const seatBelt = async (req, res) => {
 
 const mainDashboard = async (req, res) => {
   try {
-    const startDate = moment.utc().subtract(1, 'days').toDate()
-    const endDate = moment.utc().toDate()
+    const startDate = moment.utc().subtract(12, 'hours').format()
+    const endDate = moment.utc().format()
 
     const vehicles = await User.find(
       { vid: { $ne: null, $exists: true } },
@@ -132,10 +132,6 @@ const mainDashboard = async (req, res) => {
         res.status(200).json({ ...result, online, offline })
       })
   } catch (error) {
-    console.log(
-      '🚀 ~ file: dashboardController.js:134 ~ mainDashboard ~ error:',
-      error
-    )
     return res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
       .json({ message: 'Something went wrong' })
