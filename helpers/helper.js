@@ -2,8 +2,7 @@ const { MongoClient } = require('mongodb')
 const { configConnection, stageDBConnection } = require('./mongodbConn')
 const User = require('../models/User')
 const axios = require('axios')
-// const { client, connect, close } = require('../db/connect')
-// const moment = require('../utils/timezone')
+const moment = require('moment')
 function bit_test(num, bit) {
   return (num >> bit) % 2 != 0
 }
@@ -272,16 +271,11 @@ async function getusersvehIDs() {
 
 async function mainDashboardQuery(strDate, endDate, vehIDs) {
   try {
-    // await connect()
     let agg = [
       {
         $match: {
           VehicleID: { $in: vehIDs },
           RecordDateTime: { $gte: new Date(strDate), $lte: new Date(endDate) },
-          // $or: [
-          //   { AlarmCode: { $bitsAnySet: [0, 1, 2, 4] } },
-          //   { StatusCode: { $bitsAllSet: [3] } },
-          // ],
         },
       },
       {
@@ -423,10 +417,8 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
   } catch (e) {
     return e.message
   }
-  // finally {
-  //   // await close()
-  // }
 }
+
 async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
   try {
     // await connect()
