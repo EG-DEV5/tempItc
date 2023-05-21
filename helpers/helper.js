@@ -282,63 +282,53 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
         $addFields: {
           HarshAcceleration: {
             $function: {
-              body: `function(num, bit) {
-                                    return ((num>>bit) % 2 != 0)
-                                }`,
+              body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
               args: ['$AlarmCode', 0],
               lang: 'js',
             },
           },
           IsOverSpeed: {
             $function: {
-              body: `function(num, bit) {
-                                     return ((num>>bit) % 2 != 0)
-                                 }`,
+              body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
               args: ['$AlarmCode', 2],
               lang: 'js',
             },
           },
           HarshBrake: {
             $function: {
-              body: `function(num, bit) {
-                                     return ((num>>bit) % 2 != 0)
-                                 }`,
+              body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
               args: ['$AlarmCode', 1],
               lang: 'js',
             },
           },
           SeatBelt: {
             $function: {
-              body: `function(num, bit) {
-                                     return ((num>>bit) % 2 != 0)
-                                 }`,
+              body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
               args: ['$StatusCode', 3],
               lang: 'js',
             },
           },
-          startnight: {
+          nightDrive: {
             $function: {
-              body: `function(dateTime) {
-                                    let start = new Date(dateTime);
-                                    start.setHours(16,0,0,0);
-                                   return start
-                                }`,
+              body: `function(dateTime) { let hr = (new Date(dateTime)).getHours() + 3; return (hr < 8) || (hr > 18); }`,
               args: ['$RecordDateTime'],
               lang: 'js',
             },
           },
-          endnight: {
-            $function: {
-              body: `function(dateTime) {
-                                    let end = new Date(dateTime);
-                                    end.setDate(end.getDate()+1)
-                                    end.setHours(04,0,0,0);
-                                   return end
-                                }`,
-              args: ['$RecordDateTime'],
-              lang: 'js',
-            },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            VehicleID: '$VehicleID',
+            HarshAcceleration: '$HarshAcceleration',
+            HarshBrake: '$HarshBrake',
+            IsOverSpeed: '$IsOverSpeed',
+            SeatBelt: '$SeatBelt',
+            nightDrive: '$nightDrive',
           },
+          SerialNumber: { $first: '$SerialNumber' },
+          Mileage: { $sum: { $max: '$Mileage' } },
         },
       },
       {
@@ -348,7 +338,7 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
             $sum: {
               $cond: {
                 if: {
-                  $eq: ['$HarshAcceleration', true],
+                  $eq: ['$_id.HarshAcceleration', true],
                 },
                 then: 1,
                 else: 0,
@@ -359,7 +349,7 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
             $sum: {
               $cond: {
                 if: {
-                  $eq: ['$IsOverSpeed', true],
+                  $eq: ['$_id.IsOverSpeed', true],
                 },
                 then: 1,
                 else: 0,
@@ -370,7 +360,7 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
             $sum: {
               $cond: {
                 if: {
-                  $eq: ['$SeatBelt', true],
+                  $eq: ['$_id.SeatBelt', true],
                 },
                 then: 1,
                 else: 0,
@@ -381,7 +371,7 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
             $sum: {
               $cond: {
                 if: {
-                  $eq: ['$HarshBrake', true],
+                  $eq: ['$_id.HarshBrake', true],
                 },
                 then: 1,
                 else: 0,
@@ -389,23 +379,23 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
             },
           },
           nightDrive: {
-            $sum: {
-              $cond: [
-                {
-                  $and: [
-                    { $gte: ['$RecordDateTime', '$startnight'] },
-                    { $lte: ['$RecordDateTime', '$endnight'] },
-                  ],
-                },
-                1,
-                0,
-              ],
-            },
+            $sum: '$_id.nightDrive',
           },
           SerialNumbers: {
             $addToSet: '$SerialNumber',
           },
-          Mileage: { $sum: { $max: { $divide: ['$Mileage', 1000] } } },
+          Mileage: { $max: '$Mileage' },
+        },
+      },
+      {
+        $project: {
+          harshAcceleration: 1,
+          OverSpeed: 1,
+          SeatBelt: 1,
+          harshBrake: 1,
+          nightDrive: 1,
+          Mileage: { $max: '$Mileage' },
+          SerialNumbers: 1,
         },
       },
     ]
@@ -1442,17 +1432,17 @@ async function getRatingsQueryById(id) {
 
     let strDate = new Date()
     let endDateTime = new Date()
-    strDate.setDate(endDateTime.getDate() - 1)
+    strDate.setDate(endDateTime.getDate() - 9)
 
     let agg = [
       {
         $match: {
           VehicleID: +id,
           RecordDateTime: { $gte: strDate, $lte: endDateTime },
-          $or: [
-            { AlarmCode: { $bitsAnySet: [0, 1, 2] } },
-            { StatusCode: { $bitsAllSet: [3] } },
-          ],
+          // $or: [
+          //   { AlarmCode: { $bitsAnySet: [0, 1, 2] } },
+          //   { StatusCode: { $bitsAllSet: [3] } },
+          // ],
         },
       },
       {
@@ -1678,8 +1668,6 @@ async function getRatingsQueryById(id) {
     return result
   } catch (e) {
     return e.message
-  } finally {
-    // await close()
   }
 }
 
