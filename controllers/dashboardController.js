@@ -112,7 +112,7 @@ const mainDashboard = async (req, res) => {
 
     let result = await mainDashboardQuery(startDate, endDate, validVids)
 
-    const requests = result.SerialNumbers.map((serialNumber) => {
+    const requests = result.SerialNumber.map((serialNumber) => {
       return axios.get(
         `https://saferoad-srialfb.firebaseio.com/${serialNumber}.json`
       )
@@ -133,7 +133,16 @@ const mainDashboard = async (req, res) => {
       })
       .finally(() => {
         delete result.SerialNumbers
-        res.status(200).json({ ...result, online, offline })
+        res.status(200).json({
+          OverSpeed: result.OverSpeed,
+          SeatBelt: result.SeatBelt,
+          harshBrake: result.harshBrake,
+          nightDrive: result.nightDrive,
+          longDistance: result.longDistance,
+          Mileage: result.Mileage,
+          online,
+          offline,
+        })
       })
   } catch (error) {
     return res
