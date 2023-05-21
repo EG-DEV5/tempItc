@@ -315,30 +315,39 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
               lang: 'js',
             },
           },
-        },
-      },
-      {
-        $group: {
-          _id: {
-            VehicleID: '$VehicleID',
-            HarshAcceleration: '$HarshAcceleration',
-            HarshBrake: '$HarshBrake',
-            IsOverSpeed: '$IsOverSpeed',
-            SeatBelt: '$SeatBelt',
-            nightDrive: '$nightDrive',
+          longDistance: {
+            $function: {
+              body: `function(Distance) { return (Distance > 100) ;}`,
+              args: ['$Distance'],
+              lang: 'js',
+            },
           },
-          SerialNumber: { $first: '$SerialNumber' },
-          Mileage: { $sum: { $max: '$Mileage' } },
         },
       },
+
+      // {
+      //   $group: {
+      //     _id: {
+      //       VehicleID: '$VehicleID',
+      //       // HarshAcceleration: '$HarshAcceleration',
+      //       // HarshBrake: '$HarshBrake',
+      //       // IsOverSpeed: '$IsOverSpeed',
+      //       // SeatBelt: '$SeatBelt',
+      //       // nightDrive: '$nightDrive',
+      //       // longDistance: '$longDistance',
+      //     },
+      //     SerialNumber: { $first: '$SerialNumber' },
+      //     Mileage: { $sum: { $max: '$Mileage' } },
+      //   },
+      // },
       {
         $group: {
-          _id: null,
+          _id: { VehicleID: '$VehicleID' },
           harshAcceleration: {
             $sum: {
               $cond: {
                 if: {
-                  $eq: ['$_id.HarshAcceleration', true],
+                  $eq: ['$HarshAcceleration', true],
                 },
                 then: 1,
                 else: 0,
@@ -349,7 +358,7 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
             $sum: {
               $cond: {
                 if: {
-                  $eq: ['$_id.IsOverSpeed', true],
+                  $eq: ['$IsOverSpeed', true],
                 },
                 then: 1,
                 else: 0,
@@ -360,7 +369,7 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
             $sum: {
               $cond: {
                 if: {
-                  $eq: ['$_id.SeatBelt', true],
+                  $eq: ['$SeatBelt', true],
                 },
                 then: 1,
                 else: 0,
@@ -371,7 +380,7 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
             $sum: {
               $cond: {
                 if: {
-                  $eq: ['$_id.HarshBrake', true],
+                  $eq: ['$HarshBrake', true],
                 },
                 then: 1,
                 else: 0,
@@ -379,7 +388,26 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
             },
           },
           nightDrive: {
-            $sum: '$_id.nightDrive',
+            $sum: {
+              $cond: {
+                if: {
+                  $eq: ['$nightDrive', true],
+                },
+                then: 1,
+                else: 0,
+              },
+            },
+          },
+          longDistance: {
+            $sum: {
+              $cond: {
+                if: {
+                  $eq: ['$longDistance', true],
+                },
+                then: 1,
+                else: 0,
+              },
+            },
           },
           SerialNumbers: {
             $addToSet: '$SerialNumber',
@@ -387,23 +415,122 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
           Mileage: { $max: '$Mileage' },
         },
       },
-      {
-        $project: {
-          harshAcceleration: 1,
-          OverSpeed: 1,
-          SeatBelt: 1,
-          harshBrake: 1,
-          nightDrive: 1,
-          Mileage: { $max: '$Mileage' },
-          SerialNumbers: 1,
-        },
-      },
+      // {
+      //   _id: 0,
+      // },
+      // {
+      //   $group: {
+      //     _id: null,
+      //     harshAcceleration: {
+      //       $sum: {
+      //         $cond: {
+      //           if: {
+      //             $gt: ['$harshAcceleration', 0],
+      //           },
+      //           then: 1,
+      //           else: 0,
+      //         },
+      //       },
+      //     },
+      //     OverSpeed: {
+      //       $sum: {
+      //         $cond: {
+      //           if: {
+      //             $gt: ['$OverSpeed', 0],
+      //           },
+      //           then: 1,
+      //           else: 0,
+      //         },
+      //       },
+      //     },
+      //     harshBrake: {
+      //       $sum: {
+      //         $cond: {
+      //           if: {
+      //             $gt: ['$harshBrake', 0],
+      //           },
+      //           then: 1,
+      //           else: 0,
+      //         },
+      //       },
+      //     },
+      //     nightDrive: {
+      //       $sum: {
+      //         $cond: {
+      //           if: {
+      //             $gt: ['$nightDrive', 0],
+      //           },
+      //           then: 1,
+      //           else: 0,
+      //         },
+      //       },
+      //     },
+      //     longDistance: {
+      //       $sum: {
+      //         $cond: {
+      //           if: {
+      //             $gt: ['$longDistance', 0],
+      //           },
+      //           then: 1,
+      //           else: 0,
+      //         },
+      //       },
+      //     },
+      //   },
+      //   SerialNumber: { $addToSet: '$SerialNumber' },
+      //   Mileage: { $sum: { $max: '$Mileage' } },
+      // },
+      // {
+      //   $project: {
+      //     _id: null,
+      //     harshAcceleration: { $sum: '$harshAcceleration' },
+      //     OverSpeed: { $sum: '$OverSpeed' },
+      //     SeatBelt: { $sum: '$SeatBelt' },
+      //     harshBrake: { $sum: '$harshBrake' },
+      //     nightDrive: { $sum: '$nightDrive' },
+      //     longDistance: { $sum: '$longDistance' },
+      //     Mileage: { $max: '$Mileage' },
+      //     SerialNumber: { $addToSet: '$SerialNumber' },
+      //   },
+      // },
     ]
     const result = await stageDBConnection
       .collection('LiveLocations')
       .aggregate(agg)
       .toArray()
-    return result[0]
+    let count = 0
+    const violationCount = result.reduce(
+      (acc, item) => {
+        return {
+          ...acc,
+          harshAcceleration:
+            item.harshAcceleration > 0
+              ? acc.harshAcceleration + 1
+              : acc.harshAcceleration,
+          OverSpeed: item.OverSpeed > 0 ? acc.OverSpeed + 1 : acc.OverSpeed,
+          SeatBelt: item.SeatBelt > 0 ? acc.SeatBelt + 1 : acc.SeatBelt,
+          harshBrake: item.harshBrake > 0 ? acc.harshBrake + 1 : acc.harshBrake,
+          nightDrive: item.nightDrive > 0 ? acc.nightDrive + 1 : acc.nightDrive,
+          longDistance:
+            item.longDistance > 0 ? acc.longDistance + 1 : acc.longDistance,
+          SerialNumber: [
+            ...new Set([...acc.SerialNumber, ...item.SerialNumbers]),
+          ],
+          Mileage: acc.Mileage + item.Mileage,
+        }
+      },
+      {
+        harshAcceleration: 0,
+        OverSpeed: 0,
+        SeatBelt: 0,
+        harshBrake: 0,
+        nightDrive: 0,
+        longDistance: 0,
+        SerialNumber: [],
+        Mileage: 0,
+      }
+    )
+    return violationCount
   } catch (e) {
     return e.message
   }
