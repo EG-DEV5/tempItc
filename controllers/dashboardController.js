@@ -96,10 +96,14 @@ const seatBelt = async (req, res) => {
 }
 
 const mainDashboard = async (req, res) => {
+  let { startDate, endDate } = req.query
   try {
-    const startDate = moment.utc().subtract(12, 'hours').format()
-    const endDate = moment.utc().format()
+    startDate = startDate
+      ? moment.utc(startDate)
+      : moment.utc().subtract(12, 'hours').format()
+    endDate = endDate ? moment.utc(endDate) : moment.utc().format()
 
+    if (startDate > endDate) return res.status(400).send('Invalid date range')
     const vehicles = await User.find(
       { vid: { $ne: null, $exists: true } },
       { vid: 1 }
