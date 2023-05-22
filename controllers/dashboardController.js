@@ -97,21 +97,77 @@ const seatBelt = async (req, res) => {
   res.status(200).json({ result })
 }
 
-const mainDashboard = async (req, res) => {
-  let { startDate, endDate } = req.query
-  try {
+const dateFilter = (month, year) => {
+  let startDate
+  let endDate
+  if (month && year) {
+    month = month && moment.utc().month(month).format('M')
+    year = year && moment.utc(year).year()
+    startDate = moment([year, month - 1])
+      .startOf('month')
+      .format()
+    endDate = moment([year, month - 1])
+      .endOf('month')
+      .format()
+  }
+  if (month && !year) {
+    month = moment.utc().month(month)
+    startDate = moment.utc(month).startOf('month').format()
+    endDate = moment.utc(month).endOf('month').format()
+  }
+  if (year && !month) {
+    if (year == 2023) {
+      startDate = moment.utc(year).startOf('year').format()
+      endDate = moment.utc().format()
+    } else {
+      startDate = moment.utc(year).startOf('year').format()
+      endDate = moment.utc(year).endOf('year').format()
+    }
+  }
+
+  if (!month && !year) {
     startDate = startDate
       ? moment.utc(startDate)
-      : moment.utc().subtract(12, 'hours').format()
+      : moment.utc().subtract(24, 'hours').format()
     endDate = endDate ? moment.utc(endDate) : moment.utc().format()
-
-    if (startDate > endDate) return res.status(400).send('Invalid date range')
-
-    const vehicles = await User.find(
+  }
+  return { startDate, endDate }
+}
+const custodyFilter = async (department, city) => {
+  let vehicles
+  if (department && city) {
+    vehicles = await User.find({ custodyId: department })
+    return vehicles
+  }
+  if (department && !city) {
+    vehicles = await User.find({ custodyId: department })
+    return vehicles
+  }
+  if (!department && city) {
+    custodys = await Group.find({ city })
+    custodyIDs = custodys.map((custody) => custody._id)
+    vehicles = await User.find({ custodyId: { $in: custodyIDs } }, { vid: 1 })
+    return vehicles
+  }
+  if (!department && !city) {
+    vehicles = await User.find(
       { vid: { $ne: null, $exists: true } },
       { vid: 1 }
     )
-    const validVids = vehicles.map((vehicle) => vehicle.vid)
+    return vehicles
+  }
+}
+const mainDashboard = async (req, res) => {
+  // handle date filter
+  let { month, year, department, city } = req.query
+  try {
+    let { startDate, endDate } = dateFilter(month, year)
+    if (startDate > endDate) return res.status(400).send('Invalid date range')
+    let vehicles = await custodyFilter(department, city)
+
+    const validVids = vehicles
+      .map((vehicle) => vehicle.vid)
+      .filter((vid) => vid !== null)
 
     let result = await mainDashboardQuery(startDate, endDate, validVids)
     let fatigue = await fatigueQuery(validVids)
