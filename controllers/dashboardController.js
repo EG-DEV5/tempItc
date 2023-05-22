@@ -3,6 +3,7 @@ const CustomError = require('../errors')
 const { StatusCodes } = require('http-status-codes')
 const { faker } = require('@faker-js/faker')
 const User = require('../models/User')
+const Group = require('../models/Custody')
 const axios = require('axios')
 const {
   getUserVehiclesFMS,
@@ -21,6 +22,7 @@ const {
   getRatingsQueryById,
   getTraineeViolations,
   violationsQueryById,
+  fatigueQuery,
 } = require('../helpers/helper')
 const moment = require('moment')
 
@@ -104,6 +106,7 @@ const mainDashboard = async (req, res) => {
     endDate = endDate ? moment.utc(endDate) : moment.utc().format()
 
     if (startDate > endDate) return res.status(400).send('Invalid date range')
+
     const vehicles = await User.find(
       { vid: { $ne: null, $exists: true } },
       { vid: 1 }
@@ -111,6 +114,7 @@ const mainDashboard = async (req, res) => {
     const validVids = vehicles.map((vehicle) => vehicle.vid)
 
     let result = await mainDashboardQuery(startDate, endDate, validVids)
+    let fatigue = await fatigueQuery(validVids)
 
     const requests = result.SerialNumber.map((serialNumber) => {
       return axios.get(
@@ -134,11 +138,13 @@ const mainDashboard = async (req, res) => {
       .finally(() => {
         delete result.SerialNumbers
         res.status(200).json({
+          harshAcceleration: result.harshAcceleration,
           OverSpeed: result.OverSpeed,
           SeatBelt: result.SeatBelt,
           harshBrake: result.harshBrake,
           nightDrive: result.nightDrive,
           longDistance: result.longDistance,
+          fatigue: fatigue,
           Mileage: result.Mileage,
           online,
           offline,
@@ -223,6 +229,7 @@ const vehicleViolationsById = async (req, res, next) => {
     let validVids
     let result
     let totalViolation
+    let custodyDetails
     const strDate = moment.utc().subtract(1, 'days').toDate()
     const endDate = moment.utc().toDate()
     // handle user violation (trainee)
@@ -232,12 +239,17 @@ const vehicleViolationsById = async (req, res, next) => {
         { _id: userId, vid: { $ne: null, $exists: true } },
         { password: 0 }
       )
+
       // get the user vehicles ids
       validVids = allVehicles.map((vehicle) => vehicle.vid)
+
       // get the user violations
       let queryResult = await getTraineeViolations(strDate, endDate, validVids)
       result = queryResult.result
       totalViolation = queryResult.totalViolation
+
+      // handle custody details
+      custodyDetails = await Group.find({ _id: allVehicles[0].custodyId })
     } else if (custodyId) {
       // handle custody violation
       // get the custody data
@@ -287,6 +299,7 @@ const vehicleViolationsById = async (req, res, next) => {
       .finally(() => {
         res.status(StatusCodes.OK).json({
           result,
+          ...(userId && { custodyName: custodyDetails[0].custodyName }),
           ...(userId ? { users: allVehicles } : []),
           totalViolation: { ...totalViolation[0], online, offline },
         })
