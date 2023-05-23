@@ -422,7 +422,40 @@ const getallCustodys = async (req, res, next) => {
 }
 const getAllTrainers = async (req, res, next) => {
   try {
-    const users = await User.find({ role: 'trainer' })
+    // const users = await User.find({
+    //   role: 'trainer',
+    //   custodyId: { $ne: null },
+    // })
+    //   .populate('custodyId', 'custodyName -_id')
+    let agg = [
+      {
+        $match: { role: 'trainer', custodyId: { $ne: null } },
+      },
+      {
+        $lookup: {
+          from: 'groups',
+          localField: 'custodyId',
+          foreignField: '_id',
+          as: 'custodyId',
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          username: 1,
+          phoneNumber: 1,
+          email: 1,
+          role: 1,
+          idNumber: 1,
+          vid: 1,
+          SerialNumber: 1,
+          isOnline: 1,
+          image: 1,
+          custodyId: { $arrayElemAt: ['$custodyId.custodyName', 0] },
+        },
+      },
+    ]
+    const users = await User.aggregate(agg)
     res.status(StatusCodes.OK).json({ users })
   } catch (error) {
     next(error)

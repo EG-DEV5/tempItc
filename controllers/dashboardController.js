@@ -23,7 +23,7 @@ const {
   getTraineeViolations,
   violationsQueryById,
   fatigueQuery,
-  weeklyTrends,
+  weeklyTrendsQuery,
 } = require('../helpers/helper')
 const moment = require('moment')
 
@@ -172,8 +172,6 @@ const mainDashboard = async (req, res) => {
 
     let result = await mainDashboardQuery(startDate, endDate, validVids)
     let fatigue = await fatigueQuery(validVids)
-    let Trends = await weeklyTrends(validVids)
-
     const requests = result.SerialNumber.map((serialNumber) => {
       return axios.get(
         `https://saferoad-srialfb.firebaseio.com/${serialNumber}.json`
@@ -212,6 +210,24 @@ const mainDashboard = async (req, res) => {
         delete result.SerialNumbers
         res.status(200).json(finalResult)
       })
+  } catch (error) {
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ message: 'Something went wrong' })
+  }
+}
+const weeklyTrends = async (req, res) => {
+  try {
+    let vehicles = await User.find(
+      { vid: { $ne: null, $exists: true } },
+      { vid: 1 }
+    )
+    const validVids = vehicles
+      .map((vehicle) => vehicle.vid)
+      .filter((vid) => vid !== null)
+
+    let Trends = await weeklyTrendsQuery(validVids)
+    res.status(200).json({ Trends })
   } catch (error) {
     return res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -451,4 +467,5 @@ module.exports = {
   bestDrivers,
   getRatings,
   getRatingsById,
+  weeklyTrends,
 }
