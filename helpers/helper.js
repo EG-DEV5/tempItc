@@ -438,12 +438,12 @@ const violationsCount = (result) => {
       nightDrive: item.nightDrive > 0 ? acc.nightDrive + 1 : acc.nightDrive,
       longDistance:
         item.longDistance > 0 ? acc.longDistance + 1 : acc.longDistance,
-      lowSpeed: item.OverSpeed < 20 ? acc.lowSpeed + 1 : acc.lowSpeed,
+      lowSpeed: item.OverSpeed < 120 ? acc.lowSpeed + 1 : acc.lowSpeed,
       mediumSpeed:
-        item.OverSpeed >= 20 && item.OverSpeed < 70
+        item.OverSpeed >= 120 && item.OverSpeed < 140
           ? acc.mediumSpeed + 1
           : acc.mediumSpeed,
-      highSpeed: item.OverSpeed >= 70 ? acc.highSpeed + 1 : acc.highSpeed,
+      highSpeed: item.OverSpeed >= 140 ? acc.highSpeed + 1 : acc.highSpeed,
       SerialNumber: [...new Set([...acc.SerialNumber, ...item.SerialNumbers])],
       Mileage: acc.Mileage + item.Mileage,
     }
