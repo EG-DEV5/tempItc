@@ -23,6 +23,7 @@ const {
   getTraineeViolations,
   violationsQueryById,
   fatigueQuery,
+  weeklyTrends,
 } = require('../helpers/helper')
 const moment = require('moment')
 
@@ -171,6 +172,7 @@ const mainDashboard = async (req, res) => {
 
     let result = await mainDashboardQuery(startDate, endDate, validVids)
     let fatigue = await fatigueQuery(validVids)
+    let Trends = await weeklyTrends(validVids)
 
     const requests = result.SerialNumber.map((serialNumber) => {
       return axios.get(
@@ -192,19 +194,23 @@ const mainDashboard = async (req, res) => {
         res.status(500).send('An error occurred')
       })
       .finally(() => {
-        delete result.SerialNumbers
-        res.status(200).json({
+        let finalResult = {
           harshAcceleration: result.harshAcceleration,
-          OverSpeed: result.OverSpeed,
-          SeatBelt: result.SeatBelt,
+          overSpeed: result.OverSpeed,
+          lowSpeed: result.lowSpeed,
+          mediumSpeed: result.mediumSpeed,
+          highSpeed: result.highSpeed,
+          seatBelt: result.SeatBelt,
           harshBrake: result.harshBrake,
           nightDrive: result.nightDrive,
           longDistance: result.longDistance,
           fatigue: fatigue,
-          Mileage: result.Mileage,
+          mileage: result.Mileage,
           online,
           offline,
-        })
+        }
+        delete result.SerialNumbers
+        res.status(200).json(finalResult)
       })
   } catch (error) {
     return res
