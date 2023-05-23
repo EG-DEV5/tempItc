@@ -438,12 +438,12 @@ const violationsCount = (result) => {
       nightDrive: item.nightDrive > 0 ? acc.nightDrive + 1 : acc.nightDrive,
       longDistance:
         item.longDistance > 0 ? acc.longDistance + 1 : acc.longDistance,
-      lowSpeed: item.OverSpeed < 30 ? acc.lowSpeed + 1 : acc.lowSpeed,
+      lowSpeed: item.OverSpeed < 20 ? acc.lowSpeed + 1 : acc.lowSpeed,
       mediumSpeed:
-        item.OverSpeed >= 30 && item.OverSpeed < 70
+        item.OverSpeed >= 20 && item.OverSpeed < 70
           ? acc.mediumSpeed + 1
           : acc.mediumSpeed,
-      highSpeed: item.OverSpeed >= 90 ? acc.highSpeed + 1 : acc.highSpeed,
+      highSpeed: item.OverSpeed >= 70 ? acc.highSpeed + 1 : acc.highSpeed,
       SerialNumber: [...new Set([...acc.SerialNumber, ...item.SerialNumbers])],
       Mileage: acc.Mileage + item.Mileage,
     }
@@ -494,9 +494,9 @@ async function fatigueQuery(vehIDs) {
     return e.message
   }
 }
-async function weeklyTrends(vehIDs) {
+async function weeklyTrendsQuery(vehIDs) {
   try {
-    let startDate = moment.utc().subtract(14, 'days').format()
+    let startDate = moment.utc().subtract(13, 'days').format()
     let endDate = moment.utc().format()
     let agg = [
       {
@@ -509,14 +509,30 @@ async function weeklyTrends(vehIDs) {
         },
       },
       {
+        $limit: 200000,
+      },
+      {
         $group: {
-          _id: '$VehicleID',
-          RecordDateTime: { $last: '$RecordDateTime' },
+          _id: {
+            VehicleID: '$VehicleID',
+            RecordDateTime: {
+              $dateToString: { format: '%Y-%m-%d', date: '$RecordDateTime' },
+            },
+          },
           harshAcceleration: {
             $sum: {
               $cond: {
                 if: {
-                  $eq: ['$AlarmCode', 0],
+                  $eq: [
+                    {
+                      $function: {
+                        body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
+                        args: ['$AlarmCode', 0],
+                        lang: 'js',
+                      },
+                    },
+                    true,
+                  ],
                 },
                 then: 1,
                 else: 0,
@@ -527,7 +543,16 @@ async function weeklyTrends(vehIDs) {
             $sum: {
               $cond: {
                 if: {
-                  $eq: ['$AlarmCode', 2],
+                  $eq: [
+                    {
+                      $function: {
+                        body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
+                        args: ['$AlarmCode', 2],
+                        lang: 'js',
+                      },
+                    },
+                    2,
+                  ],
                 },
                 then: 1,
                 else: 0,
@@ -549,7 +574,16 @@ async function weeklyTrends(vehIDs) {
             $sum: {
               $cond: {
                 if: {
-                  $eq: ['$AlarmCode', 1],
+                  $eq: [
+                    {
+                      $function: {
+                        body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
+                        args: ['$AlarmCode', 1],
+                        lang: 'js',
+                      },
+                    },
+                    1,
+                  ],
                 },
                 then: 1,
                 else: 0,
@@ -596,101 +630,102 @@ async function weeklyTrends(vehIDs) {
               },
             },
           },
-          // harshAcceleration: { $sum: '$HarshAcceleration' },
-          // OverSpeed: { $sum: '$IsOverSpeed' },
-          // SeatBelt: { $sum: '$SeatBelt' },
-          // harshBrake: { $sum: '$HarshBrake' },
-          // nightDrive: { $sum: '$nightDrive' },
-          // longDistance: { $sum: '$longDistance' },
-          // count: { $sum: 1 },
         },
       },
-      // {
-      //   $addFields: {
-      //     HarshAcceleration: {
-      //       $function: {
-      //         body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
-      //         args: ['$AlarmCode', 0],
-      //         lang: 'js',
-      //       },
-      //     },
-      //     IsOverSpeed: {
-      //       $function: {
-      //         body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
-      //         args: ['$AlarmCode', 2],
-      //         lang: 'js',
-      //       },
-      //     },
-      //     HarshBrake: {
-      //       $function: {
-      //         body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
-      //         args: ['$AlarmCode', 1],
-      //         lang: 'js',
-      //       },
-      //     },
-      //     SeatBelt: {
-      //       $function: {
-      //         body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
-      //         args: ['$StatusCode', 3],
-      //         lang: 'js',
-      //       },
-      //     },
-      //     nightDrive: {
-      //       $function: {
-      //         body: `function(dateTime) { let hr = (new Date(dateTime)).getHours() + 3; return (hr < 8) || (hr > 18); }`,
-      //         args: ['$RecordDateTime'],
-      //         lang: 'js',
-      //       },
-      //     },
-      // longDistance: {
-      //   $function: {
-      //     body: `function(Distance) { return (Distance > 100) ;}`,
-      //     args: ['$Distance'],
-      //     lang: 'js',
-      //   },
-      //     },
-      //   },
-      // },
       {
         $group: {
-          _id: {
-            $dateToString: {
-              format: '%Y-%m-%d %H:00:00',
-              date: {
-                $subtract: [
-                  '$RecordDateTime',
-                  {
-                    $subtract: ['$RecordDateTime', 24 * 60 * 60 * 1000],
-                  },
-                  // {
-                  //   $mod: [
-                  //     {
-                  //       $subtract: [
-                  //         '$RecordDateTime',
-                  //         new Date('1970-01-01T00:00:00Z'),
-                  //       ],
-                  //     },
-                  //     24 * 60 * 60 * 1000,
-                  //   ],
-                  // },
-                ],
+          _id: '$_id.RecordDateTime',
+          harshAcceleration: {
+            $sum: {
+              $cond: {
+                if: { $gt: ['$HarshAcceleration', 0] },
+                then: 1,
+                else: 0,
+              },
+            },
+          },
+          OverSpeed: {
+            $sum: {
+              $cond: {
+                if: { $gt: ['$IsOverSpeed', 0] },
+                then: 1,
+                else: 0,
+              },
+            },
+          },
+          SeatBelt: {
+            $sum: {
+              $cond: {
+                if: { $gt: ['$SeatBelt', 0] },
+                then: 1,
+                else: 0,
+              },
+            },
+          },
+          harshBrake: {
+            $sum: {
+              $cond: {
+                if: { $gt: ['$HarshBrake', 0] },
+                then: 1,
+                else: 0,
+              },
+            },
+          },
+          nightDrive: {
+            $sum: {
+              $cond: {
+                if: { $gt: ['$nightDrive', 0] },
+                then: 1,
+                else: 0,
+              },
+            },
+          },
+          longDistance: {
+            $sum: {
+              $cond: {
+                if: { $gt: ['$longDistance', 0] },
+                then: 1,
+                else: 0,
               },
             },
           },
         },
       },
-      // {
-      //   $sort: { _id: 1 },
-      // },
+      {
+        $sort: { _id: -1 },
+      },
     ]
     const result = await stageDBConnection
       .collection('LiveLocations')
       .aggregate(agg)
       .toArray()
-    return result
+    const vioCount = berDayCount(result)
+    return vioCount
   } catch (e) {
     return e.message
   }
+}
+const berDayCount = (result) => {
+  let count = result.map((item) => {
+    return {
+      day: item._id,
+      vioCount:
+        item.harshAcceleration +
+        item.OverSpeed +
+        item.SeatBelt +
+        item.harshBrake +
+        item.nightDrive +
+        item.longDistance,
+    }
+  })
+  let labels = count.slice(-7).map((item) => {
+    return moment.utc(item.day).format('ddd')
+  })
+  let series = [
+    { name: 'thisWeek', data: count.slice(0, 7).map((item) => item.vioCount) },
+    { name: 'prevWeek', data: count.slice(-7).map((item) => item.vioCount) },
+  ]
+  return { labels, series }
 }
 async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
   try {
@@ -1971,5 +2006,5 @@ module.exports = {
   getRatingsQuery,
   getRatingsQueryById,
   fatigueQuery,
-  weeklyTrends,
+  weeklyTrendsQuery,
 }
