@@ -413,6 +413,7 @@ const vehicleViolationsById = async (req, res, next) => {
             offline,
             fatigue,
             ...(custodyId && speedRanges),
+            ...vioCount,
           },
         })
       })
