@@ -309,6 +309,8 @@ const vehicleViolationsById = async (req, res, next) => {
     let totalViolation
     let custodyDetails
     let fatigue
+    let speedRanges
+    let vioCount
     const strDate = moment.utc().subtract(1, 'days').toDate()
     const endDate = moment.utc().toDate()
     // handle user violation (trainee)
@@ -344,6 +346,20 @@ const vehicleViolationsById = async (req, res, next) => {
       result = queryResult.result
       totalViolation = queryResult.totalViolation
       fatigue = await fatigueQuery(validVids)
+      vioCount = await mainDashboardQuery(strDate, endDate, validVids)
+      console.log(
+        '🚀 ~ file: dashboardController.js:348 ~ vehicleViolationsById ~ vioCount:',
+        vioCount
+      )
+      speedRanges = vioCount && {
+        lowSpeed: vioCount.lowSpeed,
+        mediumSpeed: vioCount.mediumSpeed,
+        highSpeed: vioCount.highSpeed,
+      }
+      console.log(
+        '🚀 ~ file: dashboardController.js:354 ~ vehicleViolationsById ~ speedRanges:',
+        speedRanges
+      )
     }
     if (!totalViolation) {
       throw new CustomError.BadRequestError(
@@ -351,7 +367,7 @@ const vehicleViolationsById = async (req, res, next) => {
       )
     }
     // handle the online/offline status
-    const SerialNumbers = result.map((vehicle) => vehicle.SerialNumber[0])
+    const SerialNumbers = vioCount.SerialNumber.map((vehicle) => vehicle)
     const requests = SerialNumbers.map((SerialNumber) => {
       const url = `https://saferoad-srialfb.firebaseio.com/${SerialNumber}.json`
       return axios.get(url)
@@ -362,7 +378,7 @@ const vehicleViolationsById = async (req, res, next) => {
     Promise.all(requests)
       .then((responses) => {
         responses.forEach((response) => {
-          const vehicle = result.find(
+          const vehicle = vioCount.SerialNumber.find(
             (vehicle) => vehicle.SerialNumber == response.data.SerialNumber
           )
           if (vehicle) {
@@ -383,7 +399,13 @@ const vehicleViolationsById = async (req, res, next) => {
             ? { custodyName: custodyDetails[0].custodyName }
             : { custodyName: null }),
           ...(userId ? { users: allVehicles } : []),
-          totalViolation: { ...totalViolation[0], online, offline, fatigue },
+          totalViolation: {
+            ...totalViolation[0],
+            online,
+            offline,
+            fatigue,
+            ...(custodyId && speedRanges),
+          },
         })
       })
   } catch (error) {

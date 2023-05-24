@@ -472,7 +472,8 @@ const getAllTrainers = async (req, res, next) => {
           SerialNumber: 1,
           isOnline: 1,
           image: 1,
-          custodyId: { $arrayElemAt: ['$custodyId.custodyName', 0] },
+          custodyName: { $arrayElemAt: ['$custodyId.custodyName', 0] },
+          custodyId: { $arrayElemAt: ['$custodyId._id', 0] },
         },
       },
     ]
