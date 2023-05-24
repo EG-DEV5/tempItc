@@ -450,7 +450,7 @@ const getAllTrainers = async (req, res, next) => {
     //   .populate('custodyId', 'custodyName -_id')
     let agg = [
       {
-        $match: { role: 'trainer', custodyId: { $ne: null } },
+        $match: { role: 'trainer' },
       },
       {
         $lookup: {
