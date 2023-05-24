@@ -170,7 +170,7 @@ const mainDashboard = async (req, res) => {
     const serials = vehicles
       .map((vehicle) => vehicle.SerialNumber)
       .filter((serial) => serial != null || serial != undefined)
-
+    const nullSerials = vehicles.length - serials.length
     let result = await mainDashboardQuery(startDate, endDate, validVids)
     let fatigue = await fatigueQuery(endDate, validVids)
 
@@ -208,7 +208,7 @@ const mainDashboard = async (req, res) => {
           fatigue: fatigue,
           mileage: result.Mileage,
           online,
-          offline,
+          offline: offline + nullSerials,
         }
         delete result.SerialNumbers
         res.status(200).json(finalResult)
@@ -314,6 +314,7 @@ const vehicleViolationsById = async (req, res, next) => {
     let fatigue
     let speedRanges
     let vioCount
+    let traineeSerial
     const strDate = moment.utc().subtract(1, 'days').toDate()
     const endDate = moment.utc().toDate()
     // handle user violation (trainee)
@@ -326,12 +327,12 @@ const vehicleViolationsById = async (req, res, next) => {
 
       // get the user vehicles ids
       validVids = allVehicles.map((vehicle) => vehicle.vid)
-
+      traineeSerial = allVehicles.map((vehicle) => vehicle.SerialNumber)
       // get the user violations
       let queryResult = await getTraineeViolations(strDate, endDate, validVids)
       result = queryResult.result
       totalViolation = queryResult.totalViolation
-      fatigue = await fatigueQuery(validVids)
+      fatigue = await fatigueQuery(endDate, validVids)
 
       // handle custody details
       custodyDetails = await Group.find({ _id: allVehicles[0].custodyId })
@@ -348,21 +349,13 @@ const vehicleViolationsById = async (req, res, next) => {
       let queryResult = await violationsQueryById(strDate, endDate, validVids)
       result = queryResult.result
       totalViolation = queryResult.totalViolation
-      fatigue = await fatigueQuery(validVids)
+      fatigue = await fatigueQuery(endDate, validVids)
       vioCount = await mainDashboardQuery(strDate, endDate, validVids)
-      console.log(
-        '🚀 ~ file: dashboardController.js:348 ~ vehicleViolationsById ~ vioCount:',
-        vioCount
-      )
       speedRanges = vioCount && {
         lowSpeed: vioCount.lowSpeed,
         mediumSpeed: vioCount.mediumSpeed,
         highSpeed: vioCount.highSpeed,
       }
-      console.log(
-        '🚀 ~ file: dashboardController.js:354 ~ vehicleViolationsById ~ speedRanges:',
-        speedRanges
-      )
     }
     if (!totalViolation) {
       throw new CustomError.BadRequestError(
@@ -370,20 +363,32 @@ const vehicleViolationsById = async (req, res, next) => {
       )
     }
     // handle the online/offline status
-    const SerialNumbers = vioCount.SerialNumber.map((vehicle) => vehicle)
-    const requests = SerialNumbers.map((SerialNumber) => {
-      const url = `https://saferoad-srialfb.firebaseio.com/${SerialNumber}.json`
-      return axios.get(url)
-    })
+    const requestsHandler = (SerialNumbers) => {
+      const requests = SerialNumbers.map((SerialNumber) => {
+        const url = `https://saferoad-srialfb.firebaseio.com/${SerialNumber}.json`
+        return axios.get(url)
+      })
+      return requests
+    }
+    const requests =
+      userId && traineeSerial.length > 0
+        ? requestsHandler(traineeSerial)
+        : requestsHandler(vioCount.SerialNumber)
+
     let online = 0
     let offline = 0
 
     Promise.all(requests)
       .then((responses) => {
         responses.forEach((response) => {
-          const vehicle = vioCount.SerialNumber.find(
-            (vehicle) => vehicle == response.data.SerialNumber
-          )
+          const vehicle =
+            userId && traineeSerial.length > 0
+              ? traineeSerial.find(
+                  (vehicle) => vehicle == response.data.SerialNumber
+                )
+              : vioCount.SerialNumber.find(
+                  (vehicle) => vehicle == response.data.SerialNumber
+                )
           if (vehicle) {
             if (response.data.EngineStatus) ++online
             else ++offline
