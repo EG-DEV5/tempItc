@@ -1175,7 +1175,7 @@ async function violationsQueryById(strDate, endDate, validVids) {
                     },
                   },
                 },
-                mileage: { $sum: { $max: { $divide: ['$Mileage', 1000] } } },
+                Mileage: { $sum: { $max: { $divide: ['$Mileage', 1000] } } },
               },
             },
           ],
