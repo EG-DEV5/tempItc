@@ -450,15 +450,15 @@ const violationsCount = (result) => {
   }, acc)
   return violationCount
 }
-async function fatigueQuery(vehIDs) {
+async function fatigueQuery(enddate, vehIDs) {
   try {
-    let startDate = moment.utc().subtract(1, 'days').format()
-    let endDate = moment.utc().format()
+    let strDate = moment.utc(enddate).subtract(1, 'days').format()
+    let endDate = moment.utc(enddate).format()
     let agg = [
       {
         $match: {
           VehicleID: { $in: vehIDs },
-          StrDate: { $gte: new Date(startDate), $lte: new Date(endDate) },
+          StrDate: { $gte: new Date(strDate), $lte: new Date(endDate) },
         },
       },
       {
