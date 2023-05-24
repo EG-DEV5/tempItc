@@ -147,14 +147,11 @@ const custodyFilter = async (department, city) => {
   if (!department && city) {
     custodys = await Group.find({ city })
     custodyIDs = custodys.map((custody) => custody._id)
-    vehicles = await User.find({ custodyId: { $in: custodyIDs } }, { vid: 1 })
+    vehicles = await User.find({ custodyId: { $in: custodyIDs } })
     return vehicles
   }
   if (!department && !city) {
-    vehicles = await User.find(
-      { vid: { $ne: null, $exists: true } },
-      { vid: 1 }
-    )
+    vehicles = await User.find({ vid: { $ne: null, $exists: true } })
     return vehicles
   }
 }
@@ -170,13 +167,19 @@ const mainDashboard = async (req, res) => {
       .map((vehicle) => vehicle.vid)
       .filter((vid) => vid !== null)
 
+    const serials = vehicles
+      .map((vehicle) => vehicle.SerialNumber)
+      .filter((serial) => serial != null || serial != undefined)
+
     let result = await mainDashboardQuery(startDate, endDate, validVids)
-    let fatigue = await fatigueQuery(validVids)
-    const requests = result.SerialNumber.map((serialNumber) => {
-      return axios.get(
-        `https://saferoad-srialfb.firebaseio.com/${serialNumber}.json`
-      )
-    })
+    let fatigue = await fatigueQuery(endDate, validVids)
+
+    const requests =
+      serials.length > 0 &&
+      serials.map((SerialNumber) => {
+        const url = `https://saferoad-srialfb.firebaseio.com/${SerialNumber}.json`
+        return axios.get(url)
+      })
 
     let online = 0
     let offline = 0
@@ -379,7 +382,7 @@ const vehicleViolationsById = async (req, res, next) => {
       .then((responses) => {
         responses.forEach((response) => {
           const vehicle = vioCount.SerialNumber.find(
-            (vehicle) => vehicle.SerialNumber == response.data.SerialNumber
+            (vehicle) => vehicle == response.data.SerialNumber
           )
           if (vehicle) {
             if (response.data.EngineStatus) ++online
