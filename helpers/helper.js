@@ -101,7 +101,7 @@ async function IsOverSpeedQuery(strDate, endDate, vehIDs) {
           AlarmCode: { $bitsAllSet: [2] },
         },
       },
-      vehIDs.length > 1000
+      vehIDs.length > 100
         ? {
             $limit: 2000000,
           }
@@ -1010,26 +1010,17 @@ async function violationsQueryById(strDate, endDate, validVids) {
               lang: 'js',
             },
           },
-          startnight: {
+          nightDrive: {
             $function: {
-              body: `function(dateTime) {
-                                    let start = new Date(dateTime);
-                                    start.setHours(16,0,0,0);
-                                   return start
-                                }`,
+              body: `function(dateTime) { let hr = (new Date(dateTime)).getHours() + 3; return (hr < 8) || (hr > 18); }`,
               args: ['$RecordDateTime'],
               lang: 'js',
             },
           },
-          endnight: {
+          longDistance: {
             $function: {
-              body: `function(dateTime) {
-                                    let end = new Date(dateTime);
-                                    end.setDate(end.getDate()+1)
-                                    end.setHours(04,0,0,0);
-                                   return end
-                                }`,
-              args: ['$RecordDateTime'],
+              body: `function(Distance) { return (Distance > 100) ;}`,
+              args: ['$Distance'],
               lang: 'js',
             },
           },
@@ -1088,19 +1079,27 @@ async function violationsQueryById(strDate, endDate, validVids) {
                 },
                 nightDrive: {
                   $sum: {
-                    $cond: [
-                      {
-                        $and: [
-                          { $gte: ['$RecordDateTime', '$startnight'] },
-                          { $lte: ['$RecordDateTime', '$endnight'] },
-                        ],
+                    $cond: {
+                      if: {
+                        $eq: ['$nightDrive', true],
                       },
-                      1,
-                      0,
-                    ],
+                      then: 1,
+                      else: 0,
+                    },
                   },
                 },
-                Mileage: { $max: { $divide: ['$Mileage', 1000] } },
+                longDistance: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$longDistance', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                Mileage: { $max: '$Mileage' },
                 SerialNumber: { $addToSet: '$SerialNumber' },
               },
             },
@@ -1156,19 +1155,27 @@ async function violationsQueryById(strDate, endDate, validVids) {
                 },
                 nightDrive: {
                   $sum: {
-                    $cond: [
-                      {
-                        $and: [
-                          { $gte: ['$RecordDateTime', '$startnight'] },
-                          { $lte: ['$RecordDateTime', '$endnight'] },
-                        ],
+                    $cond: {
+                      if: {
+                        $eq: ['$nightDrive', true],
                       },
-                      1,
-                      0,
-                    ],
+                      then: 1,
+                      else: 0,
+                    },
                   },
                 },
-                Mileage: { $sum: { $max: { $divide: ['$Mileage', 1000] } } },
+                longDistance: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$longDistance', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                mileage: { $sum: { $max: { $divide: ['$Mileage', 1000] } } },
               },
             },
           ],
@@ -1237,26 +1244,17 @@ async function getTraineeViolations(strDate, endDate, validVids) {
               lang: 'js',
             },
           },
-          startnight: {
+          nightDrive: {
             $function: {
-              body: `function(dateTime) {
-                                    let start = new Date(dateTime);
-                                    start.setHours(16,0,0,0);
-                                   return start
-                                }`,
+              body: `function(dateTime) { let hr = (new Date(dateTime)).getHours() + 3; return (hr < 8) || (hr > 18); }`,
               args: ['$RecordDateTime'],
               lang: 'js',
             },
           },
-          endnight: {
+          longDistance: {
             $function: {
-              body: `function(dateTime) {
-                                    let end = new Date(dateTime);
-                                    end.setDate(end.getDate()+1)
-                                    end.setHours(04,0,0,0);
-                                   return end
-                                }`,
-              args: ['$RecordDateTime'],
+              body: `function(Distance) { return (Distance > 100) ;}`,
+              args: ['$Distance'],
               lang: 'js',
             },
           },
@@ -1314,16 +1312,24 @@ async function getTraineeViolations(strDate, endDate, validVids) {
                 },
                 nightDrive: {
                   $sum: {
-                    $cond: [
-                      {
-                        $and: [
-                          { $gte: ['$RecordDateTime', '$startnight'] },
-                          { $lte: ['$RecordDateTime', '$endnight'] },
-                        ],
+                    $cond: {
+                      if: {
+                        $eq: ['$nightDrive', true],
                       },
-                      1,
-                      0,
-                    ],
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                longDistance: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$longDistance', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
                   },
                 },
                 Mileage: { $max: { $divide: ['$Mileage', 1000] } },
@@ -1382,19 +1388,27 @@ async function getTraineeViolations(strDate, endDate, validVids) {
                 },
                 nightDrive: {
                   $sum: {
-                    $cond: [
-                      {
-                        $and: [
-                          { $gte: ['$RecordDateTime', '$startnight'] },
-                          { $lte: ['$RecordDateTime', '$endnight'] },
-                        ],
+                    $cond: {
+                      if: {
+                        $eq: ['$nightDrive', true],
                       },
-                      1,
-                      0,
-                    ],
+                      then: 1,
+                      else: 0,
+                    },
                   },
                 },
-                Mileage: { $sum: { $max: { $divide: ['$Mileage', 1000] } } },
+                longDistance: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$longDistance', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                },
+                Mileage: { $sum: { $max: '$Mileage' } },
               },
             },
           ],

@@ -308,6 +308,7 @@ const vehicleViolationsById = async (req, res, next) => {
     let result
     let totalViolation
     let custodyDetails
+    let fatigue
     const strDate = moment.utc().subtract(1, 'days').toDate()
     const endDate = moment.utc().toDate()
     // handle user violation (trainee)
@@ -325,6 +326,7 @@ const vehicleViolationsById = async (req, res, next) => {
       let queryResult = await getTraineeViolations(strDate, endDate, validVids)
       result = queryResult.result
       totalViolation = queryResult.totalViolation
+      fatigue = await fatigueQuery(validVids)
 
       // handle custody details
       custodyDetails = await Group.find({ _id: allVehicles[0].custodyId })
@@ -341,8 +343,8 @@ const vehicleViolationsById = async (req, res, next) => {
       let queryResult = await violationsQueryById(strDate, endDate, validVids)
       result = queryResult.result
       totalViolation = queryResult.totalViolation
+      fatigue = await fatigueQuery(validVids)
     }
-
     if (!totalViolation) {
       throw new CustomError.BadRequestError(
         '{"enMessage" : "there is no data in this period", "arMessage" :"لا توجد بيانات فى هذه الفترة"}'
@@ -377,9 +379,11 @@ const vehicleViolationsById = async (req, res, next) => {
       .finally(() => {
         res.status(StatusCodes.OK).json({
           result,
-          ...(userId && { custodyName: custodyDetails[0].custodyName }),
+          ...(userId && custodyDetails.length > 0
+            ? { custodyName: custodyDetails[0].custodyName }
+            : { custodyName: null }),
           ...(userId ? { users: allVehicles } : []),
-          totalViolation: { ...totalViolation[0], online, offline },
+          totalViolation: { ...totalViolation[0], online, offline, fatigue },
         })
       })
   } catch (error) {

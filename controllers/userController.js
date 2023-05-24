@@ -349,10 +349,31 @@ const getallCustodys = async (req, res, next) => {
         {
           $project: {
             users: {
-              $filter: {
-                input: '$users',
+              $map: {
+                input: {
+                  $filter: {
+                    input: '$users',
+                    as: 'user',
+                    cond: {
+                      $eq: ['$$user.role', 'trainer'],
+                    },
+                  },
+                },
                 as: 'user',
-                cond: { $eq: ['$$user.role', 'trainer'] },
+                in: {
+                  _id: '$$user._id',
+                  username: '$$user.username',
+                  phoneNumber: '$$user.phoneNumber',
+                  email: '$$user.email',
+                  role: '$$user.role',
+                  idNumber: '$$user.idNumber',
+                  vid: '$$user.vid',
+                  SerialNumber: '$$user.SerialNumber',
+                  isOnline: '$$user.isOnline',
+                  custodyId: '$custodyName',
+                  image: '$$user.image',
+                  __v: '$$user.__v',
+                },
               },
             },
             custodyName: 1,
@@ -397,7 +418,7 @@ const getallCustodys = async (req, res, next) => {
                   vid: '$$user.vid',
                   SerialNumber: '$$user.SerialNumber',
                   isOnline: '$$user.isOnline',
-                  custodyId: '$$user.custodyId',
+                  custodyId: '$custodyName',
                   image: '$$user.image',
                   __v: '$$user.__v',
                 },
