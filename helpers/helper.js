@@ -496,7 +496,7 @@ async function fatigueQuery(enddate, vehIDs) {
 }
 async function weeklyTrendsQuery(vehIDs) {
   try {
-    let startDate = moment.utc().subtract(13, 'days').format()
+    let startDate = moment.utc().subtract(20, 'days').format()
     let endDate = moment.utc().format()
     let agg = [
       {
@@ -509,7 +509,7 @@ async function weeklyTrendsQuery(vehIDs) {
         },
       },
       {
-        $limit: 200000,
+        $limit: 300000,
       },
       {
         $group: {
@@ -723,7 +723,8 @@ const berDayCount = (result) => {
   })
   let series = [
     { name: 'thisWeek', data: count.slice(0, 7).map((item) => item.vioCount) },
-    { name: 'prevWeek', data: count.slice(-7).map((item) => item.vioCount) },
+    { name: 'lastWeek', data: count.slice(7, 14).map((item) => item.vioCount) },
+    { name: 'preLastWeek', data: count.slice(-7).map((item) => item.vioCount) },
   ]
   return { labels, series }
 }
