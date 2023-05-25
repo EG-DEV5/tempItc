@@ -131,9 +131,13 @@ const updateUser = async (req, res) => {
       if (account.custodyId == null || account.custodyId == custodyId) {
         account.custodyId = custodyId
         account.save()
+      } else if (account.custodyId && account.custodyId != custodyId) {
+        account.custodyId = custodyId
+        account.save()
       } else {
-        const Cus = await Custody.find({ _id: custodyId })
-        Cus.pendingTrainers.push(account._id)
+        const [Cus] = await Custody.find({ _id: custodyId })
+        console.log(Cus.pendingTrainers)
+        // Cus.pendingTrainers.push(account._id)
         Cus.save()
       }
       let image = {}
@@ -798,6 +802,71 @@ const deleteCustody = async (req, res) => {
     res.status(500).json({ error, msg: 'Something went wrong' })
   }
 }
+const getAllCities = async (req, res) => {
+  const cities = [
+    'Riyadh',
+    'Jeddah',
+    'Mecca',
+    'Medina',
+    'Ad Dammām',
+    'Al Hufūf',
+    'Ḩafr al Bāţin',
+    'Al Ḩillah',
+    'Aţ Ţā’if',
+    'Tabūk',
+    'Al Qaţīf',
+    'Buraydah',
+    'Al Jubayl',
+    'Ḩā’il',
+    'Al Kharj',
+    'Al Qunfudhah',
+    'Al Mubarraz',
+    'Yanbu',
+    'Sakākā',
+    'Abhā',
+    'Şabyā',
+    'Al Khubar',
+    'Qal‘at Bīshah',
+    '‘Unayzah',
+    'Ras Tanura',
+    'Al Ḩawīyah',
+    'Al Qurayyāt',
+    'Ar Rass',
+    'Jāzān',
+    'Az Zulfī',
+    'Sayhāt',
+    'Ḩaraḑ',
+    'Al Aḩad al Masāriḩah',
+    'Khamīs Mushayţ',
+    'Ţurayf',
+    'Sharūrah',
+    'Rafḩā',
+    'Najrān',
+    'Al Līth',
+    'Ad Darb',
+    'Ra’s al Khafjī',
+    'Badr Ḩunayn',
+    'Khulayş',
+    'An Nimāş',
+    'Al Majāridah',
+    'Al Wajh',
+    'Al Midhnab',
+    'Abqaiq',
+    'Al ‘Aqīq',
+    'Ḑulay‘ Rashīd',
+    'Shaqrā’',
+    'Al Mindak',
+    'Dhahran',
+    'Al ‘Aydābī',
+    'Qārā',
+    'Ash Shinān',
+    'Arar',
+    'Ḩaql',
+    'Ḑubā',
+    'Al Bāḩah',
+  ]
+  res.status(200).json({ cities })
+}
 
 module.exports = {
   deleteCustody,
@@ -820,4 +889,5 @@ module.exports = {
   freeSaftey,
   getPendingTrainers,
   Vehicle,
+  getAllCities,
 }
