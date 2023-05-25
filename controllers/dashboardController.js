@@ -161,6 +161,22 @@ const custodyFilter = async (department, city) => {
     return vehicles
   }
 }
+const isOffline = (data) => {
+  let targetDate = moment(data.RecordDateTime).toDate()
+
+  // let targetDate = new Date(data.RecordDateTime)
+  // var toLocal = moment().local(targetDate).format('YYYY-MM-DD HH:mm:ss')
+  // moment(toLocal).add(1, 'hours').format()
+
+  var toLocal = moment(targetDate, 'Arabia Standard Time').format()
+  // var toLocal = new Date(targetDate)
+  let diffInMinutes = moment().diff(toLocal, 'minutes') + 60 // add 60 minutes to fix timezone (GMT+2 summer time)
+
+  return (
+    (!data.EngineStatus && diffInMinutes / 60 >= 48) ||
+    (data.EngineStatus && diffInMinutes / 60 > 12)
+  )
+}
 const mainDashboard = async (req, res) => {
   // handle date filter
   let { month, year, department, city } = req.query
@@ -193,8 +209,11 @@ const mainDashboard = async (req, res) => {
     Promise.all(requests)
       .then((responses) => {
         responses.forEach((response) => {
-          if (response.data.EngineStatus) ++online
-          else ++offline
+          const status = isOffline(response.data)
+          if (status) ++offline
+          else ++online
+          // if (response.data.EngineStatus) ++online
+          // else ++offline
         })
       })
       .catch((error) => {
@@ -399,9 +418,10 @@ const vehicleViolationsById = async (req, res, next) => {
               : vioCount.SerialNumber.find(
                   (vehicle) => vehicle == response.data.SerialNumber
                 )
+          const status = isOffline(response.data)
           if (vehicle) {
-            if (response.data.EngineStatus) ++online
-            else ++offline
+            if (status) ++offline
+            else ++online
             vehicle.EngineStatus = response.data.EngineStatus
           }
         })
