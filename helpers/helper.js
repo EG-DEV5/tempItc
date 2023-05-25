@@ -722,9 +722,15 @@ const berDayCount = (result) => {
     return moment.utc(item.day).format('ddd')
   })
   let series = [
-    { name: 'thisWeek', data: count.slice(0, 7).map((item) => item.vioCount) },
-    { name: 'lastWeek', data: count.slice(7, 14).map((item) => item.vioCount) },
-    { name: 'preLastWeek', data: count.slice(-7).map((item) => item.vioCount) },
+    {
+      name: 'Over Speed',
+      data: count.slice(0, 7).map((item) => item.vioCount),
+    },
+    {
+      name: 'Harsh Brake',
+      data: count.slice(7, 14).map((item) => item.vioCount),
+    },
+    { name: 'Seat Belt', data: count.slice(-7).map((item) => item.vioCount) },
   ]
   return { labels, series }
 }
