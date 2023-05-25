@@ -131,9 +131,13 @@ const updateUser = async (req, res) => {
       if (account.custodyId == null || account.custodyId == custodyId) {
         account.custodyId = custodyId
         account.save()
+      } else if (account.custodyId && account.custodyId != custodyId) {
+        account.custodyId = custodyId
+        account.save()
       } else {
-        const Cus = await Custody.find({ _id: custodyId })
-        Cus.pendingTrainers.push(account._id)
+        const [Cus] = await Custody.find({ _id: custodyId })
+        console.log(Cus.pendingTrainers)
+        // Cus.pendingTrainers.push(account._id)
         Cus.save()
       }
       let image = {}
