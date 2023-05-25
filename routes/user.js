@@ -29,6 +29,7 @@ const {
   Vehicle,
   deleteUser,
   deleteCustody,
+  getAllCities,
 } = require('../controllers/userController')
 
 router.post('/addUser', authenticateUser, uploadPhoto.single('image'), addUser)
@@ -82,6 +83,12 @@ router.get(
   authenticateUser,
   authorizeRoles('admin', 'safety-advisor'),
   getallCustodys
+)
+router.get(
+  '/getCities',
+  authenticateUser,
+  authorizeRoles('admin', 'safety-advisor'),
+  getAllCities
 )
 router.get('/saftey-custody', authenticateUser, getsafteyAdvisorCustody)
 router.get('/profile', authenticateUser, getProfile)
