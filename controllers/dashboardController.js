@@ -137,21 +137,27 @@ const dateFilter = (month, year) => {
 const custodyFilter = async (department, city) => {
   let vehicles
   if (department && city) {
-    vehicles = await User.find({ custodyId: department })
+    vehicles = await User.find({ custodyId: department, role: 'trainer' })
     return vehicles
   }
   if (department && !city) {
-    vehicles = await User.find({ custodyId: department })
+    vehicles = await User.find({ custodyId: department, role: 'trainer' })
     return vehicles
   }
   if (!department && city) {
     custodys = await Group.find({ city })
     custodyIDs = custodys.map((custody) => custody._id)
-    vehicles = await User.find({ custodyId: { $in: custodyIDs } })
+    vehicles = await User.find({
+      custodyId: { $in: custodyIDs },
+      role: 'trainer',
+    })
     return vehicles
   }
   if (!department && !city) {
-    vehicles = await User.find({ vid: { $ne: null, $exists: true } })
+    vehicles = await User.find({
+      vid: { $ne: null, $exists: true },
+      role: 'trainer',
+    })
     return vehicles
   }
 }
@@ -340,7 +346,11 @@ const vehicleViolationsById = async (req, res, next) => {
       // handle custody violation
       // get the custody data
       allVehicles = await User.find(
-        { custodyId: custodyId, vid: { $ne: null, $exists: true } },
+        {
+          custodyId: custodyId,
+          vid: { $ne: null, $exists: true },
+          role: 'trainer',
+        },
         { password: 0 }
       )
       // get the custody vehicles ids
