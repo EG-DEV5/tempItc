@@ -438,7 +438,10 @@ const violationsCount = (result) => {
       nightDrive: item.nightDrive > 0 ? acc.nightDrive + 1 : acc.nightDrive,
       longDistance:
         item.longDistance > 0 ? acc.longDistance + 1 : acc.longDistance,
-      lowSpeed: item.OverSpeed < 120 ? acc.lowSpeed + 1 : acc.lowSpeed,
+      lowSpeed:
+        item.OverSpeed < 120 && item.OverSpeed > 0
+          ? acc.lowSpeed + 1
+          : acc.lowSpeed,
       mediumSpeed:
         item.OverSpeed >= 120 && item.OverSpeed < 140
           ? acc.mediumSpeed + 1
@@ -978,6 +981,12 @@ const berDayCount = (result) => {
   let labels = result.map((item) => {
     return moment.utc(item._id).format('ddd')
   })
+  // let maxNumber = Math.max(
+  //   ...result
+  //     .flatMap((obj) => Object.values(obj))
+  //     .filter((value) => typeof value === 'number')
+  // )
+
   let series = [
     {
       name: 'Over Speed',
