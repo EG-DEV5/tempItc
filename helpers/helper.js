@@ -496,8 +496,237 @@ async function fatigueQuery(enddate, vehIDs) {
 }
 async function weeklyTrendsQuery(vehIDs) {
   try {
-    let startDate = moment.utc().subtract(20, 'days').format()
+    let startDate = moment.utc().subtract(6, 'days').format()
     let endDate = moment.utc().format()
+    // let agg = [
+    //   {
+    //     $match: {
+    //       VehicleID: { $in: vehIDs },
+    //       RecordDateTime: {
+    //         $gte: new Date(startDate),
+    //         $lte: new Date(endDate),
+    //       },
+    //     },
+    //   },
+    //   // {
+    //   //   $limit: 300000,
+    //   // },
+    //   {
+    //     $group: {
+    //       _id: {
+    //         VehicleID: '$VehicleID',
+    //         RecordDateTime: {
+    //           $dateToString: { format: '%Y-%m-%d', date: '$RecordDateTime' },
+    //         },
+    //       },
+    //       harshAcceleration: {
+    //         $sum: {
+    //           $cond: {
+    //             if: {
+    //               $eq: [
+    //                 {
+    //                   $function: {
+    //                     body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
+    //                     args: ['$AlarmCode', 0],
+    //                     lang: 'js',
+    //                   },
+    //                 },
+    //                 true,
+    //               ],
+    //             },
+    //             then: 1,
+    //             else: 0,
+    //           },
+    //         },
+    //       },
+    //       OverSpeed: {
+    //         $sum: {
+    //           $cond: {
+    //             if: {
+    //               $eq: [
+    //                 {
+    //                   $function: {
+    //                     body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
+    //                     args: ['$AlarmCode', 2],
+    //                     lang: 'js',
+    //                   },
+    //                 },
+    //                 true,
+    //               ],
+    //             },
+    //             then: 1,
+    //             else: 0,
+    //           },
+    //         },
+    //       },
+    //       SeatBelt: {
+    //         $sum: {
+    //           $cond: {
+    //             if: {
+    //               $eq: [
+    //                 {
+    //                   $function: {
+    //                     body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
+    //                     args: ['$StatusCode', 3],
+    //                     lang: 'js',
+    //                   },
+    //                 },
+    //                 true,
+    //               ],
+    //             },
+    //             then: 1,
+    //             else: 0,
+    //           },
+    //         },
+    //       },
+    //       harshBrake: {
+    //         $sum: {
+    //           $cond: {
+    //             if: {
+    //               $eq: [
+    //                 {
+    //                   $function: {
+    //                     body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
+    //                     args: ['$AlarmCode', 1],
+    //                     lang: 'js',
+    //                   },
+    //                 },
+    //                 true,
+    //               ],
+    //             },
+    //             then: 1,
+    //             else: 0,
+    //           },
+    //         },
+    //       },
+    //       nightDrive: {
+    //         $sum: {
+    //           $cond: {
+    //             if: {
+    //               $eq: [
+    //                 {
+    //                   $function: {
+    //                     body: `function(dateTime) { let hr = (new Date(dateTime)).getHours() + 3; return (hr < 8) || (hr > 20); }`,
+    //                     args: ['$RecordDateTime'],
+    //                     lang: 'js',
+    //                   },
+    //                 },
+    //                 true,
+    //               ],
+    //             },
+    //             then: 1,
+    //             else: 0,
+    //           },
+    //         },
+    //       },
+    //       longDistance: {
+    //         $sum: {
+    //           $cond: {
+    //             if: {
+    //               $eq: [
+    //                 {
+    //                   $function: {
+    //                     body: `function(Distance) { return (Distance > 100) ;}`,
+    //                     args: ['$Distance'],
+    //                     lang: 'js',
+    //                   },
+    //                 },
+    //                 true,
+    //               ],
+    //             },
+    //             then: 1,
+    //             else: 0,
+    //           },
+    //         },
+    //       },
+    //     },
+    //   },
+    //   {
+    //     $group: {
+    //       _id: '$_id.RecordDateTime',
+    //       harshAcceleration: {
+    //         $sum: {
+    //           $cond: {
+    //             if: { $gt: ['$HarshAcceleration', 0] },
+    //             then: 1,
+    //             else: 0,
+    //           },
+    //         },
+    //       },
+    //       OverSpeed: {
+    //         $sum: {
+    //           $cond: {
+    //             if: { $gt: ['$IsOverSpeed', 0] },
+    //             then: 1,
+    //             else: 0,
+    //           },
+    //         },
+    //       },
+    //       SeatBelt: {
+    //         $sum: {
+    //           $cond: {
+    //             if: { $gt: ['$SeatBelt', 0] },
+    //             then: 1,
+    //             else: 0,
+    //           },
+    //         },
+    //       },
+    //       harshBrake: {
+    //         $sum: {
+    //           $cond: {
+    //             if: { $gt: ['$HarshBrake', 0] },
+    //             then: 1,
+    //             else: 0,
+    //           },
+    //         },
+    //       },
+    //       nightDrive: {
+    //         $sum: {
+    //           $cond: {
+    //             if: { $gt: ['$nightDrive', 0] },
+    //             then: 1,
+    //             else: 0,
+    //           },
+    //         },
+    //       },
+    //       longDistance: {
+    //         $sum: {
+    //           $cond: {
+    //             if: { $gt: ['$longDistance', 0] },
+    //             then: 1,
+    //             else: 0,
+    //           },
+    //         },
+    //       },
+    //     },
+    //   },
+    //   // {
+    //   //   $group: {
+    //   //     _id: '$_id.RecordDateTime',
+    //   //     harshAcceleration: {
+    //   //       $sum: '$HarshAcceleration',
+    //   //     },
+    //   //     OverSpeed: {
+    //   //       $sum: '$IsOverSpeed',
+    //   //     },
+    //   //     SeatBelt: {
+    //   //       $sum: '$SeatBelt',
+    //   //     },
+    //   //     harshBrake: {
+    //   //       $sum: '$HarshBrake',
+    //   //     },
+    //   //     nightDrive: {
+    //   //       $sum: '$nightDrive',
+    //   //     },
+    //   //     longDistance: {
+    //   //       $sum: '$longDistance',
+    //   //     },
+    //   //   },
+    //   // },
+    //   {
+    //     $sort: { _id: -1 },
+    //   },
+    // ]
     let agg = [
       {
         $match: {
@@ -508,8 +737,13 @@ async function weeklyTrendsQuery(vehIDs) {
           },
         },
       },
+      // {
+      //   $limit: 300000,
+      // },
       {
-        $limit: 300000,
+        $sort: {
+          RecordDateTime: 1,
+        },
       },
       {
         $group: {
@@ -551,7 +785,7 @@ async function weeklyTrendsQuery(vehIDs) {
                         lang: 'js',
                       },
                     },
-                    2,
+                    true,
                   ],
                 },
                 then: 1,
@@ -563,7 +797,16 @@ async function weeklyTrendsQuery(vehIDs) {
             $sum: {
               $cond: {
                 if: {
-                  $eq: ['$StatusCode', 3],
+                  $eq: [
+                    {
+                      $function: {
+                        body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
+                        args: ['$StatusCode', 3],
+                        lang: 'js',
+                      },
+                    },
+                    true,
+                  ],
                 },
                 then: 1,
                 else: 0,
@@ -582,7 +825,7 @@ async function weeklyTrendsQuery(vehIDs) {
                         lang: 'js',
                       },
                     },
-                    1,
+                    true,
                   ],
                 },
                 then: 1,
@@ -638,7 +881,7 @@ async function weeklyTrendsQuery(vehIDs) {
           harshAcceleration: {
             $sum: {
               $cond: {
-                if: { $gt: ['$HarshAcceleration', 0] },
+                if: { $gt: ['$harshAcceleration', 0] },
                 then: 1,
                 else: 0,
               },
@@ -647,7 +890,7 @@ async function weeklyTrendsQuery(vehIDs) {
           OverSpeed: {
             $sum: {
               $cond: {
-                if: { $gt: ['$IsOverSpeed', 0] },
+                if: { $gt: ['$OverSpeed', 0] },
                 then: 1,
                 else: 0,
               },
@@ -665,7 +908,7 @@ async function weeklyTrendsQuery(vehIDs) {
           harshBrake: {
             $sum: {
               $cond: {
-                if: { $gt: ['$HarshBrake', 0] },
+                if: { $gt: ['$harshBrake', 0] },
                 then: 1,
                 else: 0,
               },
@@ -691,6 +934,17 @@ async function weeklyTrendsQuery(vehIDs) {
           },
         },
       },
+      // {
+      //   $group: {
+      //     _id: '$_id.RecordDateTime',
+      //     harshAcceleration: { $sum: '$harshAcceleration' },
+      //     OverSpeed: { $sum: '$OverSpeed' },
+      //     SeatBelt: { $sum: '$SeatBelt' },
+      //     harshBrake: { $sum: '$harshBrake' },
+      //     nightDrive: { $sum: '$nightDrive' },
+      //     longDistance: { $sum: '$longDistance' },
+      //   },
+      // },
       {
         $sort: { _id: -1 },
       },
@@ -706,31 +960,34 @@ async function weeklyTrendsQuery(vehIDs) {
   }
 }
 const berDayCount = (result) => {
-  let count = result.map((item) => {
-    return {
-      day: item._id,
-      vioCount:
-        item.harshAcceleration +
-        item.OverSpeed +
-        item.SeatBelt +
-        item.harshBrake +
-        item.nightDrive +
-        item.longDistance,
-    }
-  })
-  let labels = count.slice(-7).map((item) => {
-    return moment.utc(item.day).format('ddd')
+  const overSpeed = result.map((item) => item.OverSpeed)
+  const harshBrake = result.map((item) => item.harshBrake)
+  const longDistance = result.map((item) => item.longDistance)
+  // let totalCount = result.map((item) => {
+  //   return {
+  //     day: item._id,
+  //     vioCount:
+  //       item.harshAcceleration +
+  //       item.OverSpeed +
+  //       item.SeatBelt +
+  //       item.harshBrake +
+  //       item.nightDrive +
+  //       item.longDistance,
+  //   }
+  // })
+  let labels = result.map((item) => {
+    return moment.utc(item._id).format('ddd')
   })
   let series = [
     {
       name: 'Over Speed',
-      data: count.slice(0, 7).map((item) => item.vioCount),
+      data: overSpeed,
     },
     {
       name: 'Harsh Brake',
-      data: count.slice(7, 14).map((item) => item.vioCount),
+      data: harshBrake,
     },
-    { name: 'Seat Belt', data: count.slice(-7).map((item) => item.vioCount) },
+    { name: 'Long Distance', data: longDistance },
   ]
   return { labels, series }
 }
