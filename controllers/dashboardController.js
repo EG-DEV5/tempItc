@@ -328,96 +328,55 @@ const vehicleViolations = async (req, res, next) => {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json()
   }
 }
-const vehicleViolationsById = async (req, res, next) => {
-  try {
-    const { userId, custodyId } = req.query
-    let allVehicles
-    let validVids
-    let result
-    let totalViolation
-    let custodyDetails
-    let fatigue
-    let speedRanges
-    let vioCount
-    let traineeSerial
-    const strDate = moment.utc().subtract(1, 'days').toDate()
-    const endDate = moment.utc().toDate()
-    // handle user violation (trainee)
-    if (userId) {
-      // get the user data
-      allVehicles = await User.find(
-        { _id: userId, vid: { $ne: null, $exists: true } },
-        { password: 0 }
-      )
+const requestsHandler = (SerialNumbers) => {
+  const requests = SerialNumbers.map((SerialNumber) => {
+    const url = `https://saferoad-srialfb.firebaseio.com/${SerialNumber}.json`
+    return axios.get(url)
+  })
+  return requests
+}
 
-      // get the user vehicles ids
-      validVids = allVehicles.map((vehicle) => vehicle.vid)
-      traineeSerial = allVehicles.map((vehicle) => vehicle.SerialNumber)
-      // get the user violations
-      let queryResult = await getTraineeViolations(strDate, endDate, validVids)
-      result = queryResult.result
-      totalViolation = queryResult.totalViolation
-      fatigue = await fatigueQuery(endDate, validVids)
+const trainerHndler = async (userId, res) => {
+  const strDate = moment.utc().subtract(24, 'hours').toDate()
+  const endDate = moment.utc().toDate()
 
-      // handle custody details
-      custodyDetails = await Group.find({ _id: allVehicles[0].custodyId })
-    } else if (custodyId) {
-      // handle custody violation
-      // get the custody data
-      allVehicles = await User.find(
-        {
-          custodyId: custodyId,
-          vid: { $ne: null, $exists: true },
-          role: 'trainer',
-        },
-        { password: 0 }
-      )
-      // get the custody vehicles ids
-      validVids = allVehicles.map((vehicle) => vehicle.vid)
-      // get the custody violations
-      let queryResult = await violationsQueryById(strDate, endDate, validVids)
-      result = queryResult.result
-      totalViolation = queryResult.totalViolation
-      fatigue = await fatigueQuery(endDate, validVids)
-      vioCount = await mainDashboardQuery(strDate, endDate, validVids)
-      speedRanges = vioCount && {
-        lowSpeed: vioCount.lowSpeed,
-        mediumSpeed: vioCount.mediumSpeed,
-        highSpeed: vioCount.highSpeed,
-      }
-    }
-    if (!totalViolation) {
-      throw new CustomError.BadRequestError(
-        '{"enMessage" : "there is no data in this period", "arMessage" :"لا توجد بيانات فى هذه الفترة"}'
-      )
-    }
-    // handle the online/offline status
-    const requestsHandler = (SerialNumbers) => {
-      const requests = SerialNumbers.map((SerialNumber) => {
-        const url = `https://saferoad-srialfb.firebaseio.com/${SerialNumber}.json`
-        return axios.get(url)
-      })
-      return requests
-    }
-    const requests =
-      userId && traineeSerial.length > 0
-        ? requestsHandler(traineeSerial)
-        : requestsHandler(vioCount.SerialNumber)
+  const allVehicles = await User.find(
+    { _id: userId, vid: { $ne: null, $exists: true } },
+    { password: 0 }
+  )
 
-    let online = 0
-    let offline = 0
+  const validVids = allVehicles.map((vehicle) => vehicle.vid)
+  const trainerSerial = allVehicles.map((vehicle) => vehicle.SerialNumber)
 
+  const queryResult = await getTraineeViolations(strDate, endDate, validVids)
+  const result = queryResult.result
+  const totalViolation = queryResult.totalViolation
+  const fatigue = await fatigueQuery(endDate, validVids)
+  const violationsObj = totalViolation[0]
+  const sumViolations =
+    violationsObj.harshAcceleration +
+    violationsObj.harshBrake +
+    violationsObj.OverSpeed +
+    violationsObj.SeatBelt +
+    violationsObj.nightDrive +
+    violationsObj.longDistance +
+    fatigue
+  const custodyDetails = await Group.find({ _id: allVehicles[0].custodyId })
+  if (!totalViolation) {
+    throw new CustomError.BadRequestError(
+      '{"enMessage" : "there is no data in this period", "arMessage" :"لا توجد بيانات فى هذه الفترة"}'
+    )
+  }
+  let online = 0
+  let offline = 0
+  if (trainerSerial[0] != null) {
+    const requests = requestsHandler(trainerSerial)
     Promise.all(requests)
       .then((responses) => {
         responses.forEach((response) => {
-          const vehicle =
-            userId && traineeSerial.length > 0
-              ? traineeSerial.find(
-                  (vehicle) => vehicle == response.data.SerialNumber
-                )
-              : vioCount.SerialNumber.find(
-                  (vehicle) => vehicle == response.data.SerialNumber
-                )
+          const vehicle = trainerSerial.find(
+            (vehicle) => vehicle == response.data.SerialNumber
+          )
           const status = isOffline(response.data)
           if (vehicle) {
             if (status) ++offline
@@ -438,15 +397,114 @@ const vehicleViolationsById = async (req, res, next) => {
             : { custodyName: null }),
           ...(userId ? { users: allVehicles } : []),
           totalViolation: {
+            sumViolations,
             ...totalViolation[0],
             online,
             offline,
             fatigue,
-            ...(custodyId && speedRanges),
-            ...vioCount,
           },
         })
       })
+  } else {
+    offline = 1
+    res.status(StatusCodes.OK).json({
+      result,
+      ...(userId && custodyDetails.length > 0
+        ? { custodyName: custodyDetails[0].custodyName }
+        : { custodyName: null }),
+      ...(userId ? { users: allVehicles } : []),
+      totalViolation: {
+        ...totalViolation[0],
+        online,
+        offline,
+        fatigue,
+      },
+    })
+  }
+}
+const custodyHandler = async (custodyId, res) => {
+  const strDate = moment.utc().subtract(1, 'days').toDate()
+  const endDate = moment.utc().toDate()
+  const allVehicles = await User.find(
+    {
+      custodyId: custodyId,
+      vid: { $ne: null, $exists: true },
+      role: 'trainer',
+    },
+    { password: 0 }
+  )
+  // get the custody vehicles ids
+  const validVids = allVehicles.map((vehicle) => vehicle.vid)
+  // get the custody violations
+  const queryResult = await violationsQueryById(strDate, endDate, validVids)
+  const result = queryResult.result
+  const totalViolation = queryResult.totalViolation
+  const fatigue = await fatigueQuery(endDate, validVids)
+  const vioCount = await mainDashboardQuery(strDate, endDate, validVids)
+  const speedRanges = vioCount && {
+    lowSpeed: vioCount.lowSpeed,
+    mediumSpeed: vioCount.mediumSpeed,
+    highSpeed: vioCount.highSpeed,
+  }
+  if (!totalViolation) {
+    throw new CustomError.BadRequestError(
+      '{"enMessage" : "there is no data in this period", "arMessage" :"لا توجد بيانات فى هذه الفترة"}'
+    )
+  }
+  // handle the online/offline status
+  // const requestsHandler = (SerialNumbers) => {
+  //   const requests = SerialNumbers.map((SerialNumber) => {
+  //     const url = `https://saferoad-srialfb.firebaseio.com/${SerialNumber}.json`
+  //     return axios.get(url)
+  //   })
+  //   return requests
+  // }
+  const requests = requestsHandler(vioCount.SerialNumber)
+
+  let online = 0
+  let offline = 0
+
+  Promise.all(requests)
+    .then((responses) => {
+      responses.forEach((response) => {
+        const vehicle = vioCount.SerialNumber.find(
+          (vehicle) => vehicle == response.data.SerialNumber
+        )
+        const status = isOffline(response.data)
+        if (vehicle) {
+          if (status) ++offline
+          else ++online
+          vehicle.EngineStatus = response.data.EngineStatus
+        }
+      })
+    })
+    .catch((error) => {
+      console.error(error)
+      res.status(500).send('An error occurred')
+    })
+    .finally(() => {
+      res.status(StatusCodes.OK).json({
+        result,
+        totalViolation: {
+          ...totalViolation[0],
+          online,
+          offline,
+          fatigue,
+          ...(custodyId && speedRanges),
+          ...vioCount,
+          SerialNumber: [],
+        },
+      })
+    })
+}
+const vehicleViolationsById = async (req, res, next) => {
+  try {
+    const { userId, custodyId } = req.query
+    if (userId) {
+      trainerHndler(userId, res)
+    } else if (custodyId) {
+      custodyHandler(custodyId, res)
+    }
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(error.message)
   }
