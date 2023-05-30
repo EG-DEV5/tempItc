@@ -268,7 +268,31 @@ async function getusersvehIDs() {
   uservehIDs = uservehIDs.map((e) => e.vid)
   return uservehIDs
 }
-
+const mergeDetails = (violation, userDetails, fatigue) => {
+  const mergeUsersWithViolations = violation.map((vio) => {
+    if (fatigue) {
+      const matchedUser = userDetails.find((user) => vio._id === user.vid)
+      const neededUserDetails = {
+        username: matchedUser.username,
+        vid: matchedUser.vid,
+        phoneNumber: matchedUser.phoneNumber,
+        SerialNumber: matchedUser.SerialNumber,
+      }
+      return matchedUser ? Object.assign(vio, neededUserDetails) : null
+    }
+    const matchedUser = userDetails.find(
+      (user) => vio._id.VehicleID === user.vid
+    )
+    const neededUserDetails = {
+      username: matchedUser.username,
+      vid: matchedUser.vid,
+      phoneNumber: matchedUser.phoneNumber,
+      SerialNumber: matchedUser.SerialNumber,
+    }
+    return matchedUser ? Object.assign(vio, neededUserDetails) : null
+  })
+  return mergeUsersWithViolations
+}
 async function mainDashboardQuery(strDate, endDate, vehIDs) {
   try {
     let agg = [
@@ -404,8 +428,66 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
       .collection('LiveLocations')
       .aggregate(agg)
       .toArray()
+    const vehiclesIds = result.map((e) => e._id.VehicleID)
+    const userDetails = await User.find(
+      { vid: { $in: vehiclesIds } },
+      {
+        username: 1,
+        phoneNumber: 1,
+        vid: 1,
+        SerialNumber: 1,
+      }
+    )
+
+    const overSpeedVio = result
+      .filter((e) => e.OverSpeed > 0)
+      .map((e) => {
+        return { _id: e._id, OverSpeed: e.OverSpeed }
+      })
+    const harshAccelerationVio = result
+      .filter((e) => e.harshAcceleration > 0)
+      .map((e) => {
+        return { _id: e._id, harshAcceleration: e.harshAcceleration }
+      })
+    const harshBrakeVio = result
+      .filter((e) => e.harshBrake > 0)
+      .map((e) => {
+        return { _id: e._id, harshBrake: e.harshBrake }
+      })
+    const SeatBeltVio = result
+      .filter((e) => e.SeatBelt > 0)
+      .map((e) => {
+        return { _id: e._id, SeatBelt: e.SeatBelt }
+      })
+    const nightDriveVio = result
+      .filter((e) => e.nightDrive > 0)
+      .map((e) => {
+        return { _id: e._id, nightDrive: e.nightDrive }
+      })
+    const longDistanceVio = result
+      .filter((e) => e.longDistance > 0)
+      .map((e) => {
+        return { _id: e._id, longDistance: e.longDistance }
+      })
+
+    const overSpeed = mergeDetails(overSpeedVio, userDetails)
+    const harshAcceleration = mergeDetails(harshAccelerationVio, userDetails)
+    const harshBrake = mergeDetails(harshBrakeVio, userDetails)
+    const SeatBelt = mergeDetails(SeatBeltVio, userDetails)
+    const nightDrive = mergeDetails(nightDriveVio, userDetails)
+    const longDistance = mergeDetails(longDistanceVio, userDetails)
     const violationCount = violationsCount(result)
-    return violationCount
+    return {
+      violationCount,
+      sheets: {
+        overSpeed,
+        harshAcceleration,
+        harshBrake,
+        SeatBelt,
+        nightDrive,
+        longDistance,
+      },
+    }
   } catch (e) {
     return e.message
   }
@@ -473,7 +555,7 @@ async function fatigueQuery(enddate, vehIDs) {
       {
         $group: {
           _id: '$_id',
-          count: {
+          fatigue: {
             $sum: {
               $cond: {
                 if: { $gt: ['$Duration', 20 * 60 * 60] },
@@ -482,17 +564,52 @@ async function fatigueQuery(enddate, vehIDs) {
               },
             },
           },
+          fatigueDuration: { $sum: '$Duration' },
         },
       },
-      // filter out documents where count is 0
-      { $match: { count: { $gt: 0 } } },
-      { $count: 'count' },
+      // filter out documents where count is > 0
+      // { $match: { count: { $gt: 0 } } },
+      // { $count: 'count' },
     ]
+    // fatigue: {
+    //   // count: { $gt: 0 },
+    //   $sum: {
+    //     $cond: {
+    //       if: {
+    //         $gt: [
+    //           {
+    //             $sum: {
+    //               $cond: {
+    //                 if: { $gt: ['$Duration', 20 * 60 * 60] },
+    //                 then: 1,
+    //                 else: 0,
+    //               },
+    //             },
+    //           },
+    //           0,
+    //         ],
+    //       },
+    //       then: 1,
+    //       else: 0,
+    //     },
+    //   },
+    // },
+
     const result = await stageDBConnection
       .collection('WorkSteps')
       .aggregate(agg)
       .toArray()
-    return result.length > 0 ? result[0].count : 0
+    const vehiclesWithFatigue = result.filter((item) => item.fatigue > 0)
+    const vehiclesIds = vehiclesWithFatigue.map((e) => e._id)
+    const userDetails = await User.find(
+      { vid: { $in: vehiclesIds } },
+      { username: 1, phoneNumber: 1, vid: 1, SerialNumber: 1 }
+    )
+    const fatigueDetails = mergeDetails(vehiclesWithFatigue, userDetails, true)
+    return (
+      vehiclesWithFatigue.length > 0 ? vehiclesWithFatigue.length : 0,
+      fatigueDetails
+    )
   } catch (e) {
     return e.message
   }

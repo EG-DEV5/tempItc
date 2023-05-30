@@ -195,7 +195,7 @@ const mainDashboard = async (req, res) => {
     const nullSerials = vehicles.length - serials.length
     let result = await mainDashboardQuery(startDate, endDate, validVids)
     let fatigue = await fatigueQuery(endDate, validVids)
-
+    result.sheets['fatigue'] = fatigue
     const requests =
       serials.length > 0 &&
       serials.map((SerialNumber) => {
@@ -221,19 +221,20 @@ const mainDashboard = async (req, res) => {
       })
       .finally(() => {
         let finalResult = {
-          harshAcceleration: result.harshAcceleration,
-          overSpeed: result.OverSpeed,
-          lowSpeed: result.lowSpeed,
-          mediumSpeed: result.mediumSpeed,
-          highSpeed: result.highSpeed,
-          seatBelt: result.SeatBelt,
-          harshBrake: result.harshBrake,
-          nightDrive: result.nightDrive,
-          longDistance: result.longDistance,
-          fatigue: fatigue,
-          mileage: result.Mileage,
+          harshAcceleration: result.violationCount.harshAcceleration,
+          overSpeed: result.violationCount.OverSpeed,
+          lowSpeed: result.violationCount.lowSpeed,
+          mediumSpeed: result.violationCount.mediumSpeed,
+          highSpeed: result.violationCount.highSpeed,
+          seatBelt: result.violationCount.SeatBelt,
+          harshBrake: result.violationCount.harshBrake,
+          nightDrive: result.violationCount.nightDrive,
+          longDistance: result.violationCount.longDistance,
+          fatigue: fatigue.length,
+          mileage: result.violationCount.Mileage,
           online,
           offline: offline + nullSerials,
+          sheets: result.sheets,
         }
         delete result.SerialNumbers
         res.status(200).json(finalResult)

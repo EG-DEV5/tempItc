@@ -6,7 +6,7 @@ if (configConnection.readyState == 1) console.log('mongodb connected, to Atlas')
 const options = {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-  connectTimeoutMS: 30000, // 30 seconds
+  connectTimeoutMS: 60000, // 30 seconds
 }
 
 var stageDBConnection = mongoose.createConnection(
