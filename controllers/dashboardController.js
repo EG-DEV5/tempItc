@@ -162,20 +162,61 @@ const custodyFilter = async (department, city) => {
   }
 }
 const isOffline = (data) => {
-  let targetDate = moment(data.RecordDateTime).toDate()
+  let targetDate = moment.utc(data.RecordDateTime).toDate()
 
-  // let targetDate = new Date(data.RecordDateTime)
-  // var toLocal = moment().local(targetDate).format('YYYY-MM-DD HH:mm:ss')
-  // moment(toLocal).add(1, 'hours').format()
-
-  var toLocal = moment(targetDate, 'Arabia Standard Time').format()
-  // var toLocal = new Date(targetDate)
-  let diffInMinutes = moment().diff(toLocal, 'minutes') + 60 // add 60 minutes to fix timezone (GMT+2 summer time)
+  var current = new Date(new Date().toUTCString())
+  let diffInMinutes = Math.ceil((current - targetDate) / 60000)
+  // console.log({ targetDate, current, diffInMinutes, fire: data.RecordDateTime })
 
   return (
     (!data.EngineStatus && diffInMinutes / 60 >= 48) ||
     (data.EngineStatus && diffInMinutes / 60 > 12)
   )
+}
+const isSleep = (data) => {
+  let targetDate = moment.utc(data.RecordDateTime).toDate()
+
+  var current = new Date(new Date().toUTCString())
+  let diffInMinutes = Math.ceil((current - targetDate) / 60000)
+  return !data.EngineStatus && diffInMinutes / 60 < 48 && diffInMinutes / 60 > 4
+}
+const isStopped = (data) => {
+  let targetDate = moment.utc(data.RecordDateTime).toDate()
+
+  var current = new Date(new Date().toUTCString())
+  let diffInMinutes = Math.ceil((current - targetDate) / 60000)
+  return !data.EngineStatus && diffInMinutes / 60 < 4
+}
+const vehStatus = (data) => {
+  let vehicleStatus = {
+    offline: 'offline',
+    sleep: 'sleep',
+    stopped: 'stopped',
+    idling: 'idling',
+    overSpeed: 'overSpeed',
+    running: 'running',
+    invalidLocation: 'invalidLocation',
+  }
+  if (isOffline(data)) {
+    return vehicleStatus.offline
+  } else if (isSleep(data)) {
+    return vehicleStatus.sleep
+  } else if (isStopped(data)) {
+    return vehicleStatus.stopped
+  } else if (data.IsFuelCutOff || data.IsPowerCutOff) {
+    return vehicleStatus.invalidLocation
+  } else if (data.EngineStatus && data.Speed <= 5) {
+    return vehicleStatus.idling
+  } else if (data.EngineStatus && data.Speed > 120) {
+    return vehicleStatus.overSpeed
+  } else if (data.EngineStatus && data.Speed < 120 && data.Speed > 5) {
+    return vehicleStatus.running
+  } else if (!data.EngineStatus && data.Speed > 0) {
+    return vehicleStatus.invalidLocation
+  } else if (!data.EngineStatus) {
+    return vehicleStatus.stopped
+  }
+  return vehicleStatus.offline
 }
 const mainDashboard = async (req, res) => {
   // handle date filter
@@ -196,6 +237,7 @@ const mainDashboard = async (req, res) => {
     let result = await mainDashboardQuery(startDate, endDate, validVids)
     let fatigue = await fatigueQuery(endDate, validVids)
     result.sheets['fatigue'] = fatigue
+
     const requests =
       serials.length > 0 &&
       serials.map((SerialNumber) => {
@@ -209,9 +251,9 @@ const mainDashboard = async (req, res) => {
     Promise.all(requests)
       .then((responses) => {
         responses.forEach((response) => {
-          const status = isOffline(response.data)
-          if (status) ++offline
-          else ++online
+          const status = vehStatus(response.data)
+          if (status !== 'offline') ++online
+          else ++offline
           // if (response.data.EngineStatus) ++online
           // else ++offline
         })
@@ -233,7 +275,7 @@ const mainDashboard = async (req, res) => {
           fatigue: fatigue.length,
           mileage: result.violationCount.Mileage,
           online,
-          offline: offline + nullSerials,
+          offline: offline,
           sheets: result.sheets,
         }
         delete result.SerialNumbers
@@ -378,10 +420,10 @@ const trainerHndler = async (userId, res) => {
           const vehicle = trainerSerial.find(
             (vehicle) => vehicle == response.data.SerialNumber
           )
-          const status = isOffline(response.data)
+          const status = vehStatus(response.data)
           if (vehicle) {
-            if (status) ++offline
-            else ++online
+            if (status !== 'offline') ++online
+            else ++offline
             vehicle.EngineStatus = response.data.EngineStatus
           }
         })
@@ -471,10 +513,10 @@ const custodyHandler = async (custodyId, res) => {
         const vehicle = vioCount.SerialNumber.find(
           (vehicle) => vehicle == response.data.SerialNumber
         )
-        const status = isOffline(response.data)
+        const status = vehStatus(response.data)
         if (vehicle) {
-          if (status) ++offline
-          else ++online
+          if (status !== 'offline') ++online
+          else ++offline
           vehicle.EngineStatus = response.data.EngineStatus
         }
       })
