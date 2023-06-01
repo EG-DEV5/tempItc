@@ -485,9 +485,9 @@ const custodyHandler = async (custodyId, res) => {
   const fatigue = await fatigueQuery(endDate, validVids)
   const vioCount = await mainDashboardQuery(strDate, endDate, validVids)
   const speedRanges = vioCount && {
-    lowSpeed: vioCount.lowSpeed,
-    mediumSpeed: vioCount.mediumSpeed,
-    highSpeed: vioCount.highSpeed,
+    lowSpeed: vioCount.violationCount.lowSpeed,
+    mediumSpeed: vioCount.violationCount.mediumSpeed,
+    highSpeed: vioCount.violationCount.highSpeed,
   }
   if (!totalViolation) {
     throw new CustomError.BadRequestError(
@@ -502,7 +502,10 @@ const custodyHandler = async (custodyId, res) => {
   //   })
   //   return requests
   // }
-  const requests = requestsHandler(vioCount.SerialNumber)
+  const serials = allVehicles
+    .map((vehicle) => vehicle.SerialNumber)
+    .filter((serial) => serial != null || serial != undefined)
+  const requests = requestsHandler(serials)
 
   let online = 0
   let offline = 0
@@ -510,7 +513,7 @@ const custodyHandler = async (custodyId, res) => {
   Promise.all(requests)
     .then((responses) => {
       responses.forEach((response) => {
-        const vehicle = vioCount.SerialNumber.find(
+        const vehicle = serials.find(
           (vehicle) => vehicle == response.data.SerialNumber
         )
         const status = vehStatus(response.data)
@@ -529,12 +532,12 @@ const custodyHandler = async (custodyId, res) => {
       res.status(StatusCodes.OK).json({
         result,
         totalViolation: {
-          ...totalViolation[0],
+          // ...totalViolation[0],
           online,
           offline,
           fatigue,
           ...(custodyId && speedRanges),
-          ...vioCount,
+          ...vioCount.violationCount,
           SerialNumber: [],
         },
       })

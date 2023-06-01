@@ -1054,17 +1054,6 @@ async function weeklyTrendsQuery(vehIDs) {
           },
         },
       },
-      // {
-      //   $group: {
-      //     _id: '$_id.RecordDateTime',
-      //     harshAcceleration: { $sum: '$harshAcceleration' },
-      //     OverSpeed: { $sum: '$OverSpeed' },
-      //     SeatBelt: { $sum: '$SeatBelt' },
-      //     harshBrake: { $sum: '$harshBrake' },
-      //     nightDrive: { $sum: '$nightDrive' },
-      //     longDistance: { $sum: '$longDistance' },
-      //   },
-      // },
       {
         $sort: { _id: -1 },
       },
@@ -1083,18 +1072,6 @@ const berDayCount = (result) => {
   const overSpeed = result.map((item) => item.OverSpeed)
   const harshBrake = result.map((item) => item.harshBrake)
   const longDistance = result.map((item) => item.longDistance)
-  // let totalCount = result.map((item) => {
-  //   return {
-  //     day: item._id,
-  //     vioCount:
-  //       item.harshAcceleration +
-  //       item.OverSpeed +
-  //       item.SeatBelt +
-  //       item.harshBrake +
-  //       item.nightDrive +
-  //       item.longDistance,
-  //   }
-  // })
   let labels = result.map((item) => {
     return moment.utc(item._id).format('ddd')
   })
