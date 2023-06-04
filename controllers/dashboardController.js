@@ -403,7 +403,7 @@ const trainerHndler = async (userId, res) => {
     violationsObj.SeatBelt +
     violationsObj.nightDrive +
     violationsObj.longDistance +
-    fatigue
+    fatigue.count
   const custodyDetails = await Group.find({ _id: allVehicles[0].custodyId })
   if (!totalViolation) {
     throw new CustomError.BadRequestError(
@@ -444,7 +444,7 @@ const trainerHndler = async (userId, res) => {
             ...totalViolation[0],
             online,
             offline,
-            fatigue,
+            fatigue: fatigue.count,
           },
         })
       })
