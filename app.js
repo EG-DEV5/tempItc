@@ -18,6 +18,7 @@ const mongoSanitize = require('express-mongo-sanitize')
 const authRouter = require('./routes/auth')
 const userRouter = require('./routes/user')
 const dashboardRouter = require('./routes/dashboard')
+const divisionRouter = require('./routes/division')
 
 // database
 const { connectDB } = require('./db/connect')
@@ -50,6 +51,7 @@ app.get('/', (req, res) => {
 app.use('/api/v1/auth', authRouter)
 app.use('/api/v1/user', userRouter)
 app.use('/api/v1/dashboard', dashboardRouter)
+app.use('/api/v1/division', divisionRouter)
 app.use(notFoundMiddleware)
 app.use(errorHandlerMiddleware)
 
