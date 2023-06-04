@@ -236,7 +236,7 @@ const mainDashboard = async (req, res) => {
     const nullSerials = vehicles.length - serials.length
     let result = await mainDashboardQuery(startDate, endDate, validVids)
     let fatigue = await fatigueQuery(endDate, validVids)
-    result.sheets['fatigue'] = fatigue
+    result.sheets['fatigue'] = fatigue.fatigueDetails
 
     const requests =
       serials.length > 0 &&
@@ -272,7 +272,7 @@ const mainDashboard = async (req, res) => {
           harshBrake: result.violationCount.harshBrake,
           nightDrive: result.violationCount.nightDrive,
           longDistance: result.violationCount.longDistance,
-          fatigue: fatigue.length,
+          fatigue: fatigue.count,
           mileage: result.violationCount.Mileage,
           online,
           offline: offline,
@@ -535,7 +535,7 @@ const custodyHandler = async (custodyId, res) => {
           // ...totalViolation[0],
           online,
           offline,
-          fatigue,
+          fatigue: fatigue.count,
           ...(custodyId && speedRanges),
           ...vioCount.violationCount,
           SerialNumber: [],

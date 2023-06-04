@@ -606,10 +606,10 @@ async function fatigueQuery(enddate, vehIDs) {
       { username: 1, phoneNumber: 1, vid: 1, SerialNumber: 1 }
     )
     const fatigueDetails = mergeDetails(vehiclesWithFatigue, userDetails, true)
-    return (
-      vehiclesWithFatigue.length > 0 ? vehiclesWithFatigue.length : 0,
-      fatigueDetails
-    )
+    return {
+      count: vehiclesWithFatigue.length > 0 ? vehiclesWithFatigue.length : 0,
+      fatigueDetails,
+    }
   } catch (e) {
     return e.message
   }
