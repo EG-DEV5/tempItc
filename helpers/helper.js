@@ -2,6 +2,7 @@ const { configConnection, stageDBConnection } = require('./mongodbConn')
 const User = require('../models/User')
 const axios = require('axios')
 const moment = require('moment')
+const Division = require('../models/Division')
 function bit_test(num, bit) {
   return (num >> bit) % 2 != 0
 }
@@ -2693,31 +2694,44 @@ async function getRatingsQueryById(id) {
   }
 }
 const custodyFilter = async (itd, itc) => {
+  if (itd) itd = itd.split(',')
+  if (itc) itc = itc.split(',')
   let vehicles
-  if (itd && itc) {
-    vehicles = await User.find({ custodyId: itc, role: 'trainer' })
-    return vehicles
-  }
-  if (itd && !itc) {
-    const itcs = await Division.findById({ itd })
-    const custodyIDs = itcs.itcs.map((custody) => custody._id)
-    vehicles = await User.find({
-      custodyId: { $in: custodyIDs },
+  if (itd && itd.length > 0 && itc && itc.length > 0) {
+    const itcVehicles = await User.find({
+      custodyId: { $in: itc },
       role: 'trainer',
     })
-    return vehicles
-  }
-  if (!itd && itc) {
-    custodys = await Group.find({ itc }).projection({ _id: 1 })
-    // custodyIDs = custodys.map((custody) => custody._id)
-    vehicles = await User.find({
-      custodyId: { $in: custodyIDs },
+    const itdItcs = await Division.find({ _id: { $in: itd } })
+    const itdItcIds = itdItcs
+      .flatMap((itdItc) => itdItc.itcs)
+      .map((itc) => itc._id)
+    const itdVehicles = await User.find({
+      custodyId: { $in: itdItcIds },
       role: 'trainer',
     })
+    vehicles = itdVehicles.concat(itcVehicles)
     return vehicles
-  }
-  if (!itd && !itc) {
-    vehicles = await User.find({
+  } else if (itd && itd.length > 0 && !itc) {
+    const itdItcs = await Division.find({ _id: { $in: itd } })
+    const itdItcIds = itdItcs
+      .flatMap((itdItc) => itdItc.itcs)
+      .map((itc) => itc._id)
+    const itdVehicles = await User.find({
+      custodyId: { $in: itdItcIds },
+      role: 'trainer',
+    })
+    const vehicles = itdVehicles
+    return vehicles
+  } else if (!itd && itc && itc.length > 0) {
+    const itcVehicles = await User.find({
+      custodyId: { $in: itc },
+      role: 'trainer',
+    })
+    const vehicles = itcVehicles
+    return vehicles
+  } else if (!itd && !itc) {
+    const vehicles = await User.find({
       vid: { $ne: null, $exists: true },
       role: 'trainer',
     })
