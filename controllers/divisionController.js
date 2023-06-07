@@ -102,7 +102,7 @@ const getDivisionById = async (req, res) => {
       })
     )
     res.status(200).json({
-      divisions: result,
+      division: result,
     })
   } catch (err) {
     res.status(500).json({
