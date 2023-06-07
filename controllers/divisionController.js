@@ -135,7 +135,7 @@ const getDivisionsFilter = async (req, res) => {
         children: division.itcs.map((itc) => {
           return {
             value: itc._id,
-            label: itc.groupName,
+            label: itc.custodyName,
             parentage: `${Math.floor(Math.random() * 100)}%`,
           }
         }),
