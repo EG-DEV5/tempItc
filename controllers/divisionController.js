@@ -113,8 +113,47 @@ const getDivisionById = async (req, res) => {
     })
   }
 }
+const getDivisionsFilter = async (req, res) => {
+  try {
+    let agg = [
+      {
+        $lookup: {
+          from: 'groups',
+          localField: 'itcs',
+          foreignField: '_id',
+          as: 'itcs',
+        },
+      },
+    ]
+    const divisions = await Division.aggregate(agg)
+
+    const treeData = divisions.map((division) => {
+      const data = {
+        value: division._id,
+        label: division.divisionName,
+        parentage: `${Math.floor(Math.random() * 100)}%`,
+        children: division.itcs.map((itc) => {
+          return {
+            value: itc._id,
+            label: itc.custodyName,
+            parentage: `${Math.floor(Math.random() * 100)}%`,
+          }
+        }),
+      }
+      return data
+    })
+    res.status(200).json({
+      treeData,
+    })
+  } catch (err) {
+    res.status(500).json({
+      message: err.message,
+    })
+  }
+}
 module.exports = {
   addDivision,
   getDivision,
   getDivisionById,
+  getDivisionsFilter,
 }
