@@ -81,26 +81,29 @@ const getDivisionById = async (req, res) => {
       },
     ]
     const divisions = await Division.aggregate(agg)
-    const result = await Promise.all(
-      divisions.map(async (division) => {
-        const itcIds = division.itcs.map((itc) => itc._id)
+    const itcs = await Promise.all(
+      divisions[0].itcs.map(async (itc) => {
+        const itcId = [itc._id]
         const traineeCount = await User.find({
-          custodyId: { $in: itcIds },
+          custodyId: { $in: itcId },
           role: 'trainer',
         }).count()
-        const safetyAdvisors = division.itcs.map((itc) => {
-          return itc.SafetyAdvisor.length
-        })
-        const millage = await getMillageForUsers(itcIds)
+        const safetyAdvisorsCount = itc.SafetyAdvisor.length
+        const millage = await getMillageForUsers(itcId)
         return {
-          ...division,
-          safetyAdvisorsCount: safetyAdvisors.reduce((a, b) => a + b, 0),
-          itcsCount: division.itcs.length,
+          ...itc,
           traineeCount,
+          safetyAdvisorsCount,
           millage,
         }
       })
     )
+    const result = divisions.map((division) => {
+      return {
+        ...division,
+        itcs,
+      }
+    })
     res.status(200).json({
       division: result,
     })

@@ -2417,6 +2417,37 @@ async function getMillageForUsers(ids) {
     return e.message
   }
 }
+async function getMillageFortrainer(vid) {
+  try {
+    const strDate = moment.utc().subtract(1, 'days').format('YYYY-MM-DD')
+    const endDate = moment.utc().format('YYYY-MM-DD')
+
+    let agg = [
+      {
+        $match: {
+          VehicleID: { $in: vid },
+          RecordDateTime: {
+            $gte: new Date(strDate),
+            $lte: new Date(endDate),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          Mileage: { $sum: { $max: '$Mileage' } },
+        },
+      },
+    ]
+    const [result] = await stageDBConnection
+      .collection('LiveLocations')
+      .aggregate(agg)
+      .toArray()
+    return result.Mileage
+  } catch (e) {
+    return e.message
+  }
+}
 async function getRatingsQueryById(id) {
   try {
     // await connect()
@@ -2714,4 +2745,5 @@ module.exports = {
   optimizedTrendsQuery,
   custodyFilter,
   getMillageForUsers,
+  getMillageFortrainer,
 }
