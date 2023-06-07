@@ -196,9 +196,8 @@ const vehStatus = (data) => {
   return vehicleStatus.offline
 }
 const mainDashboard = async (req, res) => {
-  // handle date filter
-  let { month, year, itd, itc } = req.query
   try {
+    let { month, year, itd, itc } = req.query
     let { startDate, endDate } = dateFilter(month, year)
     if (startDate > endDate) return res.status(400).send('Invalid date range')
     let vehicles = await custodyFilter(itd, itc)
