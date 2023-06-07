@@ -24,8 +24,11 @@ const {
   violationsQueryById,
   fatigueQuery,
   weeklyTrendsQuery,
+  optimizedTrendsQuery,
+  custodyFilter,
 } = require('../helpers/helper')
 const moment = require('moment')
+const Division = require('../models/Division')
 
 const harshAcceleration = async (req, res) => {
   // const vhs = await getusersVhs();
@@ -134,33 +137,7 @@ const dateFilter = (month, year) => {
   }
   return { startDate, endDate }
 }
-const custodyFilter = async (department, city) => {
-  let vehicles
-  if (department && city) {
-    vehicles = await User.find({ custodyId: department, role: 'trainer' })
-    return vehicles
-  }
-  if (department && !city) {
-    vehicles = await User.find({ custodyId: department, role: 'trainer' })
-    return vehicles
-  }
-  if (!department && city) {
-    custodys = await Group.find({ city })
-    custodyIDs = custodys.map((custody) => custody._id)
-    vehicles = await User.find({
-      custodyId: { $in: custodyIDs },
-      role: 'trainer',
-    })
-    return vehicles
-  }
-  if (!department && !city) {
-    vehicles = await User.find({
-      vid: { $ne: null, $exists: true },
-      role: 'trainer',
-    })
-    return vehicles
-  }
-}
+
 const isOffline = (data) => {
   let targetDate = moment.utc(data.RecordDateTime).toDate()
 
@@ -220,11 +197,11 @@ const vehStatus = (data) => {
 }
 const mainDashboard = async (req, res) => {
   // handle date filter
-  let { month, year, department, city } = req.query
+  let { month, year, itd, itc } = req.query
   try {
     let { startDate, endDate } = dateFilter(month, year)
     if (startDate > endDate) return res.status(400).send('Invalid date range')
-    let vehicles = await custodyFilter(department, city)
+    let vehicles = await custodyFilter(itd, itc)
 
     const validVids = vehicles
       .map((vehicle) => vehicle.vid)
@@ -297,7 +274,8 @@ const weeklyTrends = async (req, res) => {
       .map((vehicle) => vehicle.vid)
       .filter((vid) => vid !== null)
 
-    let Trends = await weeklyTrendsQuery(validVids)
+    // let Trends = await weeklyTrendsQuery(validVids)
+    let Trends = await optimizedTrendsQuery(validVids)
     res.status(200).json({ Trends })
   } catch (error) {
     return res

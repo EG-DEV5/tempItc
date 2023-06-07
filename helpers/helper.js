@@ -1,4 +1,3 @@
-const { MongoClient } = require('mongodb')
 const { configConnection, stageDBConnection } = require('./mongodbConn')
 const User = require('../models/User')
 const axios = require('axios')
@@ -1068,6 +1067,264 @@ async function weeklyTrendsQuery(vehIDs) {
     return e.message
   }
 }
+async function optimizedTrendsQuery(vehIDs) {
+  try {
+    let result
+    // define a function that returns a promise for a query
+    function queryByDate(endDate, vehIDs) {
+      // create a date range for the query
+      let start = moment.utc(endDate).startOf('day').toDate()
+      let end = moment.utc(endDate).endOf('day').toDate()
+      // return a promise that resolves with the query result
+      return stageDBConnection
+        .collection('LiveLocations')
+        .aggregate([
+          {
+            $match: {
+              VehicleID: { $in: vehIDs },
+              RecordDateTime: {
+                $gte: new Date(start),
+                $lte: new Date(end),
+              },
+            },
+          },
+          // {
+          //   $limit: 300000,
+          // },
+          {
+            $sort: {
+              RecordDateTime: 1,
+            },
+          },
+          {
+            $group: {
+              _id: {
+                VehicleID: '$VehicleID',
+                RecordDateTime: {
+                  $dateToString: {
+                    format: '%Y-%m-%d',
+                    date: '$RecordDateTime',
+                  },
+                },
+              },
+              harshAcceleration: {
+                $sum: {
+                  $cond: {
+                    if: {
+                      $eq: [
+                        {
+                          $function: {
+                            body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
+                            args: ['$AlarmCode', 0],
+                            lang: 'js',
+                          },
+                        },
+                        true,
+                      ],
+                    },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
+              OverSpeed: {
+                $sum: {
+                  $cond: {
+                    if: {
+                      $eq: [
+                        {
+                          $function: {
+                            body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
+                            args: ['$AlarmCode', 2],
+                            lang: 'js',
+                          },
+                        },
+                        true,
+                      ],
+                    },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
+              SeatBelt: {
+                $sum: {
+                  $cond: {
+                    if: {
+                      $eq: [
+                        {
+                          $function: {
+                            body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
+                            args: ['$StatusCode', 3],
+                            lang: 'js',
+                          },
+                        },
+                        true,
+                      ],
+                    },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
+              harshBrake: {
+                $sum: {
+                  $cond: {
+                    if: {
+                      $eq: [
+                        {
+                          $function: {
+                            body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
+                            args: ['$AlarmCode', 1],
+                            lang: 'js',
+                          },
+                        },
+                        true,
+                      ],
+                    },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
+              nightDrive: {
+                $sum: {
+                  $cond: {
+                    if: {
+                      $eq: [
+                        {
+                          $function: {
+                            body: `function(dateTime) { let hr = (new Date(dateTime)).getHours() + 3; return (hr < 8) || (hr > 20); }`,
+                            args: ['$RecordDateTime'],
+                            lang: 'js',
+                          },
+                        },
+                        true,
+                      ],
+                    },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
+              longDistance: {
+                $sum: {
+                  $cond: {
+                    if: {
+                      $eq: [
+                        {
+                          $function: {
+                            body: `function(Distance) { return (Distance > 100) ;}`,
+                            args: ['$Distance'],
+                            lang: 'js',
+                          },
+                        },
+                        true,
+                      ],
+                    },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
+            },
+          },
+          {
+            $group: {
+              _id: '$_id.RecordDateTime',
+              harshAcceleration: {
+                $sum: {
+                  $cond: {
+                    if: { $gt: ['$harshAcceleration', 0] },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
+              OverSpeed: {
+                $sum: {
+                  $cond: {
+                    if: { $gt: ['$OverSpeed', 0] },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
+              SeatBelt: {
+                $sum: {
+                  $cond: {
+                    if: { $gt: ['$SeatBelt', 0] },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
+              harshBrake: {
+                $sum: {
+                  $cond: {
+                    if: { $gt: ['$harshBrake', 0] },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
+              nightDrive: {
+                $sum: {
+                  $cond: {
+                    if: { $gt: ['$nightDrive', 0] },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
+              longDistance: {
+                $sum: {
+                  $cond: {
+                    if: { $gt: ['$longDistance', 0] },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
+            },
+          },
+          {
+            $sort: { _id: -1 },
+          },
+        ])
+        .toArray()
+    }
+
+    // create an array of dates for the last 7 days
+    let dates = []
+    for (let i = 0; i < 7; i++) {
+      let date = moment.utc().subtract(i, 'days').format()
+      dates.push(date)
+    }
+
+    // create an array of promises for each date
+    let promises = dates.map((date) => queryByDate(date, vehIDs))
+
+    // use Promise.all to run all queries in parallel and wait for them to resolve
+    const fire = Promise.all(promises)
+      .then((results) => {
+        // results is an array of query results for each date
+        result = berDayCount(results.flat())
+        return result
+      })
+      .catch((error) => {
+        // handle any error
+        console.error(error)
+      })
+
+    // console.log(result)
+
+    // const vioCount = berDayCount(result)
+    return fire
+  } catch (e) {
+    return e.message
+  }
+}
 const berDayCount = (result) => {
   const overSpeed = result.map((item) => item.OverSpeed)
   const harshBrake = result.map((item) => item.harshBrake)
@@ -2113,7 +2370,7 @@ async function getRatingsQuery(vehicles) {
       },
     ]
 
-    const result = await await stageDBConnection
+    const result = await stageDBConnection
       .collection('LiveLocations')
       .aggregate(agg)
       .toArray()
@@ -2124,7 +2381,42 @@ async function getRatingsQuery(vehicles) {
     // await close()
   }
 }
+async function getMillageForUsers(ids) {
+  try {
+    const strDate = moment.utc().subtract(1, 'days').format('YYYY-MM-DD')
+    const endDate = moment.utc().format('YYYY-MM-DD')
+    const vehicles = await User.find({
+      custodyId: { $in: ids },
+      role: 'trainer',
+    })
+    const vehicleIds = vehicles.map((v) => v.vid)
 
+    let agg = [
+      {
+        $match: {
+          VehicleID: { $in: vehicleIds },
+          RecordDateTime: {
+            $gte: new Date(strDate),
+            $lte: new Date(endDate),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          Mileage: { $sum: { $max: '$Mileage' } },
+        },
+      },
+    ]
+    const [result] = await stageDBConnection
+      .collection('LiveLocations')
+      .aggregate(agg)
+      .toArray()
+    return result.Mileage
+  } catch (e) {
+    return e.message
+  }
+}
 async function getRatingsQueryById(id) {
   try {
     // await connect()
@@ -2369,7 +2661,38 @@ async function getRatingsQueryById(id) {
     return e.message
   }
 }
-
+const custodyFilter = async (itd, itc) => {
+  let vehicles
+  if (itd && itc) {
+    vehicles = await User.find({ custodyId: itc, role: 'trainer' })
+    return vehicles
+  }
+  if (itd && !itc) {
+    const itcs = await Division.findById({ itd })
+    const custodyIDs = itcs.itcs.map((custody) => custody._id)
+    vehicles = await User.find({
+      custodyId: { $in: custodyIDs },
+      role: 'trainer',
+    })
+    return vehicles
+  }
+  if (!itd && itc) {
+    custodys = await Group.find({ itc }).projection({ _id: 1 })
+    // custodyIDs = custodys.map((custody) => custody._id)
+    vehicles = await User.find({
+      custodyId: { $in: custodyIDs },
+      role: 'trainer',
+    })
+    return vehicles
+  }
+  if (!itd && !itc) {
+    vehicles = await User.find({
+      vid: { $ne: null, $exists: true },
+      role: 'trainer',
+    })
+    return vehicles
+  }
+}
 module.exports = {
   harshAccelerationQuery,
   HarshBreakingQuery,
@@ -2388,4 +2711,7 @@ module.exports = {
   getRatingsQueryById,
   fatigueQuery,
   weeklyTrendsQuery,
+  optimizedTrendsQuery,
+  custodyFilter,
+  getMillageForUsers,
 }
