@@ -197,9 +197,13 @@ const vehStatus = (data) => {
 }
 const mainDashboard = async (req, res) => {
   try {
-    let { month, year, itd, itc } = req.query
-    let { startDate, endDate } = dateFilter(month, year)
+    let { endDate, startDate, itd, itc } = req.query
+    startDate = startDate
+      ? moment.utc(startDate).format()
+      : moment.utc().subtract(24, 'hours').format()
+    endDate = endDate ? moment.utc(endDate).format() : moment.utc().format()
     if (startDate > endDate) return res.status(400).send('Invalid date range')
+    // let { startDate, endDate } = dateFilter(endDate, startDate)
     let vehicles = await custodyFilter(itd, itc)
 
     const validVids = vehicles
