@@ -10,6 +10,7 @@ const axios = require('axios')
 const {
   Types: { ObjectId },
 } = require('mongoose')
+const { getMillageFortrainer } = require('../helpers/helper')
 
 // const {
 
@@ -548,11 +549,22 @@ const CustodyDetails = async (req, res, next) => {
       },
     ]
     // const custodyDetails = await Custody.aggregate(agg).populate('SafetyAdvisor');
-    const custodyDetails = await Custody.aggregate(agg)
-    await Custody.populate(custodyDetails, {
+    const result = await Custody.aggregate(agg)
+    await Custody.populate(result, {
       path: 'SafetyAdvisor pendingTrainers',
     })
-    res.status(StatusCodes.OK).json({ custodyDetails })
+    const userDetails = await Promise.all(
+      result[0].users.map(async (user) => {
+        const userVid = [user.vid]
+        const millage = await getMillageFortrainer(userVid)
+        return {
+          ...user,
+          millage,
+        }
+      })
+    )
+    result[0].users = userDetails
+    res.status(StatusCodes.OK).json({ custodyDetails: result })
   } catch (error) {
     next(error)
   }
