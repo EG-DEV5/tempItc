@@ -2728,6 +2728,31 @@ const custodyFilter = async (itd, itc) => {
     return vehicles
   }
 }
+const sheetsFortrainer = (violationsObj,allVehicles,custodyDetails,userId) => {
+  const sheets = Object.entries(violationsObj)
+    .map(([key, value]) => {
+      if (key === '_id') return // skip the _id key
+      return {
+        [key]: [
+          {
+            [key]: value,
+            username: allVehicles[0].username,
+            vid: allVehicles[0].vid,
+            phoneNumber: allVehicles[0].phoneNumber,
+            SerialNumber: allVehicles[0].SerialNumber,
+            ...(userId && custodyDetails.length > 0
+              ? { custodyName: custodyDetails[0].custodyName }
+              : { custodyName: null }),
+          },
+        ],
+      }
+    })
+    .filter((e) => e !== null)
+    .reduce((acc, curr) => {
+      return { ...acc, ...curr }
+    }, {})
+  return sheets
+}
 module.exports = {
   harshAccelerationQuery,
   HarshBreakingQuery,
@@ -2750,4 +2775,5 @@ module.exports = {
   custodyFilter,
   getMillageForUsers,
   getMillageFortrainer,
+  sheetsFortrainer,
 }
