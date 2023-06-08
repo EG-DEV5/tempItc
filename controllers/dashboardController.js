@@ -227,6 +227,7 @@ const mainDashboard = async (req, res) => {
 
     let online = 0
     let offline = 0
+    let mileage = 0
 
     Promise.all(requests)
       .then((responses) => {
@@ -234,6 +235,7 @@ const mainDashboard = async (req, res) => {
           const status = vehStatus(response.data)
           if (status !== 'offline') ++online
           else ++offline
+          mileage += response.data.Mileage
           // if (response.data.EngineStatus) ++online
           // else ++offline
         })
@@ -253,7 +255,8 @@ const mainDashboard = async (req, res) => {
           nightDrive: result.violationCount.nightDrive,
           longDistance: result.violationCount.longDistance,
           fatigue: fatigue.count,
-          mileage: result.violationCount.Mileage,
+          // mileage: result.violationCount.Mileage,
+          mileage,
           online,
           offline: offline,
           sheets: result.sheets,
@@ -393,6 +396,7 @@ const trainerHndler = async (userId, res) => {
   }
   let online = 0
   let offline = 0
+  let mileage = 0
   if (trainerSerial[0] != null) {
     const requests = requestsHandler(trainerSerial)
     Promise.all(requests)
@@ -406,6 +410,7 @@ const trainerHndler = async (userId, res) => {
             if (status !== 'offline') ++online
             else ++offline
             vehicle.EngineStatus = response.data.EngineStatus
+            mileage += response.data.Mileage
           }
         })
       })
@@ -425,6 +430,7 @@ const trainerHndler = async (userId, res) => {
             ...totalViolation[0],
             online,
             offline,
+            Mileage: mileage,
             fatigue: fatigue.count,
           },
         })
@@ -490,7 +496,7 @@ const custodyHandler = async (custodyId, res) => {
 
   let online = 0
   let offline = 0
-
+  let mileage = 0
   Promise.all(requests)
     .then((responses) => {
       responses.forEach((response) => {
@@ -502,6 +508,7 @@ const custodyHandler = async (custodyId, res) => {
           if (status !== 'offline') ++online
           else ++offline
           vehicle.EngineStatus = response.data.EngineStatus
+          mileage += response.data.Mileage
         }
       })
     })
@@ -519,6 +526,7 @@ const custodyHandler = async (custodyId, res) => {
           fatigue: fatigue.count,
           ...(custodyId && speedRanges),
           ...vioCount.violationCount,
+          Mileage: mileage,
           SerialNumber: [],
         },
       })

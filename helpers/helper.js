@@ -420,7 +420,7 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
           SerialNumbers: {
             $addToSet: '$SerialNumber',
           },
-          Mileage: { $max: '$Mileage' },
+          // Mileage: { $max: '$Mileage' },
         },
       },
     ]
@@ -505,7 +505,7 @@ const violationsCount = (result) => {
     mediumSpeed: 0,
     highSpeed: 0,
     SerialNumber: [],
-    Mileage: 0,
+    // Mileage: 0,
   }
   const violationCount = result.reduce((acc, item) => {
     return {
@@ -530,7 +530,7 @@ const violationsCount = (result) => {
           : acc.mediumSpeed,
       highSpeed: item.OverSpeed >= 140 ? acc.highSpeed + 1 : acc.highSpeed,
       SerialNumber: [...new Set([...acc.SerialNumber, ...item.SerialNumbers])],
-      Mileage: acc.Mileage + item.Mileage,
+      // Mileage: acc.Mileage + item.Mileage,
     }
   }, acc)
   return violationCount
@@ -1108,26 +1108,26 @@ async function optimizedTrendsQuery(vehIDs) {
                   },
                 },
               },
-              harshAcceleration: {
-                $sum: {
-                  $cond: {
-                    if: {
-                      $eq: [
-                        {
-                          $function: {
-                            body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
-                            args: ['$AlarmCode', 0],
-                            lang: 'js',
-                          },
-                        },
-                        true,
-                      ],
-                    },
-                    then: 1,
-                    else: 0,
-                  },
-                },
-              },
+              // harshAcceleration: {
+              //   $sum: {
+              //     $cond: {
+              //       if: {
+              //         $eq: [
+              //           {
+              //             $function: {
+              //               body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
+              //               args: ['$AlarmCode', 0],
+              //               lang: 'js',
+              //             },
+              //           },
+              //           true,
+              //         ],
+              //       },
+              //       then: 1,
+              //       else: 0,
+              //     },
+              //   },
+              // },
               OverSpeed: {
                 $sum: {
                   $cond: {
@@ -1148,26 +1148,26 @@ async function optimizedTrendsQuery(vehIDs) {
                   },
                 },
               },
-              SeatBelt: {
-                $sum: {
-                  $cond: {
-                    if: {
-                      $eq: [
-                        {
-                          $function: {
-                            body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
-                            args: ['$StatusCode', 3],
-                            lang: 'js',
-                          },
-                        },
-                        true,
-                      ],
-                    },
-                    then: 1,
-                    else: 0,
-                  },
-                },
-              },
+              // SeatBelt: {
+              //   $sum: {
+              //     $cond: {
+              //       if: {
+              //         $eq: [
+              //           {
+              //             $function: {
+              //               body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
+              //               args: ['$StatusCode', 3],
+              //               lang: 'js',
+              //             },
+              //           },
+              //           true,
+              //         ],
+              //       },
+              //       then: 1,
+              //       else: 0,
+              //     },
+              //   },
+              // },
               harshBrake: {
                 $sum: {
                   $cond: {
@@ -1188,26 +1188,26 @@ async function optimizedTrendsQuery(vehIDs) {
                   },
                 },
               },
-              nightDrive: {
-                $sum: {
-                  $cond: {
-                    if: {
-                      $eq: [
-                        {
-                          $function: {
-                            body: `function(dateTime) { let hr = (new Date(dateTime)).getHours() + 3; return (hr < 8) || (hr > 20); }`,
-                            args: ['$RecordDateTime'],
-                            lang: 'js',
-                          },
-                        },
-                        true,
-                      ],
-                    },
-                    then: 1,
-                    else: 0,
-                  },
-                },
-              },
+              // nightDrive: {
+              //   $sum: {
+              //     $cond: {
+              //       if: {
+              //         $eq: [
+              //           {
+              //             $function: {
+              //               body: `function(dateTime) { let hr = (new Date(dateTime)).getHours() + 3; return (hr < 8) || (hr > 20); }`,
+              //               args: ['$RecordDateTime'],
+              //               lang: 'js',
+              //             },
+              //           },
+              //           true,
+              //         ],
+              //       },
+              //       then: 1,
+              //       else: 0,
+              //     },
+              //   },
+              // },
               longDistance: {
                 $sum: {
                   $cond: {
@@ -1233,15 +1233,15 @@ async function optimizedTrendsQuery(vehIDs) {
           {
             $group: {
               _id: '$_id.RecordDateTime',
-              harshAcceleration: {
-                $sum: {
-                  $cond: {
-                    if: { $gt: ['$harshAcceleration', 0] },
-                    then: 1,
-                    else: 0,
-                  },
-                },
-              },
+              // harshAcceleration: {
+              //   $sum: {
+              //     $cond: {
+              //       if: { $gt: ['$harshAcceleration', 0] },
+              //       then: 1,
+              //       else: 0,
+              //     },
+              //   },
+              // },
               OverSpeed: {
                 $sum: {
                   $cond: {
@@ -1251,15 +1251,15 @@ async function optimizedTrendsQuery(vehIDs) {
                   },
                 },
               },
-              SeatBelt: {
-                $sum: {
-                  $cond: {
-                    if: { $gt: ['$SeatBelt', 0] },
-                    then: 1,
-                    else: 0,
-                  },
-                },
-              },
+              // SeatBelt: {
+              //   $sum: {
+              //     $cond: {
+              //       if: { $gt: ['$SeatBelt', 0] },
+              //       then: 1,
+              //       else: 0,
+              //     },
+              //   },
+              // },
               harshBrake: {
                 $sum: {
                   $cond: {
@@ -1269,15 +1269,15 @@ async function optimizedTrendsQuery(vehIDs) {
                   },
                 },
               },
-              nightDrive: {
-                $sum: {
-                  $cond: {
-                    if: { $gt: ['$nightDrive', 0] },
-                    then: 1,
-                    else: 0,
-                  },
-                },
-              },
+              // nightDrive: {
+              //   $sum: {
+              //     $cond: {
+              //       if: { $gt: ['$nightDrive', 0] },
+              //       then: 1,
+              //       else: 0,
+              //     },
+              //   },
+              // },
               longDistance: {
                 $sum: {
                   $cond: {
@@ -1318,9 +1318,6 @@ async function optimizedTrendsQuery(vehIDs) {
         console.error(error)
       })
 
-    // console.log(result)
-
-    // const vioCount = berDayCount(result)
     return fire
   } catch (e) {
     return e.message
@@ -2033,7 +2030,7 @@ async function getTraineeViolations(strDate, endDate, validVids) {
                     },
                   },
                 },
-                Mileage: { $sum: { $max: '$Mileage' } },
+                // Mileage: { $sum: { $max: '$Mileage' } },
               },
             },
           ],
