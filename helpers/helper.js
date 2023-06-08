@@ -268,31 +268,6 @@ async function getusersvehIDs() {
   uservehIDs = uservehIDs.map((e) => e.vid)
   return uservehIDs
 }
-const mergeDetails = (violation, userDetails, fatigue) => {
-  const mergeUsersWithViolations = violation.map((vio) => {
-    if (fatigue) {
-      const matchedUser = userDetails.find((user) => vio._id === user.vid)
-      const neededUserDetails = {
-        username: matchedUser.username,
-        vid: matchedUser.vid,
-        phoneNumber: matchedUser.phoneNumber,
-        SerialNumber: matchedUser.SerialNumber,
-      }
-      return matchedUser ? Object.assign(vio, neededUserDetails) : null
-    }
-    const matchedUser = userDetails.find(
-      (user) => vio._id.VehicleID === user.vid
-    )
-    const neededUserDetails = {
-      username: matchedUser.username,
-      vid: matchedUser.vid,
-      phoneNumber: matchedUser.phoneNumber,
-      SerialNumber: matchedUser.SerialNumber,
-    }
-    return matchedUser ? Object.assign(vio, neededUserDetails) : null
-  })
-  return mergeUsersWithViolations
-}
 async function mainDashboardQuery(strDate, endDate, vehIDs) {
   try {
     let agg = [
@@ -439,36 +414,45 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
       }
     )
 
-    const overSpeedVio = result
-      .filter((e) => e.OverSpeed > 0)
-      .map((e) => {
-        return { _id: e._id, OverSpeed: e.OverSpeed }
-      })
-    const harshAccelerationVio = result
-      .filter((e) => e.harshAcceleration > 0)
-      .map((e) => {
-        return { _id: e._id, harshAcceleration: e.harshAcceleration }
-      })
-    const harshBrakeVio = result
-      .filter((e) => e.harshBrake > 0)
-      .map((e) => {
-        return { _id: e._id, harshBrake: e.harshBrake }
-      })
-    const SeatBeltVio = result
-      .filter((e) => e.SeatBelt > 0)
-      .map((e) => {
-        return { _id: e._id, SeatBelt: e.SeatBelt }
-      })
-    const nightDriveVio = result
-      .filter((e) => e.nightDrive > 0)
-      .map((e) => {
-        return { _id: e._id, nightDrive: e.nightDrive }
-      })
-    const longDistanceVio = result
-      .filter((e) => e.longDistance > 0)
-      .map((e) => {
-        return { _id: e._id, longDistance: e.longDistance }
-      })
+    // const overSpeedVio = result
+    //   .filter((e) => e.OverSpeed > 0)
+    //   .map((e) => {
+    //     return { _id: e._id, OverSpeed: e.OverSpeed }
+    //   })
+    // const harshAccelerationVio = result
+    //   .filter((e) => e.harshAcceleration > 0)
+    //   .map((e) => {
+    //     return { _id: e._id, harshAcceleration: e.harshAcceleration }
+    //   })
+    // const harshBrakeVio = result
+    //   .filter((e) => e.harshBrake > 0)
+    //   .map((e) => {
+    //     return { _id: e._id, harshBrake: e.harshBrake }
+    //   })
+    // const SeatBeltVio = result
+    //   .filter((e) => e.SeatBelt > 0)
+    //   .map((e) => {
+    //     return { _id: e._id, SeatBelt: e.SeatBelt }
+    //   })
+    // const nightDriveVio = result
+    //   .filter((e) => e.nightDrive > 0)
+    //   .map((e) => {
+    //     return { _id: e._id, nightDrive: e.nightDrive }
+    //   })
+    // const longDistanceVio = result
+    //   .filter((e) => e.longDistance > 0)
+    //   .map((e) => {
+    //     return { _id: e._id, longDistance: e.longDistance }
+    //   })
+    const {
+      overSpeedVio,
+      harshAccelerationVio,
+      harshBrakeVio,
+      SeatBeltVio,
+      nightDriveVio,
+      longDistanceVio,
+    } = splitViolations(result)
+    performance.mark('mergeDetails')
 
     const overSpeed = mergeDetails(overSpeedVio, userDetails)
     const harshAcceleration = mergeDetails(harshAccelerationVio, userDetails)
@@ -490,6 +474,95 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
     }
   } catch (e) {
     return e.message
+  }
+}
+function mergeDetails(violation, userDetails, fatigue) {
+  // const mergeUsersWithViolations = violation.map((vio) => {
+  //   if (fatigue) {
+  //     const matchedUser = userDetails.find((user) => vio._id === user.vid)
+  //     const neededUserDetails = {
+  //       username: matchedUser.username,
+  //       vid: matchedUser.vid,
+  //       phoneNumber: matchedUser.phoneNumber,
+  //       SerialNumber: matchedUser.SerialNumber,
+  //     }
+  //     return matchedUser ? Object.assign(vio, neededUserDetails) : null
+  //   }
+  //   const matchedUser = userDetails.find(
+  //     (user) => vio._id.VehicleID === user.vid
+  //   )
+  //   const neededUserDetails = {
+  //     username: matchedUser.username,
+  //     vid: matchedUser.vid,
+  //     phoneNumber: matchedUser.phoneNumber,
+  //     SerialNumber: matchedUser.SerialNumber,
+  //   }
+  //   return matchedUser ? Object.assign(vio, neededUserDetails) : null
+  // })
+  // return mergeUsersWithViolations
+  const userDetailsMap = new Map(
+    userDetails.map((user) => [
+      user.vid,
+      {
+        username: user.username,
+        vid: user.vid,
+        phoneNumber: user.phoneNumber,
+        SerialNumber: user.SerialNumber,
+      },
+    ])
+  )
+
+  const mergeUsersWithViolations = violation.map((vio) => {
+    const user = userDetailsMap.get(fatigue ? vio._id : vio._id.VehicleID)
+    return user ? Object.assign(vio, user) : null
+  })
+
+  return mergeUsersWithViolations.filter((vio) => vio !== null)
+}
+function splitViolations(result) {
+  const overSpeedVio = result.reduce((acc, e) => {
+    if (e.OverSpeed > 0) {
+      acc.push({ _id: e._id, OverSpeed: e.OverSpeed })
+    }
+    return acc
+  }, [])
+  const harshAccelerationVio = result.reduce((acc, e) => {
+    if (e.harshAcceleration > 0) {
+      acc.push({ _id: e._id, harshAcceleration: e.harshAcceleration })
+    }
+    return acc
+  }, [])
+  const harshBrakeVio = result.reduce((acc, e) => {
+    if (e.harshBrake > 0) {
+      acc.push({ _id: e._id, harshBrake: e.harshBrake })
+    }
+    return acc
+  }, [])
+  const SeatBeltVio = result.reduce((acc, e) => {
+    if (e.SeatBelt > 0) {
+      acc.push({ _id: e._id, SeatBelt: e.SeatBelt })
+    }
+    return acc
+  }, [])
+  const nightDriveVio = result.reduce((acc, e) => {
+    if (e.nightDrive > 0) {
+      acc.push({ _id: e._id, nightDrive: e.nightDrive })
+    }
+    return acc
+  }, [])
+  const longDistanceVio = result.reduce((acc, e) => {
+    if (e.longDistance > 0) {
+      acc.push({ _id: e._id, longDistance: e.longDistance })
+    }
+    return acc
+  }, [])
+  return {
+    overSpeedVio,
+    harshAccelerationVio,
+    harshBrakeVio,
+    SeatBeltVio,
+    nightDriveVio,
+    longDistanceVio,
   }
 }
 const violationsCount = (result) => {
@@ -2728,7 +2801,12 @@ const custodyFilter = async (itd, itc) => {
     return vehicles
   }
 }
-const sheetsFortrainer = (violationsObj,allVehicles,custodyDetails,userId) => {
+const sheetsFortrainer = (
+  violationsObj,
+  allVehicles,
+  custodyDetails,
+  userId
+) => {
   const sheets = Object.entries(violationsObj)
     .map(([key, value]) => {
       if (key === '_id') return // skip the _id key
