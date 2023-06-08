@@ -2048,21 +2048,14 @@ async function getTraineeViolations(strDate, endDate, validVids) {
     // await close()
   }
 }
-async function topDriversQuery(usersVehIds) {
+async function topDriversQuery(startDate, endDate, validVids) {
   try {
-    // await connect()
-    let strDate = new Date()
-    strDate.setDate(strDate.getDate() - 1)
-    let endDate = new Date()
-
-    // aggregation query that take all the vehiclesids of the user and return data
-    // based on the number of violations and the duration of the drive of the last 24 hours
     let agg = [
       {
         $match: {
-          VehicleID: { $in: usersVehIds },
+          VehicleID: { $in: validVids },
           RecordDateTime: {
-            $gte: new Date(strDate),
+            $gte: new Date(startDate),
             $lte: new Date(endDate),
           },
         },

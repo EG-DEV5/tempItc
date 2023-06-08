@@ -547,10 +547,19 @@ const vehicleViolationsById = async (req, res, next) => {
 
 const bestDrivers = async (req, res, next) => {
   try {
-    // get all users veh ids
-    const usersVehIds = await getusersvehIDs()
-    // get top drivers from the last 24 hours
-    let result = await topDriversQuery(usersVehIds)
+    let { endDate, startDate, itd, itc } = req.query
+    startDate = startDate
+      ? moment.utc(startDate).format()
+      : moment.utc().subtract(24, 'hours').format()
+    endDate = endDate ? moment.utc(endDate).format() : moment.utc().format()
+    if (startDate > endDate) return res.status(400).send('Invalid date range')
+    let vehicles = await custodyFilter(itd, itc)
+
+    const validVids = vehicles
+      .map((vehicle) => vehicle.vid)
+      .filter((vid) => vid !== null)
+
+    let result = await topDriversQuery(startDate, endDate, validVids)
 
     if (!result) {
       throw new CustomError.BadRequestError(
