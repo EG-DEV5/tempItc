@@ -363,9 +363,12 @@ const requestsHandler = (SerialNumbers) => {
   return requests
 }
 
-const trainerHndler = async (userId, res) => {
-  const strDate = moment.utc().subtract(24, 'hours').toDate()
-  const endDate = moment.utc().toDate()
+const trainerHandler = async (userId, endDate, startDate, res) => {
+  startDate = startDate
+    ? moment.utc(startDate).format()
+    : moment.utc().subtract(24, 'hours').format()
+  endDate = endDate ? moment.utc(endDate).format() : moment.utc().format()
+  if (startDate > endDate) return res.status(400).send('Invalid date range')
 
   const allVehicles = await User.find(
     { _id: userId, vid: { $ne: null, $exists: true } },
@@ -375,7 +378,7 @@ const trainerHndler = async (userId, res) => {
   const validVids = allVehicles.map((vehicle) => vehicle.vid)
   const trainerSerial = allVehicles.map((vehicle) => vehicle.SerialNumber)
 
-  const queryResult = await getTraineeViolations(strDate, endDate, validVids)
+  const queryResult = await getTraineeViolations(startDate, endDate, validVids)
   const result = queryResult.result
   const totalViolation = queryResult.totalViolation
   const fatigue = await fatigueQuery(endDate, validVids)
@@ -534,9 +537,10 @@ const custodyHandler = async (custodyId, res) => {
 }
 const vehicleViolationsById = async (req, res, next) => {
   try {
-    const { userId, custodyId } = req.query
+    const { userId, custodyId, endDate, startDate } = req.query
+
     if (userId) {
-      trainerHndler(userId, res)
+      trainerHandler(userId, endDate, startDate, res)
     } else if (custodyId) {
       custodyHandler(custodyId, res)
     }
