@@ -26,6 +26,7 @@ const {
   weeklyTrendsQuery,
   optimizedTrendsQuery,
   custodyFilter,
+  sheetsFortrainer,
 } = require('../helpers/helper')
 const moment = require('moment')
 const Division = require('../models/Division')
@@ -392,6 +393,7 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
     violationsObj.longDistance +
     fatigue.count
   const custodyDetails = await Group.find({ _id: allVehicles[0].custodyId })
+  const sheets = sheetsFortrainer(violationsObj,allVehicles,custodyDetails,userId)
   if (!totalViolation) {
     throw new CustomError.BadRequestError(
       '{"enMessage" : "there is no data in this period", "arMessage" :"لا توجد بيانات فى هذه الفترة"}'
@@ -435,6 +437,7 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
             offline,
             Mileage: mileage,
             fatigue: fatigue.count,
+            sheets,
           },
         })
       })
