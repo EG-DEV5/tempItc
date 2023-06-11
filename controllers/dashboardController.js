@@ -27,6 +27,7 @@ const {
   optimizedTrendsQuery,
   custodyFilter,
   sheetsFortrainer,
+  dateFilter,
 } = require('../helpers/helper')
 const moment = require('moment')
 const Division = require('../models/Division')
@@ -102,42 +103,13 @@ const seatBelt = async (req, res) => {
   res.status(200).json({ result })
 }
 
-const dateFilter = (month, year) => {
-  let startDate
-  let endDate
-  if (month && year) {
-    month = month && moment.utc().month(month).format('M')
-    year = year && moment.utc(year).year()
-    startDate = moment([year, month - 1])
-      .startOf('month')
-      .format()
-    endDate = moment([year, month - 1])
-      .endOf('month')
-      .format()
-  }
-  if (month && !year) {
-    month = moment.utc().month(month)
-    startDate = moment.utc(month).startOf('month').format()
-    endDate = moment.utc(month).endOf('month').format()
-  }
-  if (year && !month) {
-    if (year == 2023) {
-      startDate = moment.utc(year).startOf('year').format()
-      endDate = moment.utc().format()
-    } else {
-      startDate = moment.utc(year).startOf('year').format()
-      endDate = moment.utc(year).endOf('year').format()
-    }
-  }
-
-  if (!month && !year) {
-    startDate = startDate
-      ? moment.utc(startDate)
-      : moment.utc().subtract(24, 'hours').format()
-    endDate = endDate ? moment.utc(endDate) : moment.utc().format()
-  }
-  return { startDate, endDate }
-}
+// const dateFilter = (startDate, endDate) => {
+//   startDate = startDate
+//     ? moment.utc(startDate).format()
+//     : moment.utc().subtract(24, 'hours').format()
+//   endDate = endDate ? moment.utc(endDate).format() : moment.utc().format()
+//   return { startPeriod: startDate, endPeriod: endDate }
+// }
 
 const isOffline = (data) => {
   let targetDate = moment.utc(data.RecordDateTime).toDate()
@@ -199,24 +171,24 @@ const vehStatus = (data) => {
 const mainDashboard = async (req, res) => {
   try {
     let { endDate, startDate, itd, itc } = req.query
-    startDate = startDate
-      ? moment.utc(startDate).format()
-      : moment.utc().subtract(24, 'hours').format()
-    endDate = endDate ? moment.utc(endDate).format() : moment.utc().format()
-    if (startDate > endDate) return res.status(400).send('Invalid date range')
-    // let { startDate, endDate } = dateFilter(endDate, startDate)
+    let { startPeriod, endPeriod } = dateFilter( startDate, endDate)
+    if (startPeriod > endPeriod) return res.status(400).send('Invalid date range')
+    
     let vehicles = await custodyFilter(itd, itc)
-
-    const validVids = vehicles
-      .map((vehicle) => vehicle.vid)
-      .filter((vid) => vid !== null)
+    const validVids = vehicles.reduce((acc, vehicle) => {
+      if (vehicle.vid !== null && vehicle.vid !== undefined) {
+        acc.push(vehicle.vid)
+      }
+      return acc
+    }, [])
 
     const serials = vehicles
       .map((vehicle) => vehicle.SerialNumber)
       .filter((serial) => serial != null || serial != undefined)
-    const nullSerials = vehicles.length - serials.length
-    let result = await mainDashboardQuery(startDate, endDate, validVids)
-    let fatigue = await fatigueQuery(endDate, validVids)
+    // const nullSerials = vehicles.length - serials.length
+
+    let result = await mainDashboardQuery(startPeriod, endPeriod, validVids)
+    let fatigue = await fatigueQuery(endPeriod, validVids)
     result.sheets['fatigue'] = fatigue.fatigueDetails
 
     const requests =
@@ -273,16 +245,21 @@ const mainDashboard = async (req, res) => {
 }
 const weeklyTrends = async (req, res) => {
   try {
-    let vehicles = await User.find(
-      { vid: { $ne: null, $exists: true } },
-      { vid: 1 }
-    )
-    const validVids = vehicles
-      .map((vehicle) => vehicle.vid)
-      .filter((vid) => vid !== null)
+    let { endDate, startDate, itd, itc } = req.query
+    let { startPeriod, endPeriod } = dateFilter( startDate, endDate)
+    if (startPeriod > endPeriod) return res.status(400).send('Invalid date range')
+    
+    let vehicles = await custodyFilter(itd, itc)
+    const validVids = vehicles.reduce((acc, vehicle) => {
+      if (vehicle.vid !== null && vehicle.vid !== undefined) {
+        acc.push(vehicle.vid)
+      }
+      return acc
+    }, [])
 
     // let Trends = await weeklyTrendsQuery(validVids)
-    let Trends = await optimizedTrendsQuery(validVids)
+    let Trends = await optimizedTrendsQuery(validVids,startPeriod, endPeriod )
+
     res.status(200).json({ Trends })
   } catch (error) {
     return res
@@ -393,7 +370,12 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
     violationsObj.longDistance +
     fatigue.count
   const custodyDetails = await Group.find({ _id: allVehicles[0].custodyId })
-  const sheets = sheetsFortrainer(violationsObj,allVehicles,custodyDetails,userId)
+  const sheets = sheetsFortrainer(
+    violationsObj,
+    allVehicles,
+    custodyDetails,
+    userId
+  )
   if (!totalViolation) {
     throw new CustomError.BadRequestError(
       '{"enMessage" : "there is no data in this period", "arMessage" :"لا توجد بيانات فى هذه الفترة"}'

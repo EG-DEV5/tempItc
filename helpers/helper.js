@@ -1141,7 +1141,7 @@ async function weeklyTrendsQuery(vehIDs) {
     return e.message
   }
 }
-async function optimizedTrendsQuery(vehIDs) {
+async function optimizedTrendsQuery(vehIDs,startPeriod, endPeriod ) {
   try {
     let result
     // define a function that returns a promise for a query
@@ -1372,7 +1372,7 @@ async function optimizedTrendsQuery(vehIDs) {
     // create an array of dates for the last 7 days
     let dates = []
     for (let i = 0; i < 7; i++) {
-      let date = moment.utc().subtract(i, 'days').format()
+      let date = moment.utc(endPeriod).subtract(i, 'days').format()
       dates.push(date)
     }
 
@@ -1380,7 +1380,7 @@ async function optimizedTrendsQuery(vehIDs) {
     let promises = dates.map((date) => queryByDate(date, vehIDs))
 
     // use Promise.all to run all queries in parallel and wait for them to resolve
-    const fire = Promise.all(promises)
+    const trends = Promise.all(promises)
       .then((results) => {
         // results is an array of query results for each date
         result = berDayCount(results.flat())
@@ -1391,7 +1391,7 @@ async function optimizedTrendsQuery(vehIDs) {
         console.error(error)
       })
 
-    return fire
+    return trends
   } catch (e) {
     return e.message
   }
@@ -2801,6 +2801,13 @@ const custodyFilter = async (itd, itc) => {
     return vehicles
   }
 }
+const dateFilter = (startDate, endDate) => {
+  startDate = startDate
+    ? moment.utc(startDate).format()
+    : moment.utc().subtract(24, 'hours').format()
+  endDate = endDate ? moment.utc(endDate).format() : moment.utc().format()
+  return { startPeriod: startDate, endPeriod: endDate }
+}
 const sheetsFortrainer = (
   violationsObj,
   allVehicles,
@@ -2851,6 +2858,7 @@ module.exports = {
   weeklyTrendsQuery,
   optimizedTrendsQuery,
   custodyFilter,
+  dateFilter,
   getMillageForUsers,
   getMillageFortrainer,
   sheetsFortrainer,
