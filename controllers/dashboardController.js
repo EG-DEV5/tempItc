@@ -228,13 +228,22 @@ const mainDashboard = async (req, res) => {
           nightDrive: result.violationCount.nightDrive,
           longDistance: result.violationCount.longDistance,
           fatigue: fatigue.count,
-          // mileage: result.violationCount.Mileage,
           mileage,
           online,
           offline: offline,
           sheets: result.sheets,
         }
-        delete result.SerialNumbers
+        // get the max value from violations to get the ITD
+        const allItd = Math.max(
+          finalResult.harshAcceleration,
+          finalResult.overSpeed,
+          finalResult.seatBelt,
+          finalResult.harshBrake,
+          finalResult.nightDrive,
+          finalResult.longDistance,
+          finalResult.fatigue
+        )
+        finalResult.allItd = allItd
         res.status(200).json(finalResult)
       })
   } catch (error) {

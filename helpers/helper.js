@@ -413,37 +413,7 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
         SerialNumber: 1,
       }
     )
-
-    // const overSpeedVio = result
-    //   .filter((e) => e.OverSpeed > 0)
-    //   .map((e) => {
-    //     return { _id: e._id, OverSpeed: e.OverSpeed }
-    //   })
-    // const harshAccelerationVio = result
-    //   .filter((e) => e.harshAcceleration > 0)
-    //   .map((e) => {
-    //     return { _id: e._id, harshAcceleration: e.harshAcceleration }
-    //   })
-    // const harshBrakeVio = result
-    //   .filter((e) => e.harshBrake > 0)
-    //   .map((e) => {
-    //     return { _id: e._id, harshBrake: e.harshBrake }
-    //   })
-    // const SeatBeltVio = result
-    //   .filter((e) => e.SeatBelt > 0)
-    //   .map((e) => {
-    //     return { _id: e._id, SeatBelt: e.SeatBelt }
-    //   })
-    // const nightDriveVio = result
-    //   .filter((e) => e.nightDrive > 0)
-    //   .map((e) => {
-    //     return { _id: e._id, nightDrive: e.nightDrive }
-    //   })
-    // const longDistanceVio = result
-    //   .filter((e) => e.longDistance > 0)
-    //   .map((e) => {
-    //     return { _id: e._id, longDistance: e.longDistance }
-    //   })
+    
     const {
       overSpeedVio,
       harshAccelerationVio,
@@ -452,7 +422,6 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
       nightDriveVio,
       longDistanceVio,
     } = splitViolations(result)
-    performance.mark('mergeDetails')
 
     const overSpeed = mergeDetails(overSpeedVio, userDetails)
     const harshAcceleration = mergeDetails(harshAccelerationVio, userDetails)
@@ -460,6 +429,7 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
     const SeatBelt = mergeDetails(SeatBeltVio, userDetails)
     const nightDrive = mergeDetails(nightDriveVio, userDetails)
     const longDistance = mergeDetails(longDistanceVio, userDetails)
+
     const violationCount = violationsCount(result)
     return {
       violationCount,
@@ -2445,6 +2415,7 @@ async function getRatingsQuery(vehicles) {
     // await close()
   }
 }
+// ! review
 async function getMillageForUsers(ids) {
   try {
     const strDate = moment.utc().subtract(1, 'days').format('YYYY-MM-DD')
@@ -2481,6 +2452,7 @@ async function getMillageForUsers(ids) {
     return e.message
   }
 }
+// ! review
 async function getMillageFortrainer(vid) {
   try {
     const strDate = moment.utc().subtract(1, 'days').format('YYYY-MM-DD')
