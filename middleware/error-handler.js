@@ -3,8 +3,9 @@
 const { StatusCodes } = require('http-status-codes');
 const errorHandlerMiddleware = (err, req, res, next) => {
   try {
-    console.log(err.message)
-    var mesObject = JSON.parse(err.message);
+    // console.log(err.message)
+    // var mesObject = JSON.parse(err.message);
+    var mesObject = err.message;
   } catch (error) {
     next(error);
   }
@@ -19,8 +20,8 @@ const errorHandlerMiddleware = (err, req, res, next) => {
     },
   };
   if (err.name === 'ValidationError') {
-    customError.msg.enMessage = `there is an error in your data ${err.message} `;
-    customError.msg.arMessage = `هناك خطأ فى القيمة التى أدخلتها برجاء المحاولة مرة أخرى`;
+    customError.msg.enMessage = `data error ${err.message} `;
+    customError.msg.arMessage = `خطأ فى القيمة التى أدخلتها برجاء المحاولة مرة أخرى`;
     customError.statusCode = 400;
   }
   if (err.name === 'validError') {

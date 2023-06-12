@@ -107,6 +107,7 @@ const addUser = async (req, res, next) => {
 </div>
           `,
         })
+        await Custody.findByIdAndUpdate(custodyId,{ $push: { SafetyAdvisor: user._id } })
       }
       res.status(StatusCodes.CREATED).json({
         msg: 'admin! added user ',

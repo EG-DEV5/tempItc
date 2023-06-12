@@ -9,10 +9,11 @@ const UserSchema = new mongoose.Schema(
   {
     username: {
       type: String,
-      minlength: 3,
-      maxlength: 50,
+      minlength: [3,'must be at least 3 characters'],
+      maxlength: [50,'must be at most 50 characters'],
       unique: true,
       required: true,
+      
     },
     phoneNumber: {
       type: String,
