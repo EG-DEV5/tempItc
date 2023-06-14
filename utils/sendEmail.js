@@ -16,6 +16,7 @@ const sendEmail = async (options) => {
   return transporter.sendMail({
     from: '"ITC" <info@saferoad.com.sa>', // sender address
     to: options.email,
+    cc: options.cc,
     subject: options.subject,
     text: options.text,
     html: options.html,

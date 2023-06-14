@@ -107,7 +107,9 @@ const addUser = async (req, res, next) => {
 </div>
           `,
         })
-        await Custody.findByIdAndUpdate(custodyId,{ $push: { SafetyAdvisor: user._id } })
+        await Custody.findByIdAndUpdate(custodyId, {
+          $push: { SafetyAdvisor: user._id },
+        })
       }
       res.status(StatusCodes.CREATED).json({
         msg: 'admin! added user ',
@@ -880,7 +882,38 @@ const getAllCities = async (req, res) => {
   ]
   res.status(200).json({ cities })
 }
-
+const notifyUser = async (req, res) => {
+  // const { ...test } = req.user
+  const { userId } = req
+  const { custodyId, userEmail, msg } = req.body
+  try {
+    const custodyDetailes = await Custody.findOne({ _id: custodyId })
+      .populate('SafetyAdvisor')
+      .select('SafetyAdvisor -_id')
+    const safteyEmails = custodyDetailes.SafetyAdvisor.map(
+      (saftey) => saftey.email
+    )
+    // const allEmails = safteyEmails.concat(userEmail)
+    const emailBody = `
+    <div style='background-color:#f1f1f1;color:#010101; max-width: 400px; margin:20px auto;
+     font-family: Arial; text-align: center'>
+    <h1 style='background-color:#285abf33;padding: 15px ;'>ITC Notification</h1>
+    <p style="padding:0 15px; font-size:18px; margin-bottom:15px">
+    ${msg}
+    </p>
+    </div>`
+    const emails = await sendEmail({
+      email: userEmail,
+      cc: safteyEmails,
+      subject: 'ITC Email Warning',
+      html: emailBody,
+    })
+    if (emails.response.includes('250')) 
+    res.status(200).json('email sent successfully')
+  } catch (error) {
+    res.status(500).json({ error: error.message, msg: 'Something went wrong' })
+  }
+}
 module.exports = {
   deleteCustody,
   deleteUser,
@@ -903,4 +936,5 @@ module.exports = {
   getPendingTrainers,
   Vehicle,
   getAllCities,
+  notifyUser,
 }
