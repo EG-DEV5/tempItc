@@ -30,6 +30,7 @@ const {
   deleteUser,
   deleteCustody,
   getAllCities,
+  notifyUser
 } = require('../controllers/userController')
 
 router.post('/addUser', authenticateUser, uploadPhoto.single('image'), addUser)
@@ -110,5 +111,6 @@ router.get('/getPendingTrainers', getPendingTrainers)
 router.get('/Vehicle', authenticateUser, Vehicle)
 // router.post('/reset-password', resetPassword);
 //  router.post('/forgot-password', forgotPassword);
+  router.post('/notifyUser',authenticateUser,notifyUser );
 
 module.exports = router
