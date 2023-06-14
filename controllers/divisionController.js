@@ -3,6 +3,7 @@ const Division = require('../models/Division')
 const User = require('../models/User')
 const { getMillageForUsers } = require('../helpers/helper')
 const { ObjectId } = require('mongodb')
+const axios = require('axios')
 
 const addDivision = async (req, res) => {
   try {
@@ -36,19 +37,31 @@ const getDivision = async (req, res) => {
     const result = await Promise.all(
       divisions.map(async (division) => {
         const itcIds = division.itcs.map((itc) => itc._id)
-        const traineeCount = await User.find({
+        const trainees = await User.find({
           custodyId: { $in: itcIds },
           role: 'trainer',
-        }).count()
+        })
         const safetyAdvisors = division.itcs.map((itc) => {
           return itc.SafetyAdvisor.length
         })
-        const millage = await getMillageForUsers(itcIds)
+        // claculate millage from firebase
+        let millage = 0
+        const serials = trainees.map((trainee) => trainee.SerialNumber)
+        const requests = serials.map((SerialNumber) => {
+          const url = `https://saferoad-srialfb.firebaseio.com/${SerialNumber}.json`
+          return axios.get(url)
+        })
+
+       const fireResult = await Promise.all(requests)
+      .catch((error) => {
+        res.status(500).send('An error occurred')
+      })
+      millage = fireResult.reduce((a, b) => a + b.data.Mileage, 0)
         return {
           ...division,
           safetyAdvisorsCount: safetyAdvisors.reduce((a, b) => a + b, 0),
           itcsCount: division.itcs.length,
-          traineeCount,
+          traineeCount: trainees.length,
           millage,
         }
       })
@@ -84,15 +97,28 @@ const getDivisionById = async (req, res) => {
     const itcs = await Promise.all(
       divisions[0].itcs.map(async (itc) => {
         const itcId = [itc._id]
-        const traineeCount = await User.find({
+        const trainees = await User.find({
           custodyId: { $in: itcId },
           role: 'trainer',
-        }).count()
+        })
         const safetyAdvisorsCount = itc.SafetyAdvisor.length
-        const millage = await getMillageForUsers(itcId)
+        // claculate millage from firebase
+        let millage = 0
+        const serials = trainees.map((trainee) => trainee.SerialNumber)
+        const requests = serials.map((SerialNumber) => {
+          const url = `https://saferoad-srialfb.firebaseio.com/${SerialNumber}.json`
+          return axios.get(url)
+        })
+
+       const fireResult = await Promise.all(requests)
+      .catch((error) => {
+        res.status(500).send('An error occurred')
+      })
+      millage = fireResult.reduce((a, b) => a + b.data.Mileage, 0)
+
         return {
           ...itc,
-          traineeCount,
+          traineeCount: trainees.length,
           safetyAdvisorsCount,
           millage,
         }
