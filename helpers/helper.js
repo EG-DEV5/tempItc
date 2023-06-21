@@ -411,8 +411,9 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
         phoneNumber: 1,
         vid: 1,
         SerialNumber: 1,
+        custodyId:1
       }
-    )
+    ).populate('custodyId', 'custodyName')
     
     const {
       overSpeedVio,
@@ -2738,9 +2739,8 @@ const custodyFilter = async (itd, itc) => {
       role: 'trainer',
     })
     const itdItcs = await Division.find({ _id: { $in: itd } })
-    const itdItcIds = itdItcs
-      .flatMap((itdItc) => itdItc.itcs)
-      .map((itc) => itc._id)
+    const itdItcIds = itdItcs.flatMap((itd)=> [...itd.itcs])
+      
     const itdVehicles = await User.find({
       custodyId: { $in: itdItcIds },
       role: 'trainer',
@@ -2749,9 +2749,8 @@ const custodyFilter = async (itd, itc) => {
     return vehicles
   } else if (itd && itd.length > 0 && !itc) {
     const itdItcs = await Division.find({ _id: { $in: itd } })
-    const itdItcIds = itdItcs
-      .flatMap((itdItc) => itdItc.itcs)
-      .map((itc) => itc._id)
+    const itdItcIds = itdItcs.flatMap((itd)=> [...itd.itcs])
+
     const itdVehicles = await User.find({
       custodyId: { $in: itdItcIds },
       role: 'trainer',
@@ -2784,6 +2783,7 @@ const sheetsFortrainer = (
   violationsObj,
   allVehicles,
   custodyDetails,
+  divisionDetails,
   userId
 ) => {
   const sheets = Object.entries(violationsObj)
@@ -2800,6 +2800,7 @@ const sheetsFortrainer = (
             ...(userId && custodyDetails.length > 0
               ? { custodyName: custodyDetails[0].custodyName }
               : { custodyName: null }),
+            ...(divisionDetails.length > 0 && {itdName : divisionDetails[0].divisionName})
           },
         ],
       }
