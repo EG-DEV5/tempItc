@@ -217,40 +217,44 @@ const mainDashboard = async (req, res) => {
         res.status(500).send('An error occurred')
       })
       .finally(() => {
-        let finalResult = {
-          harshAcceleration: result.violationCount.harshAcceleration,
-          overSpeed: result.violationCount.OverSpeed,
-          lowSpeed: result.violationCount.lowSpeed,
-          mediumSpeed: result.violationCount.mediumSpeed,
-          highSpeed: result.violationCount.highSpeed,
-          seatBelt: result.violationCount.SeatBelt,
-          harshBrake: result.violationCount.harshBrake,
-          nightDrive: result.violationCount.nightDrive,
-          longDistance: result.violationCount.longDistance,
-          fatigue: fatigue.count,
-          mileage,
-          online,
-          offline: offline,
-          sheets: result.sheets,
-        }
-        // get the max value from violations to get the ITD
-        const allItd = Math.max(
-          finalResult.harshAcceleration,
-          finalResult.overSpeed,
-          finalResult.seatBelt,
-          finalResult.harshBrake,
-          finalResult.nightDrive,
-          finalResult.longDistance,
-          finalResult.fatigue
-        )
-        finalResult.allItd = allItd
-        res.status(200).json(finalResult)
+        const finalResponse = finalResult(result,online,offline,mileage,fatigue)
+        res.status(200).json(finalResponse)
       })
   } catch (error) {
     return res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
       .json({ message: 'Something went wrong' })
   }
+}
+function finalResult(result,online,offline,mileage,fatigue){
+  let final = {
+    harshAcceleration: result.violationCount.harshAcceleration,
+    overSpeed: result.violationCount.OverSpeed,
+    lowSpeed: result.violationCount.lowSpeed,
+    mediumSpeed: result.violationCount.mediumSpeed,
+    highSpeed: result.violationCount.highSpeed,
+    seatBelt: result.violationCount.SeatBelt,
+    harshBrake: result.violationCount.harshBrake,
+    nightDrive: result.violationCount.nightDrive,
+    longDistance: result.violationCount.longDistance,
+    fatigue: fatigue.count,
+    mileage,
+    online,
+    offline,
+    sheets: result.sheets,
+  }
+  // get the max value from violations to get the ITD
+  const allItd = Math.max(
+    finalResult.harshAcceleration,
+    finalResult.overSpeed,
+    finalResult.seatBelt,
+    finalResult.harshBrake,
+    finalResult.nightDrive,
+    finalResult.longDistance,
+    finalResult.fatigue
+  )
+  finalResult.allItd = allItd
+  return final
 }
 const weeklyTrends = async (req, res) => {
   try {
@@ -379,10 +383,12 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
     violationsObj.longDistance +
     fatigue.count
   const custodyDetails = await Group.find({ _id: allVehicles[0].custodyId })
+  const divisionDetails = await Division.find({itcs:{$in:allVehicles[0].custodyId}}).select('divisionName')
   const sheets = sheetsFortrainer(
     violationsObj,
     allVehicles,
     custodyDetails,
+    divisionDetails,
     userId
   )
   if (!totalViolation) {
@@ -421,6 +427,7 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
             ? { custodyName: custodyDetails[0].custodyName }
             : { custodyName: null }),
           ...(userId ? { users: allVehicles } : []),
+          ...(divisionDetails.length > 0 && {itdName : divisionDetails[0].divisionName}),
           totalViolation: {
             sumViolations,
             ...totalViolation[0],
