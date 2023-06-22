@@ -245,15 +245,15 @@ function finalResult(result,online,offline,mileage,fatigue){
   }
   // get the max value from violations to get the ITD
   const allItd = Math.max(
-    finalResult.harshAcceleration,
-    finalResult.overSpeed,
-    finalResult.seatBelt,
-    finalResult.harshBrake,
-    finalResult.nightDrive,
-    finalResult.longDistance,
-    finalResult.fatigue
+    final.harshAcceleration,
+    final.overSpeed,
+    final.seatBelt,
+    final.harshBrake,
+    final.nightDrive,
+    final.longDistance,
+    final.fatigue
   )
-  finalResult.allItd = allItd
+  final.allItd = allItd
   return final
 }
 const weeklyTrends = async (req, res) => {
