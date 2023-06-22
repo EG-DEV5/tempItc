@@ -19,7 +19,8 @@ const authRouter = require('./routes/auth')
 const userRouter = require('./routes/user')
 const dashboardRouter = require('./routes/dashboard')
 const divisionRouter = require('./routes/division')
-
+const cluster = require('cluster')
+const totalCPUs = require('os').cpus().length
 // database
 const { connectDB } = require('./db/connect')
 
@@ -44,28 +45,57 @@ app.use(express.urlencoded({ extended: true }))
 app.use(express.json())
 app.use(cookieParser(process.env.JWT_SECRET))
 // app.use(fileUpload());
-// routes
-app.get('/', (req, res) => {
-  res.send('<h1>ITC App</h1>')
-})
-app.use('/api/v1/auth', authRouter)
-app.use('/api/v1/user', userRouter)
-app.use('/api/v1/dashboard', dashboardRouter)
-app.use('/api/v1/division', divisionRouter)
-app.use(notFoundMiddleware)
-app.use(errorHandlerMiddleware)
-
 // server
 const port = process.env.PORT || 5000
-const start = async () => {
-  try {
-    await connectDB(process.env.MONGO_URL)
-    app.listen(port, () =>
-      console.log(`Server is listening on port ${port}...`)
-    )
-  } catch (error) {
-    console.log(error)
-  }
-}
+if (cluster.isMaster) {
+  console.log(`Number of CPUs is ${totalCPUs}`)
+  console.log(`Master ${process.pid} is running`)
 
-start()
+  // Fork workers.
+  for (let i = 0; i < totalCPUs; i++) {
+    cluster.fork()
+  }
+
+  cluster.on('exit', (worker, code, signal) => {
+    console.log(`worker ${worker.process.pid} died`)
+    console.log("Let's fork another worker!")
+    cluster.fork()
+  })
+} else {
+  console.log(`Worker ${process.pid} started`)
+
+  // routes
+  app.get('/', (req, res) => {
+    res.send('<h1>ITC App</h1>')
+  })
+  app.use('/api/v1/auth', authRouter)
+  app.use('/api/v1/user', userRouter)
+  app.use('/api/v1/dashboard', dashboardRouter)
+  app.use('/api/v1/division', divisionRouter)
+  app.use(notFoundMiddleware)
+  app.use(errorHandlerMiddleware)
+  const start = async () => {
+    try {
+      await connectDB(process.env.MONGO_URL)
+      app.listen(port, () =>
+        console.log(`Server is listening on port ${port}...`)
+      )
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  start()
+}
+// const start = async () => {
+//   try {
+//     await connectDB(process.env.MONGO_URL)
+//     app.listen(port, () =>
+//       console.log(`Server is listening on port ${port}...`)
+//     )
+//   } catch (error) {
+//     console.log(error)
+//   }
+// }
+
+// start()

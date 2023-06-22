@@ -202,7 +202,7 @@ const mainDashboard = async (req, res) => {
     let offline = 0
     let mileage = 0
 
-    Promise.all(requests)
+    requests ? Promise.all(requests)
       .then((responses) => {
         responses.forEach((response) => {
           const status = vehStatus(response.data)
@@ -219,7 +219,7 @@ const mainDashboard = async (req, res) => {
       .finally(() => {
         const finalResponse = finalResult(result,online,offline,mileage,fatigue)
         res.status(200).json(finalResponse)
-      })
+      }) : res.status(200).json({result,online,offline,mileage,fatigue:fatigue.count})
   } catch (error) {
     return res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
