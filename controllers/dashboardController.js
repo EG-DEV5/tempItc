@@ -219,7 +219,7 @@ const mainDashboard = async (req, res) => {
       .finally(() => {
         const finalResponse = finalResult(result,online,offline,mileage,fatigue)
         res.status(200).json(finalResponse)
-      }) : res.status(200).json({result,online,offline,mileage,fatigue:fatigue.count})
+      }) : res.status(200).json({...result.violationCount,online,offline,mileage,fatigue:fatigue.count})// if there is no data
   } catch (error) {
     return res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
