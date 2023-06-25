@@ -2775,7 +2775,7 @@ const custodyFilter = async (itd, itc) => {
 const dateFilter = (startDate, endDate) => {
   startDate = startDate
     ? moment.utc(startDate).format()
-    : moment.utc().subtract(24, 'hours').format()
+    : moment.utc().subtract(1, 'hours').format()
   endDate = endDate ? moment.utc(endDate).format() : moment.utc().format()
   return { startPeriod: startDate, endPeriod: endDate }
 }
