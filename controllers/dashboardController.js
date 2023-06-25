@@ -221,7 +221,7 @@ const mainDashboard = async (req, res) => {
         res.status(200).json(finalResponse)
       }) : res.status(200).json({
         ...result.violationCount,
-        allItd: 900, 
+        allItd: 0, 
         online,
         offline,
         mileage,
