@@ -2132,14 +2132,12 @@ async function topDriversQuery(startDate, endDate, validVids) {
       .collection('LiveLocations')
       .aggregate(agg)
       .toArray()
-    // take the top 3 drivers
-    const topDrivers = result.slice(0, 3)
+    // take the top drivers
+    const topDrivers = result.filter((driver) =>driver.count === 0)
     return topDrivers
   } catch (e) {
     console.log(e)
     return e.message
-  } finally {
-    // await close()
   }
 }
 async function getUserDetails(ids) {
@@ -2154,6 +2152,7 @@ async function getUserDetails(ids) {
           username: 1,
           phoneNumber: 1,
           email: 1,
+          idNumber:1,
           vid: 1,
           image: 1,
         },
