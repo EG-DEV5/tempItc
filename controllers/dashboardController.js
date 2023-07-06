@@ -572,7 +572,7 @@ const bestDrivers = async (req, res, next) => {
 
     let result = await topDriversQuery(startDate, endDate, validVids)
 
-    if (!result) {
+    if ( result.length === 0 ) {
       throw new CustomError.BadRequestError(
         '{"enMessage" : "there is no data", "arMessage" :"لا توجد بيانات "}'
       )
@@ -584,9 +584,13 @@ const bestDrivers = async (req, res, next) => {
     // get top drivers details
     const usersDetails = await getUserDetails(topArray)
 
-    if (usersDetails) {
-      return res.status(200).json({ result: usersDetails })
+    if ( usersDetails.length === 0 ) {
+      throw new CustomError.BadRequestError(
+        '{"enMessage" : "there is no data", "arMessage" :"لا توجد بيانات "}'
+      )
     }
+    
+      return res.status(200).json({ result: usersDetails })
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(error.message)
   }
