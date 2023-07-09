@@ -406,14 +406,6 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
     const vehiclesIds = result.map((e) => e._id.VehicleID)
     const userDetails = await User.find(
       { vid: { $in: vehiclesIds } },
-      {
-        username: 1,
-        phoneNumber: 1,
-        vid: 1,
-        SerialNumber: 1,
-        idNumber: 1,
-        custodyId: 1,
-      }
     ).populate('custodyId', 'custodyName')
 
     const {
@@ -454,12 +446,17 @@ function mergeDetails(violation, userDetails, fatigue) {
     userDetails.map((user) => [
       user.vid,
       {
+        _id:user._id,
         username: user.username,
         vehicleID: user.vid,
         phoneNumber: user.phoneNumber,
         serialNumber: user.SerialNumber,
+        custodyId: user.custodyId._id,
         custodyName: user.custodyId.custodyName,
         idNumber: user.idNumber,
+        image:user.image,
+        role: user.role,
+        isOnline: user.isOnline
       },
     ])
   )
@@ -621,7 +618,6 @@ async function fatigueQuery(enddate, vehIDs) {
     const vehiclesIds = vehiclesWithFatigue.map((e) => e._id)
     const userDetails = await User.find(
       { vid: { $in: vehiclesIds } },
-      { username: 1, phoneNumber: 1, vid: 1, SerialNumber: 1 }
     ).populate('custodyId', 'custodyName')
     const fatigueDetails = mergeDetails(vehiclesWithFatigue, userDetails, true)
     return {
