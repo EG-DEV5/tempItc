@@ -411,10 +411,11 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
         phoneNumber: 1,
         vid: 1,
         SerialNumber: 1,
-        custodyId:1
+        idNumber: 1,
+        custodyId: 1,
       }
     ).populate('custodyId', 'custodyName')
-    
+
     const {
       overSpeedVio,
       harshAccelerationVio,
@@ -432,6 +433,7 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
     const longDistance = mergeDetails(longDistanceVio, userDetails)
 
     const violationCount = violationsCount(result)
+
     return {
       violationCount,
       sheets: {
@@ -448,83 +450,55 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
   }
 }
 function mergeDetails(violation, userDetails, fatigue) {
-  // const mergeUsersWithViolations = violation.map((vio) => {
-  //   if (fatigue) {
-  //     const matchedUser = userDetails.find((user) => vio._id === user.vid)
-  //     const neededUserDetails = {
-  //       username: matchedUser.username,
-  //       vid: matchedUser.vid,
-  //       phoneNumber: matchedUser.phoneNumber,
-  //       SerialNumber: matchedUser.SerialNumber,
-  //     }
-  //     return matchedUser ? Object.assign(vio, neededUserDetails) : null
-  //   }
-  //   const matchedUser = userDetails.find(
-  //     (user) => vio._id.VehicleID === user.vid
-  //   )
-  //   const neededUserDetails = {
-  //     username: matchedUser.username,
-  //     vid: matchedUser.vid,
-  //     phoneNumber: matchedUser.phoneNumber,
-  //     SerialNumber: matchedUser.SerialNumber,
-  //   }
-  //   return matchedUser ? Object.assign(vio, neededUserDetails) : null
-  // })
-  // return mergeUsersWithViolations
   const userDetailsMap = new Map(
     userDetails.map((user) => [
       user.vid,
       {
         username: user.username,
-        vid: user.vid,
+        vehicleID: user.vid,
         phoneNumber: user.phoneNumber,
-        SerialNumber: user.SerialNumber,
+        serialNumber: user.SerialNumber,
+        custodyName: user.custodyId.custodyName,
+        idNumber: user.idNumber,
       },
     ])
   )
 
   const mergeUsersWithViolations = violation.map((vio) => {
     const user = userDetailsMap.get(fatigue ? vio._id : vio._id.VehicleID)
-    return user ? Object.assign(vio, user) : null
+    return user && Object.assign(vio, user)
   })
 
-  return mergeUsersWithViolations.filter((vio) => vio !== null)
+  return mergeUsersWithViolations
 }
 function splitViolations(result) {
   const overSpeedVio = result.reduce((acc, e) => {
-    if (e.OverSpeed > 0) {
-      acc.push({ _id: e._id, OverSpeed: e.OverSpeed })
-    }
+    if (e.OverSpeed > 0)
+      acc.push({ _id: e._id, OverSpeed: e.OverSpeed,  })
     return acc
   }, [])
   const harshAccelerationVio = result.reduce((acc, e) => {
-    if (e.harshAcceleration > 0) {
-      acc.push({ _id: e._id, harshAcceleration: e.harshAcceleration })
-    }
+    if (e.harshAcceleration > 0) acc.push({_id: e._id, harshAcceleration: e.harshAcceleration})
     return acc
   }, [])
   const harshBrakeVio = result.reduce((acc, e) => {
-    if (e.harshBrake > 0) {
-      acc.push({ _id: e._id, harshBrake: e.harshBrake })
-    }
+    if (e.harshAcceleration > 0)
+      acc.push({ _id: e._id, harshBrake: e.harshBrake,  })
     return acc
   }, [])
   const SeatBeltVio = result.reduce((acc, e) => {
-    if (e.SeatBelt > 0) {
-      acc.push({ _id: e._id, SeatBelt: e.SeatBelt })
-    }
+    if (e.SeatBelt > 0)
+      acc.push({ _id: e._id, SeatBelt: e.SeatBelt,  })
     return acc
   }, [])
   const nightDriveVio = result.reduce((acc, e) => {
-    if (e.nightDrive > 0) {
-      acc.push({ _id: e._id, nightDrive: e.nightDrive })
-    }
+    if (e.nightDrive > 0)
+      acc.push({ _id: e._id, nightDrive: e.nightDrive,  })
     return acc
   }, [])
   const longDistanceVio = result.reduce((acc, e) => {
-    if (e.longDistance > 0) {
-      acc.push({ _id: e._id, longDistance: e.longDistance })
-    }
+    if (e.longDistance > 0)
+      acc.push({ _id: e._id, longDistance: e.longDistance,  })
     return acc
   }, [])
   return {
@@ -648,7 +622,7 @@ async function fatigueQuery(enddate, vehIDs) {
     const userDetails = await User.find(
       { vid: { $in: vehiclesIds } },
       { username: 1, phoneNumber: 1, vid: 1, SerialNumber: 1 }
-    )
+    ).populate('custodyId', 'custodyName')
     const fatigueDetails = mergeDetails(vehiclesWithFatigue, userDetails, true)
     return {
       count: vehiclesWithFatigue.length > 0 ? vehiclesWithFatigue.length : 0,
@@ -1112,7 +1086,7 @@ async function weeklyTrendsQuery(vehIDs) {
     return e.message
   }
 }
-async function optimizedTrendsQuery(vehIDs,startPeriod, endPeriod ) {
+async function optimizedTrendsQuery(vehIDs, startPeriod, endPeriod) {
   try {
     let result
     // define a function that returns a promise for a query
@@ -2133,7 +2107,7 @@ async function topDriversQuery(startDate, endDate, validVids) {
       .aggregate(agg)
       .toArray()
     // take the top drivers
-    const topDrivers = result.filter((driver) =>driver.count === 0)
+    const topDrivers = result.filter((driver) => driver.count === 0)
     return topDrivers
   } catch (e) {
     console.log(e)
@@ -2152,7 +2126,7 @@ async function getUserDetails(ids) {
           username: 1,
           phoneNumber: 1,
           email: 1,
-          idNumber:1,
+          idNumber: 1,
           vid: 1,
           image: 1,
         },
@@ -2738,8 +2712,8 @@ const custodyFilter = async (itd, itc) => {
       role: 'trainer',
     })
     const itdItcs = await Division.find({ _id: { $in: itd } })
-    const itdItcIds = itdItcs.flatMap((itd)=> [...itd.itcs])
-      
+    const itdItcIds = itdItcs.flatMap((itd) => [...itd.itcs])
+
     const itdVehicles = await User.find({
       custodyId: { $in: itdItcIds },
       role: 'trainer',
@@ -2748,7 +2722,7 @@ const custodyFilter = async (itd, itc) => {
     return vehicles
   } else if (itd && itd.length > 0 && !itc) {
     const itdItcs = await Division.find({ _id: { $in: itd } })
-    const itdItcIds = itdItcs.flatMap((itd)=> [...itd.itcs])
+    const itdItcIds = itdItcs.flatMap((itd) => [...itd.itcs])
 
     const itdVehicles = await User.find({
       custodyId: { $in: itdItcIds },
@@ -2799,7 +2773,9 @@ const sheetsFortrainer = (
             ...(userId && custodyDetails.length > 0
               ? { custodyName: custodyDetails[0].custodyName }
               : { custodyName: null }),
-            ...(divisionDetails.length > 0 && {itdName : divisionDetails[0].divisionName})
+            ...(divisionDetails.length > 0 && {
+              itdName: divisionDetails[0].divisionName,
+            }),
           },
         ],
       }

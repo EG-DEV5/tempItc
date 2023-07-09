@@ -176,7 +176,7 @@ const mainDashboard = async (req, res) => {
     
     let vehicles = await custodyFilter(itd, itc)
     const validVids = vehicles.reduce((acc, vehicle) => {
-      if (vehicle.vid !== null && vehicle.vid !== undefined) {
+      if (vehicle.vid !== null || vehicle.vid !== undefined) {
         acc.push(vehicle.vid)
       }
       return acc
@@ -219,13 +219,13 @@ const mainDashboard = async (req, res) => {
       .finally(() => {
         const finalResponse = finalResult(result,online,offline,mileage,fatigue)
         res.status(200).json(finalResponse)
-      }) : res.status(200).json({
+      }) : res.status(200).json({ // if there is no data
         ...result.violationCount,
         allItd: 0, 
         online,
         offline,
         mileage,
-        fatigue:fatigue.count})// if there is no data
+        fatigue:fatigue.count})
   } catch (error) {
     return res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -233,6 +233,13 @@ const mainDashboard = async (req, res) => {
   }
 }
 function finalResult(result,online,offline,mileage,fatigue){
+  // return all serialNumbers for violated vehicles
+  let serials= [];
+  Object.keys(result?.sheets).map((key)=>{
+    serials.push( result?.sheets[key].map(e=>  e.serialNumber))
+  })
+  const flatSerials = new Set(serials.flatMap(e => e))
+
   let final = {
     harshAcceleration: result.violationCount.harshAcceleration,
     overSpeed: result.violationCount.OverSpeed,
@@ -243,6 +250,7 @@ function finalResult(result,online,offline,mileage,fatigue){
     harshBrake: result.violationCount.harshBrake,
     nightDrive: result.violationCount.nightDrive,
     longDistance: result.violationCount.longDistance,
+    serials: Array.from(flatSerials),
     fatigue: fatigue.count,
     mileage,
     online,
@@ -566,9 +574,12 @@ const bestDrivers = async (req, res, next) => {
     if (startDate > endDate) return res.status(400).send('Invalid date range')
     let vehicles = await custodyFilter(itd, itc)
 
-    const validVids = vehicles
-      .map((vehicle) => vehicle.vid)
-      .filter((vid) => vid !== null)
+    const validVids = vehicles.reduce((acc, vehicle) => {
+      if (vehicle.vid !== null || vehicle.vid !== undefined) {
+        acc.push(vehicle.vid)
+      }
+      return acc
+    }, [])
 
     let result = await topDriversQuery(startDate, endDate, validVids)
 
