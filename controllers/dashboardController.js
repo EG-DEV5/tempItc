@@ -171,9 +171,10 @@ const vehStatus = (data) => {
 const mainDashboard = async (req, res) => {
   try {
     let { endDate, startDate, itd, itc } = req.query
-    let { startPeriod, endPeriod } = dateFilter( startDate, endDate)
-    if (startPeriod > endPeriod) return res.status(400).send('Invalid date range')
-    
+    let { startPeriod, endPeriod } = dateFilter(startDate, endDate)
+    if (startPeriod > endPeriod)
+      return res.status(400).send('Invalid date range')
+
     let vehicles = await custodyFilter(itd, itc)
     const validVids = vehicles.reduce((acc, vehicle) => {
       if (vehicle.vid !== null || vehicle.vid !== undefined) {
@@ -202,43 +203,80 @@ const mainDashboard = async (req, res) => {
     let offline = 0
     let mileage = 0
 
-    requests ? Promise.all(requests)
-      .then((responses) => {
-        responses.forEach((response) => {
-          const status = vehStatus(response.data)
-          if (status !== 'offline') ++online
-          else ++offline
-          mileage += response.data.Mileage
-          // if (response.data.EngineStatus) ++online
-          // else ++offline
+    requests
+      ? Promise.all(requests)
+          .then((responses) => {
+            responses.forEach((response) => {
+              const status = vehStatus(response.data)
+              if (status !== 'offline') ++online
+              else ++offline
+              mileage += response.data.Mileage
+              // if (response.data.EngineStatus) ++online
+              // else ++offline
+            })
+          })
+          .catch((error) => {
+            res.status(500).send('An error occurred')
+          })
+          .finally(() => {
+            const finalResponse = finalResult(
+              result,
+              online,
+              offline,
+              mileage,
+              fatigue
+            )
+            res.status(200).json(finalResponse)
+          })
+      : res.status(200).json({
+          // if there is no data
+          ...result.violationCount,
+          allItd: 0,
+          online,
+          offline,
+          mileage,
+          fatigue: fatigue.count,
         })
-      })
-      .catch((error) => {
-        res.status(500).send('An error occurred')
-      })
-      .finally(() => {
-        const finalResponse = finalResult(result,online,offline,mileage,fatigue)
-        res.status(200).json(finalResponse)
-      }) : res.status(200).json({ // if there is no data
-        ...result.violationCount,
-        allItd: 0, 
-        online,
-        offline,
-        mileage,
-        fatigue:fatigue.count})
   } catch (error) {
     return res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
       .json({ message: 'Something went wrong' })
   }
 }
-function finalResult(result,online,offline,mileage,fatigue){
+function finalResult(result, online, offline, mileage, fatigue) {
   // return all serialNumbers for violated vehicles
-  let serials= [];
-  Object.keys(result?.sheets).map((key)=>{
-    serials.push( result?.sheets[key].map(e=>  e.serialNumber))
+  let trainees = []
+  Object.keys(result?.sheets).map((key) => {
+    trainees.push(
+      result?.sheets[key].map((e) => {
+        return {
+          _id: e._id,
+          username: e.username,
+          vehicleID: e.vehicleID,
+          phoneNumber: e.phoneNumber,
+          serialNumber: e.serialNumber,
+          custodyId: e.custodyId,
+          custodyName: e.custodyName,
+          idNumber: e.idNumber,
+          image: e.image,
+          role: e.role,
+          isOnline: e.isOnline,
+        }
+      })
+    )
   })
-  const flatSerials = new Set(serials.flatMap(e => e))
+  const flaten = trainees.flat()
+  const uniqueObjects = []
+  const seenObjects = {}
+
+for (let i = 0; i < flaten.length; i++) {
+  const obj = flaten[i]
+  const key = JSON.stringify(obj)
+  if (!seenObjects[key]) {
+    seenObjects[key] = true
+    uniqueObjects.push(obj)
+  }
+}
 
   let final = {
     harshAcceleration: result.violationCount.harshAcceleration,
@@ -250,7 +288,7 @@ function finalResult(result,online,offline,mileage,fatigue){
     harshBrake: result.violationCount.harshBrake,
     nightDrive: result.violationCount.nightDrive,
     longDistance: result.violationCount.longDistance,
-    serials: Array.from(flatSerials),
+    users: uniqueObjects,
     fatigue: fatigue.count,
     mileage,
     online,
@@ -273,9 +311,10 @@ function finalResult(result,online,offline,mileage,fatigue){
 const weeklyTrends = async (req, res) => {
   try {
     let { endDate, startDate, itd, itc } = req.query
-    let { startPeriod, endPeriod } = dateFilter( startDate, endDate)
-    if (startPeriod > endPeriod) return res.status(400).send('Invalid date range')
-    
+    let { startPeriod, endPeriod } = dateFilter(startDate, endDate)
+    if (startPeriod > endPeriod)
+      return res.status(400).send('Invalid date range')
+
     let vehicles = await custodyFilter(itd, itc)
     const validVids = vehicles.reduce((acc, vehicle) => {
       if (vehicle.vid !== null && vehicle.vid !== undefined) {
@@ -285,7 +324,7 @@ const weeklyTrends = async (req, res) => {
     }, [])
 
     // let Trends = await weeklyTrendsQuery(validVids)
-    let Trends = await optimizedTrendsQuery(validVids,startPeriod, endPeriod )
+    let Trends = await optimizedTrendsQuery(validVids, startPeriod, endPeriod)
 
     res.status(200).json({ Trends })
   } catch (error) {
@@ -397,7 +436,9 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
     violationsObj.longDistance +
     fatigue.count
   const custodyDetails = await Group.find({ _id: allVehicles[0].custodyId })
-  const divisionDetails = await Division.find({itcs:{$in:allVehicles[0].custodyId}}).select('divisionName')
+  const divisionDetails = await Division.find({
+    itcs: { $in: allVehicles[0].custodyId },
+  }).select('divisionName')
   const sheets = sheetsFortrainer(
     violationsObj,
     allVehicles,
@@ -441,7 +482,9 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
             ? { custodyName: custodyDetails[0].custodyName }
             : { custodyName: null }),
           ...(userId ? { users: allVehicles } : []),
-          ...(divisionDetails.length > 0 && {itdName : divisionDetails[0].divisionName}),
+          ...(divisionDetails.length > 0 && {
+            itdName: divisionDetails[0].divisionName,
+          }),
           totalViolation: {
             sumViolations,
             ...totalViolation[0],
@@ -583,7 +626,7 @@ const bestDrivers = async (req, res, next) => {
 
     let result = await topDriversQuery(startDate, endDate, validVids)
 
-    if ( result.length === 0 ) {
+    if (result.length === 0) {
       throw new CustomError.BadRequestError(
         '{"enMessage" : "there is no data", "arMessage" :"لا توجد بيانات "}'
       )
@@ -595,13 +638,13 @@ const bestDrivers = async (req, res, next) => {
     // get top drivers details
     const usersDetails = await getUserDetails(topArray)
 
-    if ( usersDetails.length === 0 ) {
+    if (usersDetails.length === 0) {
       throw new CustomError.BadRequestError(
         '{"enMessage" : "there is no data", "arMessage" :"لا توجد بيانات "}'
       )
     }
-    
-      return res.status(200).json({ result: usersDetails })
+
+    return res.status(200).json({ result: usersDetails })
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(error.message)
   }
