@@ -2,6 +2,8 @@
 
 require('dotenv').config()
 require('express-async-errors')
+const colors = require('colors')
+
 // express
 
 const express = require('express')
@@ -44,12 +46,13 @@ app.use(mongoSanitize())
 app.use(express.urlencoded({ extended: true }))
 app.use(express.json())
 app.use(cookieParser(process.env.JWT_SECRET))
-// app.use(fileUpload());
-// server
+//? enable colors for terminal
+colors.enable()
+
 const port = process.env.PORT || 5000
 if (cluster.isMaster) {
-  console.log(`Number of CPUs is ${totalCPUs}`)
-  console.log(`Master ${process.pid} is running`)
+  console.log(`Number of CPUs is ${totalCPUs}`.green)
+  console.log(`Master ${process.pid} is running`.bold)
 
   // Fork workers.
   for (let i = 0; i < totalCPUs; i++) {
@@ -57,12 +60,12 @@ if (cluster.isMaster) {
   }
 
   cluster.on('exit', (worker, code, signal) => {
-    console.log(`worker ${worker.process.pid} died`)
-    console.log("Let's fork another worker!")
+    console.log(`worker ${worker.process.pid} died`.yellow)
+    console.log("Let's fork another worker!".blue)
     cluster.fork()
   })
 } else {
-  console.log(`Worker ${process.pid} started`)
+  console.log(`Worker ${process.pid} started`.cyan)
 
   // routes
   app.get('/', (req, res) => {
@@ -78,7 +81,7 @@ if (cluster.isMaster) {
     try {
       await connectDB(process.env.MONGO_URL)
       app.listen(port, () =>
-        console.log(`Server is listening on port ${port}...`)
+        console.log(`Server is listening on port ${port}...`.america)
       )
     } catch (error) {
       console.log(error)
@@ -87,15 +90,4 @@ if (cluster.isMaster) {
 
   start()
 }
-// const start = async () => {
-//   try {
-//     await connectDB(process.env.MONGO_URL)
-//     app.listen(port, () =>
-//       console.log(`Server is listening on port ${port}...`)
-//     )
-//   } catch (error) {
-//     console.log(error)
-//   }
-// }
 
-// start()
