@@ -255,7 +255,7 @@ function finalResult(result, online, offline, mileage, fatigue) {
           email:e.email,
           vehicleID: e.vehicleID,
           phoneNumber: e.phoneNumber,
-          serialNumber: e.serialNumber,
+          SerialNumber: e.serialNumber,
           custodyId: e.custodyId,
           custodyName: e.custodyName,
           idNumber: e.idNumber,
