@@ -252,6 +252,7 @@ function finalResult(result, online, offline, mileage, fatigue) {
         return {
           _id: e._id,
           username: e.username,
+          email:e.email,
           vehicleID: e.vehicleID,
           phoneNumber: e.phoneNumber,
           serialNumber: e.serialNumber,
