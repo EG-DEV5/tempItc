@@ -4,7 +4,7 @@ const { MongoClient } = require('mongodb')
 const connectDB = (url) => {
   return mongoose
     .connect(url)
-    .then(() => console.log('mongdb is connected'))
+    .then(() => console.log('mongdb is connected'.bgBlue))
     .catch((error) => console.log(error.message))
 }
 

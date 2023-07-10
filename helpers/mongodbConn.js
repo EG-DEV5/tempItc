@@ -16,13 +16,13 @@ var stageDBConnection = mongoose.createConnection(
 if (stageDBConnection.readyState == 1)
   console.log('mongodb connected, to StageDB')
 stageDBConnection.on('error', (err) => {
-  console.log('Error in StageDB connection: ' + err)
+  console.log('Error in StageDB connection: '.bgRed + err)
 })
 stageDBConnection.on('connected', () => {
-  console.log('StageDB connected')
+  console.log('StageDB connected'.bgGreen)
 })
 stageDBConnection.on('disconnected', () => {
-  console.log('StageDB disconnected ')
+  console.log('StageDB disconnected '.bgYellow)
 })
 module.exports = {
   configConnection,
