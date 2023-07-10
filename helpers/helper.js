@@ -395,7 +395,17 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
           SerialNumbers: {
             $addToSet: '$SerialNumber',
           },
-          // Mileage: { $max: '$Mileage' },
+          address:{
+            $last: {
+              $ifNull:['$Address','No Adress']
+            }
+          },
+          lan: {
+            $last:'$Longitude'
+          },
+          lat: {
+            $last:'$Latitude'
+          },
         },
       },
     ]
@@ -404,10 +414,11 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
       .aggregate(agg)
       .toArray()
     const vehiclesIds = result.map((e) => e._id.VehicleID)
-    const userDetails = await User.find(
-      { vid: { $in: vehiclesIds } },
-    ).populate('custodyId', 'custodyName')
-
+    const userDetails = await User.find({ vid: { $in: vehiclesIds } }).populate(
+      'custodyId',
+      'custodyName'
+    )
+    const formatedDuration = formatDuration(strDate, endDate)
     const {
       overSpeedVio,
       harshAccelerationVio,
@@ -417,12 +428,28 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
       longDistanceVio,
     } = splitViolations(result)
 
-    const overSpeed = mergeDetails(overSpeedVio, userDetails)
-    const harshAcceleration = mergeDetails(harshAccelerationVio, userDetails)
-    const harshBrake = mergeDetails(harshBrakeVio, userDetails)
-    const SeatBelt = mergeDetails(SeatBeltVio, userDetails)
-    const nightDrive = mergeDetails(nightDriveVio, userDetails)
-    const longDistance = mergeDetails(longDistanceVio, userDetails)
+    const overSpeed = mergeDetails(overSpeedVio, userDetails, formatedDuration)
+    const harshAcceleration = mergeDetails(
+      harshAccelerationVio,
+      userDetails,
+      formatedDuration
+    )
+    const harshBrake = mergeDetails(
+      harshBrakeVio,
+      userDetails,
+      formatedDuration
+    )
+    const SeatBelt = mergeDetails(SeatBeltVio, userDetails, formatedDuration)
+    const nightDrive = mergeDetails(
+      nightDriveVio,
+      userDetails,
+      formatedDuration
+    )
+    const longDistance = mergeDetails(
+      longDistanceVio,
+      userDetails,
+      formatedDuration
+    )
 
     const violationCount = violationsCount(result)
 
@@ -441,29 +468,38 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
     return e.message
   }
 }
-function mergeDetails(violation, userDetails, fatigue) {
+function formatDuration(strDate, endDate) {
+  const date1 = moment(strDate)
+  const date2 = moment(endDate)
+  const duration = moment.duration(date2.diff(date1))
+  const days = Math.floor(duration.asDays())
+  const hours = duration.hours()
+  return `${days} Day(s) : ${hours} Hour(s)`
+}
+function mergeDetails(violation, userDetails, formatedDuration, isFatigue) {
   const userDetailsMap = new Map(
     userDetails.map((user) => [
       user.vid,
       {
-        _id:user._id,
+        _id: user._id,
+        duration: formatedDuration,
         username: user.username,
         vehicleID: user.vid,
-        email:user.email,
+        email: user.email,
         phoneNumber: user.phoneNumber,
         serialNumber: user.SerialNumber,
         custodyId: user.custodyId._id,
         custodyName: user.custodyId.custodyName,
         idNumber: user.idNumber,
-        image:user.image,
+        image: user.image,
         role: user.role,
-        isOnline: user.isOnline
+        isOnline: user.isOnline,
       },
     ])
   )
 
   const mergeUsersWithViolations = violation.map((vio) => {
-    const user = userDetailsMap.get(fatigue ? vio._id : vio._id.VehicleID)
+    const user = userDetailsMap.get(isFatigue ? vio._id : vio._id.VehicleID)
     return user && Object.assign(vio, user)
   })
 
@@ -471,32 +507,30 @@ function mergeDetails(violation, userDetails, fatigue) {
 }
 function splitViolations(result) {
   const overSpeedVio = result.reduce((acc, e) => {
-    if (e.OverSpeed > 0)
-      acc.push({ _id: e._id, OverSpeed: e.OverSpeed,  })
+    if (e.OverSpeed > 0) acc.push({ _id: e._id, OverSpeed: e.OverSpeed, address: e.address, startCoords:e.lan, endCoords:e.lat })
     return acc
   }, [])
   const harshAccelerationVio = result.reduce((acc, e) => {
-    if (e.harshAcceleration > 0) acc.push({_id: e._id, harshAcceleration: e.harshAcceleration})
+    if (e.harshAcceleration > 0)
+      acc.push({ _id: e._id, harshAcceleration: e.harshAcceleration, address: e.address, startCoords:e.lan, endCoords:e.lat })
     return acc
   }, [])
   const harshBrakeVio = result.reduce((acc, e) => {
     if (e.harshAcceleration > 0)
-      acc.push({ _id: e._id, harshBrake: e.harshBrake,  })
+      acc.push({ _id: e._id, harshBrake: e.harshBrake, address: e.address, startCoords:e.lan, endCoords:e.lat })
     return acc
   }, [])
   const SeatBeltVio = result.reduce((acc, e) => {
-    if (e.SeatBelt > 0)
-      acc.push({ _id: e._id, SeatBelt: e.SeatBelt,  })
+    if (e.SeatBelt > 0) acc.push({ _id: e._id, SeatBelt: e.SeatBelt, address: e.address, startCoords:e.lan, endCoords:e.lat })
     return acc
   }, [])
   const nightDriveVio = result.reduce((acc, e) => {
-    if (e.nightDrive > 0)
-      acc.push({ _id: e._id, nightDrive: e.nightDrive,  })
+    if (e.nightDrive > 0) acc.push({ _id: e._id, nightDrive: e.nightDrive, address: e.address, startCoords:e.lan, endCoords:e.lat })
     return acc
   }, [])
   const longDistanceVio = result.reduce((acc, e) => {
     if (e.longDistance > 0)
-      acc.push({ _id: e._id, longDistance: e.longDistance,  })
+      acc.push({ _id: e._id, longDistance: e.longDistance, address: e.address, startCoords:e.lan, endCoords:e.lat })
     return acc
   }, [])
   return {
@@ -508,7 +542,7 @@ function splitViolations(result) {
     longDistanceVio,
   }
 }
-const violationsCount = (result) => {
+function violationsCount(result) {
   // counting how many vehicles did certain violation
   const acc = {
     harshAcceleration: 0,
@@ -566,6 +600,14 @@ async function fatigueQuery(enddate, vehIDs) {
         $group: {
           _id: '$VehicleID',
           Duration: { $sum: '$Duration' },
+          address:{
+            $last: {
+              $ifNull:['$Address','No Adress']
+            }
+          },
+          coord: {
+            $last:'$Coord'
+          },
         },
       },
       {
@@ -579,6 +621,10 @@ async function fatigueQuery(enddate, vehIDs) {
                 else: 0,
               },
             },
+          },
+          address:{$first:'$address'},
+          coords: {
+            $last:'$coord'
           },
           fatigueDuration: { $sum: '$Duration' },
         },
@@ -616,11 +662,32 @@ async function fatigueQuery(enddate, vehIDs) {
       .aggregate(agg)
       .toArray()
     const vehiclesWithFatigue = result.filter((item) => item.fatigue > 0)
+    const formatedVehs = vehiclesWithFatigue.map((veh) =>{
+      if(typeof veh.address === 'object') {
+        veh.stratAdress = veh.address[0]
+        veh.endAdress = veh.address[1]
+        delete veh.address
+      }
+      if(typeof veh.coords === 'object') {
+        veh.stratCoords = `(${veh.coords[0]},${veh.coords[1]})`
+        veh.endCoords = `(${veh.coords[2]},${veh.coords[3]})`
+        delete veh.coords
+      }
+      delete veh.fatigue
+      return veh
+    })
     const vehiclesIds = vehiclesWithFatigue.map((e) => e._id)
-    const userDetails = await User.find(
-      { vid: { $in: vehiclesIds } },
-    ).populate('custodyId', 'custodyName')
-    const fatigueDetails = mergeDetails(vehiclesWithFatigue, userDetails, true)
+    const userDetails = await User.find({ vid: { $in: vehiclesIds } }).populate(
+      'custodyId',
+      'custodyName'
+    )
+    const formatedDuration = formatDuration(strDate, endDate)
+    const fatigueDetails = mergeDetails(
+      formatedVehs,
+      userDetails,
+      formatedDuration,
+      true
+    )
     return {
       count: vehiclesWithFatigue.length > 0 ? vehiclesWithFatigue.length : 0,
       fatigueDetails,
@@ -2456,8 +2523,10 @@ async function getMillageFortrainer(vid) {
   }
 }
 
-const getVehicleDataFromFireBase = serialNumber => {
-  return axios.get(`https://saferoad-srialfb.firebaseio.com/${serialNumber}.json`);
+const getVehicleDataFromFireBase = (serialNumber) => {
+  return axios.get(
+    `https://saferoad-srialfb.firebaseio.com/${serialNumber}.json`
+  )
 }
 
 async function getRatingsQueryById(id) {
@@ -2812,5 +2881,5 @@ module.exports = {
   getMillageForUsers,
   getMillageFortrainer,
   sheetsFortrainer,
-  getVehicleDataFromFireBase
+  getVehicleDataFromFireBase,
 }
