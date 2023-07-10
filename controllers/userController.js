@@ -10,7 +10,7 @@ const axios = require('axios')
 const {
   Types: { ObjectId },
 } = require('mongoose')
-const { getMillageFortrainer } = require('../helpers/helper')
+const { getVehicleDataFromFireBase } = require('../helpers/helper')
 
 // const {
 
@@ -501,9 +501,10 @@ const getAllSafetyAdvisor = async (req, res, next) => {
 }
 const CustodyDetails = async (req, res, next) => {
   try {
+    const custodyID = req.params.id;
     let agg = [
       {
-        $match: { _id: new ObjectId(req.params.id) },
+        $match: { _id: new ObjectId(custodyID) },
       },
       {
         $lookup: {
@@ -558,8 +559,15 @@ const CustodyDetails = async (req, res, next) => {
     })
     const userDetails = await Promise.all(
       result[0].users.map(async (user) => {
-        const userVid = [user.vid]
-        const millage = await getMillageFortrainer(userVid)
+        // get Mileage from Firebase with user's SerialNumber
+       
+        const res = await getVehicleDataFromFireBase(user.SerialNumber);
+        const millage = res.data.Mileage;        
+       
+        // OLD CODE !
+        // const userVid = [user.vid]
+        // const millage  = await getMillageFortrainer(userVid)
+       
         return {
           ...user,
           millage,

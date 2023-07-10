@@ -2454,6 +2454,11 @@ async function getMillageFortrainer(vid) {
     return e.message
   }
 }
+
+const getVehicleDataFromFireBase = serialNumber => {
+  return axios.get(`https://saferoad-srialfb.firebaseio.com/${serialNumber}.json`);
+}
+
 async function getRatingsQueryById(id) {
   try {
     // await connect()
@@ -2806,4 +2811,5 @@ module.exports = {
   getMillageForUsers,
   getMillageFortrainer,
   sheetsFortrainer,
+  getVehicleDataFromFireBase
 }
