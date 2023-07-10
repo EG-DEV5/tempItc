@@ -449,6 +449,7 @@ function mergeDetails(violation, userDetails, fatigue) {
         _id:user._id,
         username: user.username,
         vehicleID: user.vid,
+        email:user.email,
         phoneNumber: user.phoneNumber,
         serialNumber: user.SerialNumber,
         custodyId: user.custodyId._id,
