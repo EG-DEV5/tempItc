@@ -419,6 +419,11 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
     { _id: userId, vid: { $ne: null, $exists: true } },
     { password: 0 }
   )
+ 
+  const custodyDetails = await Group.find({ _id: allVehicles[0].custodyId }) 
+  const divisionDetails = await Division.find({
+    itcs: { $in: allVehicles[0].custodyId },
+  }).select('divisionName')
 
   const validVids = allVehicles.map((vehicle) => vehicle.vid)
   const trainerSerial = allVehicles.map((vehicle) => vehicle.SerialNumber)
@@ -428,7 +433,12 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
   const totalViolation = queryResult.totalViolation
   const fatigue = await fatigueQuery(endDate, validVids)
   const violationsObj = totalViolation[0]
-  const sumViolations =
+
+  let sumViolations = 0;
+  let sheets = [];
+
+  if(result.length > 0) {
+    sumViolations = 
     violationsObj.harshAcceleration +
     violationsObj.harshBrake +
     violationsObj.OverSpeed +
@@ -436,17 +446,16 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
     violationsObj.nightDrive +
     violationsObj.longDistance +
     fatigue.count
-  const custodyDetails = await Group.find({ _id: allVehicles[0].custodyId })
-  const divisionDetails = await Division.find({
-    itcs: { $in: allVehicles[0].custodyId },
-  }).select('divisionName')
-  const sheets = sheetsFortrainer(
-    violationsObj,
-    allVehicles,
-    custodyDetails,
-    divisionDetails,
-    userId
-  )
+        
+    sheets = sheetsFortrainer(
+      violationsObj,
+      allVehicles,
+      custodyDetails,
+      divisionDetails,
+      userId
+      )
+  }
+  
   if (!totalViolation) {
     throw new CustomError.BadRequestError(
       '{"enMessage" : "there is no data in this period", "arMessage" :"لا توجد بيانات فى هذه الفترة"}'
@@ -488,7 +497,7 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
           }),
           totalViolation: {
             sumViolations,
-            ...totalViolation[0],
+            ...totalViolation[0] || 0,
             online,
             offline,
             Mileage: mileage,
