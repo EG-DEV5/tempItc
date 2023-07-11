@@ -1222,26 +1222,26 @@ async function optimizedTrendsQuery(vehIDs, startPeriod, endPeriod) {
                   },
                 },
               },
-              // harshAcceleration: {
-              //   $sum: {
-              //     $cond: {
-              //       if: {
-              //         $eq: [
-              //           {
-              //             $function: {
-              //               body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
-              //               args: ['$AlarmCode', 0],
-              //               lang: 'js',
-              //             },
-              //           },
-              //           true,
-              //         ],
-              //       },
-              //       then: 1,
-              //       else: 0,
-              //     },
-              //   },
-              // },
+              harshAcceleration: {
+                $sum: {
+                  $cond: {
+                    if: {
+                      $eq: [
+                        {
+                          $function: {
+                            body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
+                            args: ['$AlarmCode', 0],
+                            lang: 'js',
+                          },
+                        },
+                        true,
+                      ],
+                    },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
               OverSpeed: {
                 $sum: {
                   $cond: {
@@ -1262,26 +1262,26 @@ async function optimizedTrendsQuery(vehIDs, startPeriod, endPeriod) {
                   },
                 },
               },
-              // SeatBelt: {
-              //   $sum: {
-              //     $cond: {
-              //       if: {
-              //         $eq: [
-              //           {
-              //             $function: {
-              //               body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
-              //               args: ['$StatusCode', 3],
-              //               lang: 'js',
-              //             },
-              //           },
-              //           true,
-              //         ],
-              //       },
-              //       then: 1,
-              //       else: 0,
-              //     },
-              //   },
-              // },
+              SeatBelt: {
+                $sum: {
+                  $cond: {
+                    if: {
+                      $eq: [
+                        {
+                          $function: {
+                            body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
+                            args: ['$StatusCode', 3],
+                            lang: 'js',
+                          },
+                        },
+                        true,
+                      ],
+                    },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
               harshBrake: {
                 $sum: {
                   $cond: {
@@ -1302,26 +1302,26 @@ async function optimizedTrendsQuery(vehIDs, startPeriod, endPeriod) {
                   },
                 },
               },
-              // nightDrive: {
-              //   $sum: {
-              //     $cond: {
-              //       if: {
-              //         $eq: [
-              //           {
-              //             $function: {
-              //               body: `function(dateTime) { let hr = (new Date(dateTime)).getHours() + 3; return (hr < 8) || (hr > 20); }`,
-              //               args: ['$RecordDateTime'],
-              //               lang: 'js',
-              //             },
-              //           },
-              //           true,
-              //         ],
-              //       },
-              //       then: 1,
-              //       else: 0,
-              //     },
-              //   },
-              // },
+              nightDrive: {
+                $sum: {
+                  $cond: {
+                    if: {
+                      $eq: [
+                        {
+                          $function: {
+                            body: `function(dateTime) { let hr = (new Date(dateTime)).getHours() + 3; return (hr < 8) || (hr > 20); }`,
+                            args: ['$RecordDateTime'],
+                            lang: 'js',
+                          },
+                        },
+                        true,
+                      ],
+                    },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
               longDistance: {
                 $sum: {
                   $cond: {
@@ -1347,15 +1347,15 @@ async function optimizedTrendsQuery(vehIDs, startPeriod, endPeriod) {
           {
             $group: {
               _id: '$_id.RecordDateTime',
-              // harshAcceleration: {
-              //   $sum: {
-              //     $cond: {
-              //       if: { $gt: ['$harshAcceleration', 0] },
-              //       then: 1,
-              //       else: 0,
-              //     },
-              //   },
-              // },
+              harshAcceleration: {
+                $sum: {
+                  $cond: {
+                    if: { $gt: ['$harshAcceleration', 0] },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
               OverSpeed: {
                 $sum: {
                   $cond: {
@@ -1365,15 +1365,15 @@ async function optimizedTrendsQuery(vehIDs, startPeriod, endPeriod) {
                   },
                 },
               },
-              // SeatBelt: {
-              //   $sum: {
-              //     $cond: {
-              //       if: { $gt: ['$SeatBelt', 0] },
-              //       then: 1,
-              //       else: 0,
-              //     },
-              //   },
-              // },
+              SeatBelt: {
+                $sum: {
+                  $cond: {
+                    if: { $gt: ['$SeatBelt', 0] },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
               harshBrake: {
                 $sum: {
                   $cond: {
@@ -1383,15 +1383,15 @@ async function optimizedTrendsQuery(vehIDs, startPeriod, endPeriod) {
                   },
                 },
               },
-              // nightDrive: {
-              //   $sum: {
-              //     $cond: {
-              //       if: { $gt: ['$nightDrive', 0] },
-              //       then: 1,
-              //       else: 0,
-              //     },
-              //   },
-              // },
+              nightDrive: {
+                $sum: {
+                  $cond: {
+                    if: { $gt: ['$nightDrive', 0] },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
               longDistance: {
                 $sum: {
                   $cond: {
@@ -1438,12 +1438,32 @@ async function optimizedTrendsQuery(vehIDs, startPeriod, endPeriod) {
   }
 }
 const berDayCount = (result) => {
-  const overSpeed = result.map((item) => item.OverSpeed)
-  const harshBrake = result.map((item) => item.harshBrake)
-  const longDistance = result.map((item) => item.longDistance)
-  let labels = result.map((item) => {
-    return moment.utc(item._id).format('ddd')
-  })
+  let labels = [];
+
+  let overSpeed = [];
+  let harshAcceleration = [];
+  let seatBelt = [];
+  let harshBrake = [];
+  let nightDrive = [];
+  let longDistance = [];
+
+  result.forEach(item => {
+    labels.push(moment.utc(item._id).format('ddd'));
+
+    overSpeed.push(item.OverSpeed);
+    harshAcceleration.push(item.harshAcceleration);
+    seatBelt.push(item.SeatBelt);
+    harshBrake.push(item.harshBrake);
+    nightDrive.push(item.nightDrive);
+    longDistance.push(item.longDistance);
+  });
+
+  // const overSpeed = result.map((item) => item.OverSpeed)
+  // const harshBrake = result.map((item) => item.harshBrake)
+  // const longDistance = result.map((item) => item.longDistance)
+  // let labels = result.map((item) => {
+  //   return moment.utc(item._id).format('ddd')
+  // })
   // let maxNumber = Math.max(
   //   ...result
   //     .flatMap((obj) => Object.values(obj))
@@ -1460,6 +1480,19 @@ const berDayCount = (result) => {
       data: harshBrake,
     },
     { name: 'Long Distance', data: longDistance },
+    {
+      name: 'Seat Belt',
+      data: seatBelt,
+    },
+    {
+      name: 'Night Drive',
+      data: nightDrive,
+    },
+    {
+      name: 'Harsh Acceleration',
+      data: harshAcceleration,
+    },
+
   ]
   return { labels, series }
 }
