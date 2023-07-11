@@ -284,7 +284,6 @@ function finalResult(result, online, offline, mileage,tampering, fatigue) {
 //     uniqueUsers.push(obj)
 //   }
 // }
-
   let final = {
     harshAcceleration: result.violationCount.harshAcceleration,
     overSpeed: result.violationCount.OverSpeed,
