@@ -455,7 +455,7 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
       userId
       )
   }
-  
+
   if (!totalViolation) {
     throw new CustomError.BadRequestError(
       '{"enMessage" : "there is no data in this period", "arMessage" :"لا توجد بيانات فى هذه الفترة"}'
@@ -497,7 +497,7 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
           }),
           totalViolation: {
             sumViolations,
-            ...totalViolation[0] || 0,
+            ...totalViolation[0],
             online,
             offline,
             Mileage: mileage,
