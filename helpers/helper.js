@@ -413,12 +413,13 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
       .collection('LiveLocations')
       .aggregate(agg)
       .toArray()
-    const vehiclesIds = result.map((e) => e._id.VehicleID)
-    const userDetails = await User.find({ vid: { $in: vehiclesIds } }).populate(
+    // const vehiclesIds = result.map((e) => e._id.VehicleID)
+    const userDetails = await User.find({ vid: { $in: vehIDs } }).populate(
       'custodyId',
       'custodyName'
-    )
-    const formatedDuration = formatDuration(strDate, endDate)
+    ).select('-password -__v ').lean()
+    const formatedDuration = formatDuration(strDate, endDate) // duration of the violations
+
     const {
       overSpeedVio,
       harshAccelerationVio,
@@ -428,6 +429,7 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
       longDistanceVio,
     } = splitViolations(result)
 
+    // merging the user details with vehicle details to generate sheets
     const overSpeed = mergeDetails(overSpeedVio, userDetails, formatedDuration)
     const harshAcceleration = mergeDetails(
       harshAccelerationVio,
@@ -451,10 +453,32 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
       formatedDuration
     )
 
-    const violationCount = violationsCount(result)
-
+    const violationCount = violationsCount(result) // counting how many vehicles did certain violation
+    let fatigue = await fatigueQuery(endDate, vehIDs)
+    
+    // returning users with there violations 
+    const users = [...result, ...fatigue.fatigueDetails].map((vehicle)=> {
+      const user = userDetails.find((e) => e.vid === vehicle._id.VehicleID || e.vid === vehicle._id)
+      const vehWithFatiue  = user? fatigue.fatigueDetails.find(e => e.vehicleID === user.vid):[]
+      const result = {
+        ...vehicle,
+        ...vehWithFatiue,
+        ...user
+      }
+      delete result.address
+      delete result.endCoords
+      delete result.startCoords
+      delete result.SerialNumbers
+      delete result.custodyId
+      delete result.lat
+      delete result.lan
+      return result 
+    })
+    
     return {
       violationCount,
+      fatigue : fatigue.count,
+      users,
       sheets: {
         overSpeed,
         harshAcceleration,
@@ -462,6 +486,7 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
         SeatBelt,
         nightDrive,
         longDistance,
+        fatigue : fatigue.fatigueDetails
       },
     }
   } catch (e) {
@@ -477,33 +502,38 @@ function formatDuration(strDate, endDate) {
   return `${days} Day(s) : ${hours} Hour(s)`
 }
 function mergeDetails(violation, userDetails, formatedDuration, isFatigue) {
+  try {
   const userDetailsMap = new Map(
-    userDetails.map((user) => [
-      user.vid,
-      {
-        _id: user._id,
-        duration: formatedDuration,
-        username: user.username,
-        vehicleID: user.vid,
-        email: user.email,
-        phoneNumber: user.phoneNumber,
-        serialNumber: user.SerialNumber,
-        custodyId: user.custodyId._id,
-        custodyName: user.custodyId.custodyName,
-        idNumber: user.idNumber,
-        image: user.image,
-        role: user.role,
-        isOnline: user.isOnline,
-      },
-    ])
-  )
-
-  const mergeUsersWithViolations = violation.map((vio) => {
-    const user = userDetailsMap.get(isFatigue ? vio._id : vio._id.VehicleID)
-    return user && Object.assign(vio, user)
-  })
-
-  return mergeUsersWithViolations
+      userDetails.map((user) => [
+        user.vid,
+        {
+          _id: user._id,
+          duration: formatedDuration,
+          username: user.username,
+          vehicleID: user.vid,
+          email: user.email,
+          phoneNumber: user.phoneNumber,
+          serialNumber: user.SerialNumber,
+          custodyId: user.custodyId._id,
+          custodyName: user.custodyId.custodyName,
+          idNumber: user.idNumber,
+          image: user.image,
+          role: user.role,
+          isOnline: user.isOnline,
+        },
+      ])
+    )
+  
+    const mergeUsersWithViolations = violation.map((vio) => {
+      const user = userDetailsMap.get(isFatigue ? vio._id : vio._id.VehicleID)
+      return user && Object.assign(vio, user)
+    })
+  
+    return mergeUsersWithViolations
+  } catch(errer) {
+    return errer.message
+  }
+  
 }
 function splitViolations(result) {
   const overSpeedVio = result.reduce((acc, e) => {
@@ -662,14 +692,15 @@ async function fatigueQuery(enddate, vehIDs) {
       .aggregate(agg)
       .toArray()
     const vehiclesWithFatigue = result.filter((item) => item.fatigue > 0)
+    // optimizing vehicle's address & coords to generate sheets
     const formatedVehs = vehiclesWithFatigue.map((veh) =>{
       if(typeof veh.address === 'object') {
-        veh.stratAdress = veh.address[0]
+        veh.startCoords = veh.address[0]
         veh.endAdress = veh.address[1]
         delete veh.address
       }
       if(typeof veh.coords === 'object') {
-        veh.stratCoords = `(${veh.coords[0]},${veh.coords[1]})`
+        veh.startCoords = `(${veh.coords[0]},${veh.coords[1]})`
         veh.endCoords = `(${veh.coords[2]},${veh.coords[3]})`
         delete veh.coords
       }
@@ -681,7 +712,8 @@ async function fatigueQuery(enddate, vehIDs) {
       'custodyId',
       'custodyName'
     )
-    const formatedDuration = formatDuration(strDate, endDate)
+    const formatedDuration = formatDuration(strDate, endDate) // duration of the violations
+    // merging the user details with vehicle details to generate sheets
     const fatigueDetails = mergeDetails(
       formatedVehs,
       userDetails,
@@ -690,7 +722,7 @@ async function fatigueQuery(enddate, vehIDs) {
     )
     return {
       count: vehiclesWithFatigue.length > 0 ? vehiclesWithFatigue.length : 0,
-      fatigueDetails,
+      fatigueDetails, // sheets
     }
   } catch (e) {
     return e.message

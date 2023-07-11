@@ -189,8 +189,8 @@ const mainDashboard = async (req, res) => {
     // const nullSerials = vehicles.length - serials.length
 
     let result = await mainDashboardQuery(startPeriod, endPeriod, validVids)
-    let fatigue = await fatigueQuery(endPeriod, validVids)
-    result.sheets['fatigue'] = fatigue.fatigueDetails
+    // let fatigue = await fatigueQuery(endPeriod, validVids)
+    // result.sheets['fatigue'] = fatigue.fatigueDetails
 
     const requests =
       serials.length > 0 &&
@@ -202,6 +202,7 @@ const mainDashboard = async (req, res) => {
     let online = 0
     let offline = 0
     let mileage = 0
+    let tampering = 0
 
     requests
       ? Promise.all(requests)
@@ -211,6 +212,7 @@ const mainDashboard = async (req, res) => {
               if (status !== 'offline') ++online
               else ++offline
               mileage += response.data.Mileage
+              if (response.data.IsPowerCutOff) ++tampering
               // if (response.data.EngineStatus) ++online
               // else ++offline
             })
@@ -224,7 +226,8 @@ const mainDashboard = async (req, res) => {
               online,
               offline,
               mileage,
-              fatigue
+              tampering,
+              // fatigue
             )
             res.status(200).json(finalResponse)
           })
@@ -235,7 +238,9 @@ const mainDashboard = async (req, res) => {
           online,
           offline,
           mileage,
-          fatigue: fatigue.count,
+          tampering,
+          users: [],
+          fatigue: 0,
         })
   } catch (error) {
     return res
@@ -243,41 +248,42 @@ const mainDashboard = async (req, res) => {
       .json({ message: 'Something went wrong' })
   }
 }
-function finalResult(result, online, offline, mileage, fatigue) {
+function finalResult(result, online, offline, mileage,tampering, fatigue) {
   // return all serialNumbers for violated vehicles
-  let trainees = []
-  Object.keys(result?.sheets).map((key) => {
-    trainees.push(
-      result?.sheets[key].map((e) => {
-        return {
-          _id: e._id,
-          username: e.username,
-          email:e.email,
-          vehicleID: e.vehicleID,
-          phoneNumber: e.phoneNumber,
-          serialNumber: e.serialNumber,
-          custodyId: e.custodyId,
-          custodyName: e.custodyName,
-          idNumber: e.idNumber,
-          image: e.image,
-          role: e.role,
-          isOnline: e.isOnline,
-        }
-      })
-    )
-  })
-  const flaten = trainees.flat()
-  const uniqueObjects = []
-  const seenObjects = {}
+//   let trainees = []
+//   Object.keys(result?.sheets).map((key) => {
+//     trainees.push(
+//       result?.sheets[key].map((e) => {
+//         return {
+//           _id: e._id,
+//           [key]: e[key],
+//           username: e.username,
+//           email:e.email,
+//           vehicleID: e.vehicleID,
+//           phoneNumber: e.phoneNumber,
+//           serialNumber: e.serialNumber,
+//           custodyId: e.custodyId,
+//           custodyName: e.custodyName,
+//           idNumber: e.idNumber,
+//           image: e.image,
+//           role: e.role,
+//           isOnline: e.isOnline,
+//         }
+//       })
+//     )
+//   })
+//   const flaten = trainees.flat()
+//   const uniqueUsers = []
+//   const seenObjects = {}
 
-for (let i = 0; i < flaten.length; i++) {
-  const obj = flaten[i]
-  const key = JSON.stringify(obj)
-  if (!seenObjects[key]) {
-    seenObjects[key] = true
-    uniqueObjects.push(obj)
-  }
-}
+// for (let i = 0; i < flaten.length; i++) {
+//   const obj = flaten[i]
+//   const key = JSON.stringify(obj)
+//   if (!seenObjects[key]) {
+//     seenObjects[key] = true
+//     uniqueUsers.push(obj)
+//   }
+// }
 
   let final = {
     harshAcceleration: result.violationCount.harshAcceleration,
@@ -289,22 +295,24 @@ for (let i = 0; i < flaten.length; i++) {
     harshBrake: result.violationCount.harshBrake,
     nightDrive: result.violationCount.nightDrive,
     longDistance: result.violationCount.longDistance,
-    users: uniqueObjects,
-    fatigue: fatigue.count,
+    users: result.users,
+    fatigue: result.fatigue,
     mileage,
     online,
     offline,
+    tampering,
     sheets: result.sheets,
   }
   // get the max value from violations to get the ITD
   const allItd = Math.max(
-    final.harshAcceleration,
-    final.overSpeed,
-    final.seatBelt,
-    final.harshBrake,
-    final.nightDrive,
-    final.longDistance,
-    final.fatigue
+    final?.harshAcceleration,
+    final?.overSpeed,
+    final?.seatBelt,
+    final?.harshBrake,
+    final?.nightDrive,
+    final?.longDistance,
+    final?.fatigue,
+    final?.tampering
   )
   final.allItd = allItd
   return final
