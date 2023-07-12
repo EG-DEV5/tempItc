@@ -1419,25 +1419,44 @@ async function optimizedTrendsQuery(vehIDs, startPeriod, endPeriod) {
 
     // create an array of promises for each date
     let promises = dates.map((date) => queryByDate(date, vehIDs))
+    let fatiguePromises = dates.map((date)=> fatigueQuery(date, vehIDs))
 
     // use Promise.all to run all queries in parallel and wait for them to resolve
-    const trends = Promise.all(promises)
-      .then((results) => {
-        // results is an array of query results for each date
-        result = berDayCount(results.flat())
-        return result
-      })
-      .catch((error) => {
-        // handle any error
-        console.error(error)
-      })
+    const promisesResult = await Promise.all(promises)
+    const trendsData = berDayCount(promisesResult, dates);
 
-    return trends
+    const fatigueResult = await Promise.all(fatiguePromises);
+    const fatigueData =  fatigueResult.map((item) => item.count);
+    const fatigueObject = {
+      name : "Fatigue",
+      data: fatigueData
+    }
+    trendsData.series.push(fatigueObject);
+    return trendsData
   } catch (e) {
     return e.message
   }
 }
-const berDayCount = (result) => {
+
+const checkMissingDays = (result) => {
+  result.forEach((item, idx) => {
+    if(item.length === 0) {
+      result[idx] = [{
+        OverSpeed: 0,
+        harshAcceleration: 0,
+        SeatBelt: 0,
+        harshBrake: 0,
+        nightDrive: 0,
+        longDistance: 0
+      }]
+    }
+  })
+
+  const results = result.flat();
+  return results
+
+}
+const berDayCount = (result, dates) => {
   let labels = [];
 
   let overSpeed = [];
@@ -1447,8 +1466,10 @@ const berDayCount = (result) => {
   let nightDrive = [];
   let longDistance = [];
 
-  result.forEach(item => {
-    labels.push(moment.utc(item._id).format('ddd'));
+  const data = checkMissingDays(result)
+
+  data.forEach((item, idx) => {
+    labels.push(moment.utc(dates[idx]).format('ddd'));
 
     overSpeed.push(item.OverSpeed);
     harshAcceleration.push(item.harshAcceleration);
@@ -1457,18 +1478,6 @@ const berDayCount = (result) => {
     nightDrive.push(item.nightDrive);
     longDistance.push(item.longDistance);
   });
-
-  // const overSpeed = result.map((item) => item.OverSpeed)
-  // const harshBrake = result.map((item) => item.harshBrake)
-  // const longDistance = result.map((item) => item.longDistance)
-  // let labels = result.map((item) => {
-  //   return moment.utc(item._id).format('ddd')
-  // })
-  // let maxNumber = Math.max(
-  //   ...result
-  //     .flatMap((obj) => Object.values(obj))
-  //     .filter((value) => typeof value === 'number')
-  // )
 
   let series = [
     {
@@ -1491,6 +1500,10 @@ const berDayCount = (result) => {
     {
       name: 'Harsh Acceleration',
       data: harshAcceleration,
+    },
+    {
+      name: 'Sharp Turn',
+      data: [0,0,0,0,0,0,0],
     },
 
   ]
