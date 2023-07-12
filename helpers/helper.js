@@ -513,7 +513,7 @@ function mergeDetails(violation, userDetails, formatedDuration, isFatigue) {
           vehicleID: user.vid,
           email: user.email,
           phoneNumber: user.phoneNumber,
-          serialNumber: user.SerialNumber,
+          SerialNumber: user.SerialNumber,
           custodyId: user.custodyId._id,
           custodyName: user.custodyId.custodyName,
           idNumber: user.idNumber,
