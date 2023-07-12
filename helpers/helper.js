@@ -1222,26 +1222,26 @@ async function optimizedTrendsQuery(vehIDs, startPeriod, endPeriod) {
                   },
                 },
               },
-              // harshAcceleration: {
-              //   $sum: {
-              //     $cond: {
-              //       if: {
-              //         $eq: [
-              //           {
-              //             $function: {
-              //               body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
-              //               args: ['$AlarmCode', 0],
-              //               lang: 'js',
-              //             },
-              //           },
-              //           true,
-              //         ],
-              //       },
-              //       then: 1,
-              //       else: 0,
-              //     },
-              //   },
-              // },
+              harshAcceleration: {
+                $sum: {
+                  $cond: {
+                    if: {
+                      $eq: [
+                        {
+                          $function: {
+                            body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
+                            args: ['$AlarmCode', 0],
+                            lang: 'js',
+                          },
+                        },
+                        true,
+                      ],
+                    },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
               OverSpeed: {
                 $sum: {
                   $cond: {
@@ -1262,26 +1262,26 @@ async function optimizedTrendsQuery(vehIDs, startPeriod, endPeriod) {
                   },
                 },
               },
-              // SeatBelt: {
-              //   $sum: {
-              //     $cond: {
-              //       if: {
-              //         $eq: [
-              //           {
-              //             $function: {
-              //               body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
-              //               args: ['$StatusCode', 3],
-              //               lang: 'js',
-              //             },
-              //           },
-              //           true,
-              //         ],
-              //       },
-              //       then: 1,
-              //       else: 0,
-              //     },
-              //   },
-              // },
+              SeatBelt: {
+                $sum: {
+                  $cond: {
+                    if: {
+                      $eq: [
+                        {
+                          $function: {
+                            body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
+                            args: ['$StatusCode', 3],
+                            lang: 'js',
+                          },
+                        },
+                        true,
+                      ],
+                    },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
               harshBrake: {
                 $sum: {
                   $cond: {
@@ -1302,26 +1302,26 @@ async function optimizedTrendsQuery(vehIDs, startPeriod, endPeriod) {
                   },
                 },
               },
-              // nightDrive: {
-              //   $sum: {
-              //     $cond: {
-              //       if: {
-              //         $eq: [
-              //           {
-              //             $function: {
-              //               body: `function(dateTime) { let hr = (new Date(dateTime)).getHours() + 3; return (hr < 8) || (hr > 20); }`,
-              //               args: ['$RecordDateTime'],
-              //               lang: 'js',
-              //             },
-              //           },
-              //           true,
-              //         ],
-              //       },
-              //       then: 1,
-              //       else: 0,
-              //     },
-              //   },
-              // },
+              nightDrive: {
+                $sum: {
+                  $cond: {
+                    if: {
+                      $eq: [
+                        {
+                          $function: {
+                            body: `function(dateTime) { let hr = (new Date(dateTime)).getHours() + 3; return (hr < 8) || (hr > 20); }`,
+                            args: ['$RecordDateTime'],
+                            lang: 'js',
+                          },
+                        },
+                        true,
+                      ],
+                    },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
               longDistance: {
                 $sum: {
                   $cond: {
@@ -1347,15 +1347,15 @@ async function optimizedTrendsQuery(vehIDs, startPeriod, endPeriod) {
           {
             $group: {
               _id: '$_id.RecordDateTime',
-              // harshAcceleration: {
-              //   $sum: {
-              //     $cond: {
-              //       if: { $gt: ['$harshAcceleration', 0] },
-              //       then: 1,
-              //       else: 0,
-              //     },
-              //   },
-              // },
+              harshAcceleration: {
+                $sum: {
+                  $cond: {
+                    if: { $gt: ['$harshAcceleration', 0] },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
               OverSpeed: {
                 $sum: {
                   $cond: {
@@ -1365,15 +1365,15 @@ async function optimizedTrendsQuery(vehIDs, startPeriod, endPeriod) {
                   },
                 },
               },
-              // SeatBelt: {
-              //   $sum: {
-              //     $cond: {
-              //       if: { $gt: ['$SeatBelt', 0] },
-              //       then: 1,
-              //       else: 0,
-              //     },
-              //   },
-              // },
+              SeatBelt: {
+                $sum: {
+                  $cond: {
+                    if: { $gt: ['$SeatBelt', 0] },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
               harshBrake: {
                 $sum: {
                   $cond: {
@@ -1383,15 +1383,15 @@ async function optimizedTrendsQuery(vehIDs, startPeriod, endPeriod) {
                   },
                 },
               },
-              // nightDrive: {
-              //   $sum: {
-              //     $cond: {
-              //       if: { $gt: ['$nightDrive', 0] },
-              //       then: 1,
-              //       else: 0,
-              //     },
-              //   },
-              // },
+              nightDrive: {
+                $sum: {
+                  $cond: {
+                    if: { $gt: ['$nightDrive', 0] },
+                    then: 1,
+                    else: 0,
+                  },
+                },
+              },
               longDistance: {
                 $sum: {
                   $cond: {
@@ -1419,36 +1419,65 @@ async function optimizedTrendsQuery(vehIDs, startPeriod, endPeriod) {
 
     // create an array of promises for each date
     let promises = dates.map((date) => queryByDate(date, vehIDs))
+    let fatiguePromises = dates.map((date)=> fatigueQuery(date, vehIDs))
 
     // use Promise.all to run all queries in parallel and wait for them to resolve
-    const trends = Promise.all(promises)
-      .then((results) => {
-        // results is an array of query results for each date
-        result = berDayCount(results.flat())
-        return result
-      })
-      .catch((error) => {
-        // handle any error
-        console.error(error)
-      })
+    const promisesResult = await Promise.all(promises)
+    const trendsData = berDayCount(promisesResult, dates);
 
-    return trends
+    const fatigueResult = await Promise.all(fatiguePromises);
+    const fatigueData =  fatigueResult.map((item) => item.count);
+    const fatigueObject = {
+      name : "Fatigue",
+      data: fatigueData
+    }
+    trendsData.series.push(fatigueObject);
+    return trendsData
   } catch (e) {
     return e.message
   }
 }
-const berDayCount = (result) => {
-  const overSpeed = result.map((item) => item.OverSpeed)
-  const harshBrake = result.map((item) => item.harshBrake)
-  const longDistance = result.map((item) => item.longDistance)
-  let labels = result.map((item) => {
-    return moment.utc(item._id).format('ddd')
+
+const checkMissingDays = (result) => {
+  result.forEach((item, idx) => {
+    if(item.length === 0) {
+      result[idx] = [{
+        OverSpeed: 0,
+        harshAcceleration: 0,
+        SeatBelt: 0,
+        harshBrake: 0,
+        nightDrive: 0,
+        longDistance: 0
+      }]
+    }
   })
-  // let maxNumber = Math.max(
-  //   ...result
-  //     .flatMap((obj) => Object.values(obj))
-  //     .filter((value) => typeof value === 'number')
-  // )
+
+  const results = result.flat();
+  return results
+
+}
+const berDayCount = (result, dates) => {
+  let labels = [];
+
+  let overSpeed = [];
+  let harshAcceleration = [];
+  let seatBelt = [];
+  let harshBrake = [];
+  let nightDrive = [];
+  let longDistance = [];
+
+  const data = checkMissingDays(result)
+
+  data.forEach((item, idx) => {
+    labels.push(moment.utc(dates[idx]).format('ddd'));
+
+    overSpeed.push(item.OverSpeed);
+    harshAcceleration.push(item.harshAcceleration);
+    seatBelt.push(item.SeatBelt);
+    harshBrake.push(item.harshBrake);
+    nightDrive.push(item.nightDrive);
+    longDistance.push(item.longDistance);
+  });
 
   let series = [
     {
@@ -1460,6 +1489,23 @@ const berDayCount = (result) => {
       data: harshBrake,
     },
     { name: 'Long Distance', data: longDistance },
+    {
+      name: 'Seat Belt',
+      data: seatBelt,
+    },
+    {
+      name: 'Night Drive',
+      data: nightDrive,
+    },
+    {
+      name: 'Harsh Acceleration',
+      data: harshAcceleration,
+    },
+    {
+      name: 'Sharp Turn',
+      data: [0,0,0,0,0,0,0],
+    },
+
   ]
   return { labels, series }
 }
