@@ -414,9 +414,10 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
       .aggregate(agg)
       .toArray()
     // const vehiclesIds = result.map((e) => e._id.VehicleID)
-    const userDetails = await User.find({ vid: { $in: vehIDs } }).populate(
-      'custodyId',
-      'custodyName'
+    const userDetails = await User.find({ vid: { $in: vehIDs } }).populate({
+      path: 'custodyId',
+      select:'custodyName'
+    }
     ).select('-password -__v ').lean()
     const formatedDuration = formatDuration(strDate, endDate) // duration of the violations
 
@@ -455,26 +456,7 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
 
     const violationCount = violationsCount(result) // counting how many vehicles did certain violation
     let fatigue = await fatigueQuery(endDate, vehIDs)
-    
-    // returning users with there violations 
-    const users = [...result, ...fatigue.fatigueDetails].map((vehicle)=> {
-      const user = userDetails.find((e) => e.vid === vehicle._id.VehicleID || e.vid === vehicle._id)
-      const vehWithFatiue  = user? fatigue.fatigueDetails.find(e => e.vehicleID === user.vid):[]
-      const result = {
-        ...vehicle,
-        ...vehWithFatiue,
-        ...user
-      }
-      delete result.address
-      delete result.endCoords
-      delete result.startCoords
-      delete result.SerialNumbers
-      delete result.custodyId
-      delete result.lat
-      delete result.lan
-      return result 
-    })
-    
+    const users = getUsersWithViolations(userDetails,result,fatigue)
     return {
       violationCount,
       fatigue : fatigue.count,
@@ -492,6 +474,43 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
   } catch (e) {
     return e.message
   }
+}
+function getUsersWithViolations(userDetails,result,fatigue) {
+   
+  const vehicleData = {};
+  // returning users with there violations 
+  result.forEach((veh)=>{
+    const vehicleId = veh._id.VehicleID
+    vehicleData[vehicleId] = {
+      ...veh
+    }
+  })
+
+  fatigue.vehiclesWithFatigue.forEach(f => {
+    const vehicleId = f._id;
+    vehicleData[vehicleId] = {
+      ...vehicleData[vehicleId],
+      ...f
+    }
+  })
+
+  const users = [];
+
+  for(let key in vehicleData) {
+    const user = userDetails.find((u) => u.vid == +key);
+    const userObject = {...user, ...vehicleData[key]};
+    delete userObject.address
+    delete userObject.endCoords
+    delete userObject.startCoords
+    delete userObject.startAdress
+    delete userObject.endAdress
+    delete userObject.SerialNumbers
+    delete userObject.custodyId
+    delete userObject.lat
+    delete userObject.lan
+    users.push(userObject);
+  }
+  return users
 }
 function formatDuration(strDate, endDate) {
   const date1 = moment(strDate)
@@ -513,7 +532,7 @@ function mergeDetails(violation, userDetails, formatedDuration, isFatigue) {
           vehicleID: user.vid,
           email: user.email,
           phoneNumber: user.phoneNumber,
-          serialNumber: user.SerialNumber,
+          SerialNumber: user.SerialNumber,
           custodyId: user.custodyId._id,
           custodyName: user.custodyId.custodyName,
           idNumber: user.idNumber,
@@ -526,7 +545,7 @@ function mergeDetails(violation, userDetails, formatedDuration, isFatigue) {
   
     const mergeUsersWithViolations = violation.map((vio) => {
       const user = userDetailsMap.get(isFatigue ? vio._id : vio._id.VehicleID)
-      return user && Object.assign(vio, user)
+      return user && Object.assign({...vio}, user)
     })
   
     return mergeUsersWithViolations
@@ -695,7 +714,7 @@ async function fatigueQuery(enddate, vehIDs) {
     // optimizing vehicle's address & coords to generate sheets
     const formatedVehs = vehiclesWithFatigue.map((veh) =>{
       if(typeof veh.address === 'object') {
-        veh.startCoords = veh.address[0]
+        veh.startAdress = veh.address[0]
         veh.endAdress = veh.address[1]
         delete veh.address
       }
@@ -722,6 +741,7 @@ async function fatigueQuery(enddate, vehIDs) {
     )
     return {
       count: vehiclesWithFatigue.length > 0 ? vehiclesWithFatigue.length : 0,
+      vehiclesWithFatigue,
       fatigueDetails, // sheets
     }
   } catch (e) {
