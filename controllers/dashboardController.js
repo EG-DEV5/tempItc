@@ -203,14 +203,16 @@ const mainDashboard = async (req, res) => {
     let offline = 0
     let mileage = 0
     let tampering = 0
+    let acctiveUsers = []
+    let offlineUsers = []
 
     requests
       ? Promise.all(requests)
           .then((responses) => {
             responses.forEach((response) => {
               const status = vehStatus(response.data)
-              if (status !== 'offline') ++online
-              else ++offline
+              if (status !== 'offline') ++online , acctiveUsers.push(response.data.SerialNumber)
+              else ++offline , offlineUsers.push(response.data.SerialNumber)
               mileage += response.data.Mileage
               if (response.data.IsPowerCutOff) ++tampering
               // if (response.data.EngineStatus) ++online
@@ -227,6 +229,9 @@ const mainDashboard = async (req, res) => {
               offline,
               mileage,
               tampering,
+              acctiveUsers,
+              offlineUsers,
+              vehicles
               // fatigue
             )
             res.status(200).json(finalResponse)
@@ -241,6 +246,7 @@ const mainDashboard = async (req, res) => {
           tampering,
           users: [],
           fatigue: 0,
+          incentivePoints : 0
         })
   } catch (error) {
     return res
@@ -248,42 +254,27 @@ const mainDashboard = async (req, res) => {
       .json({ message: 'Something went wrong' })
   }
 }
-function finalResult(result, online, offline, mileage,tampering, fatigue) {
-  // return all serialNumbers for violated vehicles
-//   let trainees = []
-//   Object.keys(result?.sheets).map((key) => {
-//     trainees.push(
-//       result?.sheets[key].map((e) => {
-//         return {
-//           _id: e._id,
-//           [key]: e[key],
-//           username: e.username,
-//           email:e.email,
-//           vehicleID: e.vehicleID,
-//           phoneNumber: e.phoneNumber,
-//           serialNumber: e.serialNumber,
-//           custodyId: e.custodyId,
-//           custodyName: e.custodyName,
-//           idNumber: e.idNumber,
-//           image: e.image,
-//           role: e.role,
-//           isOnline: e.isOnline,
-//         }
-//       })
-//     )
-//   })
-//   const flaten = trainees.flat()
-//   const uniqueUsers = []
-//   const seenObjects = {}
-
-// for (let i = 0; i < flaten.length; i++) {
-//   const obj = flaten[i]
-//   const key = JSON.stringify(obj)
-//   if (!seenObjects[key]) {
-//     seenObjects[key] = true
-//     uniqueUsers.push(obj)
-//   }
-// }
+function finalResult(result,online,offline,mileage,tampering,acctiveUsers,offlineUsers,vehicles) {
+  let active = []
+  let unActive = []
+  acctiveUsers.forEach((serial) => {
+   const onlineVeh =  vehicles.find((vehicle) => vehicle.SerialNumber === serial)
+   if (typeof onlineVeh == 'object') {
+     delete onlineVeh.password
+     delete onlineVeh.__V
+     delete onlineVeh.isOnline
+    active.push({...onlineVeh, status : 'online'})
+  }
+  })
+  offlineUsers.forEach((serial) => {
+   const offlineVeh =  vehicles.find((vehicle) => vehicle.SerialNumber === serial)
+   if (typeof offlineVeh == 'object') {
+     delete offlineVeh.password
+     delete offlineVeh.__V
+     delete offlineVeh.isOnline
+    unActive.push( {...offlineVeh, status : 'offline'} )
+  }
+  })
   let final = {
     harshAcceleration: result.violationCount.harshAcceleration,
     overSpeed: result.violationCount.OverSpeed,
@@ -299,6 +290,9 @@ function finalResult(result, online, offline, mileage,tampering, fatigue) {
     mileage,
     online,
     offline,
+    incentivePoints : (online + offline) * 100,
+    onlineUsers : active,
+    offlineUsers : unActive,
     tampering,
     sheets: result.sheets,
   }

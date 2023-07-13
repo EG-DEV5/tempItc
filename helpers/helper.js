@@ -1509,7 +1509,7 @@ const berDayCount = (result, dates) => {
       name: 'Harsh Brake',
       data: harshBrake,
     },
-    { name: 'Long Distance', data: longDistance },
+    { name: 'Tampering', data: longDistance },
     {
       name: 'Seat Belt',
       data: seatBelt,
@@ -1523,7 +1523,7 @@ const berDayCount = (result, dates) => {
       data: harshAcceleration,
     },
     {
-      name: 'Sharp Turn',
+      name: 'Swerving',
       data: [0,0,0,0,0,0,0],
     },
 
@@ -2880,14 +2880,14 @@ const custodyFilter = async (itd, itc) => {
     const itcVehicles = await User.find({
       custodyId: { $in: itc },
       role: 'trainer',
-    })
+    }).lean()
     const itdItcs = await Division.find({ _id: { $in: itd } })
     const itdItcIds = itdItcs.flatMap((itd) => [...itd.itcs])
 
     const itdVehicles = await User.find({
       custodyId: { $in: itdItcIds },
       role: 'trainer',
-    })
+    }).lean()
     vehicles = itdVehicles.concat(itcVehicles)
     return vehicles
   } else if (itd && itd.length > 0 && !itc) {
@@ -2897,21 +2897,21 @@ const custodyFilter = async (itd, itc) => {
     const itdVehicles = await User.find({
       custodyId: { $in: itdItcIds },
       role: 'trainer',
-    })
+    }).lean()
     const vehicles = itdVehicles
     return vehicles
   } else if (!itd && itc && itc.length > 0) {
     const itcVehicles = await User.find({
       custodyId: { $in: itc },
       role: 'trainer',
-    })
+    }).lean()
     const vehicles = itcVehicles
     return vehicles
   } else if (!itd && !itc) {
     const vehicles = await User.find({
       vid: { $ne: null, $exists: true },
       role: 'trainer',
-    })
+    }).lean()
     return vehicles
   }
 }
