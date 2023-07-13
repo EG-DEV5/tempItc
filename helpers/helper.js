@@ -714,9 +714,10 @@ async function fatigueQuery(enddate, vehIDs) {
     // optimizing vehicle's address & coords to generate sheets
     const formatedVehs = vehiclesWithFatigue.map((veh) =>{
       if(typeof veh.address === 'object') {
-        veh.startAdress = veh.address[0]
-        veh.endAdress = veh.address[1]
-        delete veh.address
+        // veh.startAdress = veh.address[0]
+        // veh.endAdress = veh.address[1]
+        // delete veh.address
+        veh.address = veh.address[0] , veh.address[1]
       }
       if(typeof veh.coords === 'object') {
         veh.startCoords = `(${veh.coords[0]},${veh.coords[1]})`
