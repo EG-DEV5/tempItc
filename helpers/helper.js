@@ -395,16 +395,16 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
           SerialNumbers: {
             $addToSet: '$SerialNumber',
           },
-          address:{
+          address: {
             $last: {
-              $ifNull:['$Address','No Adress']
-            }
+              $ifNull: ['$Address', 'No Adress'],
+            },
           },
           lan: {
-            $last:'$Longitude'
+            $last: '$Longitude',
           },
           lat: {
-            $last:'$Latitude'
+            $last: '$Latitude',
           },
         },
       },
@@ -414,11 +414,13 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
       .aggregate(agg)
       .toArray()
     // const vehiclesIds = result.map((e) => e._id.VehicleID)
-    const userDetails = await User.find({ vid: { $in: vehIDs } }).populate({
-      path: 'custodyId',
-      select:'custodyName'
-    }
-    ).select('-password -__v ').lean()
+    const userDetails = await User.find({ vid: { $in: vehIDs } })
+      .populate({
+        path: 'custodyId',
+        select: 'custodyName',
+      })
+      .select('-password -__v ')
+      .lean()
     const formatedDuration = formatDuration(strDate, endDate) // duration of the violations
 
     const {
@@ -456,10 +458,10 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
 
     const violationCount = violationsCount(result) // counting how many vehicles did certain violation
     let fatigue = await fatigueQuery(endDate, vehIDs)
-    const users = getUsersWithViolations(userDetails,result,fatigue)
+    const users = getUsersWithViolations(userDetails, result, fatigue)
     return {
       violationCount,
-      fatigue : fatigue.count,
+      fatigue: fatigue.count,
       users,
       sheets: {
         overSpeed,
@@ -468,37 +470,36 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
         SeatBelt,
         nightDrive,
         longDistance,
-        fatigue : fatigue.fatigueDetails
+        fatigue: fatigue.fatigueDetails,
       },
     }
   } catch (e) {
     return e.message
   }
 }
-function getUsersWithViolations(userDetails,result,fatigue) {
-   
-  const vehicleData = {};
-  // returning users with there violations 
-  result.forEach((veh)=>{
+function getUsersWithViolations(userDetails, result, fatigue) {
+  const vehicleData = {}
+  // returning users with there violations
+  result.forEach((veh) => {
     const vehicleId = veh._id.VehicleID
     vehicleData[vehicleId] = {
-      ...veh
+      ...veh,
     }
   })
 
-  fatigue.vehiclesWithFatigue.forEach(f => {
-    const vehicleId = f._id;
+  fatigue.vehiclesWithFatigue.forEach((f) => {
+    const vehicleId = f._id
     vehicleData[vehicleId] = {
       ...vehicleData[vehicleId],
-      ...f
+      ...f,
     }
   })
 
-  const users = [];
+  const users = []
 
-  for(let key in vehicleData) {
-    const user = userDetails.find((u) => u.vid == +key);
-    const userObject = {...user, ...vehicleData[key]};
+  for (let key in vehicleData) {
+    const user = userDetails.find((u) => u.vid == +key)
+    const userObject = { ...user, ...vehicleData[key] }
     delete userObject.address
     delete userObject.endCoords
     delete userObject.startCoords
@@ -508,7 +509,7 @@ function getUsersWithViolations(userDetails,result,fatigue) {
     delete userObject.custodyId
     delete userObject.lat
     delete userObject.lan
-    users.push(userObject);
+    users.push(userObject)
   }
   return users
 }
@@ -522,7 +523,7 @@ function formatDuration(strDate, endDate) {
 }
 function mergeDetails(violation, userDetails, formatedDuration, isFatigue) {
   try {
-  const userDetailsMap = new Map(
+    const userDetailsMap = new Map(
       userDetails.map((user) => [
         user.vid,
         {
@@ -542,44 +543,82 @@ function mergeDetails(violation, userDetails, formatedDuration, isFatigue) {
         },
       ])
     )
-  
+
     const mergeUsersWithViolations = violation.map((vio) => {
       const user = userDetailsMap.get(isFatigue ? vio._id : vio._id.VehicleID)
-      return user && Object.assign({...vio}, user)
+      return user && Object.assign({ ...vio }, user)
     })
-  
+
     return mergeUsersWithViolations
-  } catch(errer) {
+  } catch (errer) {
     return errer.message
   }
-  
 }
 function splitViolations(result) {
   const overSpeedVio = result.reduce((acc, e) => {
-    if (e.OverSpeed > 0) acc.push({ _id: e._id, OverSpeed: e.OverSpeed, address: e.address, startCoords:e.lan, endCoords:e.lat })
+    if (e.OverSpeed > 0)
+      acc.push({
+        _id: e._id,
+        OverSpeed: e.OverSpeed,
+        address: e.address,
+        startCoords: e.lan,
+        endCoords: e.lat,
+      })
     return acc
   }, [])
   const harshAccelerationVio = result.reduce((acc, e) => {
     if (e.harshAcceleration > 0)
-      acc.push({ _id: e._id, harshAcceleration: e.harshAcceleration, address: e.address, startCoords:e.lan, endCoords:e.lat })
+      acc.push({
+        _id: e._id,
+        harshAcceleration: e.harshAcceleration,
+        address: e.address,
+        startCoords: e.lan,
+        endCoords: e.lat,
+      })
     return acc
   }, [])
   const harshBrakeVio = result.reduce((acc, e) => {
     if (e.harshAcceleration > 0)
-      acc.push({ _id: e._id, harshBrake: e.harshBrake, address: e.address, startCoords:e.lan, endCoords:e.lat })
+      acc.push({
+        _id: e._id,
+        harshBrake: e.harshBrake,
+        address: e.address,
+        startCoords: e.lan,
+        endCoords: e.lat,
+      })
     return acc
   }, [])
   const SeatBeltVio = result.reduce((acc, e) => {
-    if (e.SeatBelt > 0) acc.push({ _id: e._id, SeatBelt: e.SeatBelt, address: e.address, startCoords:e.lan, endCoords:e.lat })
+    if (e.SeatBelt > 0)
+      acc.push({
+        _id: e._id,
+        SeatBelt: e.SeatBelt,
+        address: e.address,
+        startCoords: e.lan,
+        endCoords: e.lat,
+      })
     return acc
   }, [])
   const nightDriveVio = result.reduce((acc, e) => {
-    if (e.nightDrive > 0) acc.push({ _id: e._id, nightDrive: e.nightDrive, address: e.address, startCoords:e.lan, endCoords:e.lat })
+    if (e.nightDrive > 0)
+      acc.push({
+        _id: e._id,
+        nightDrive: e.nightDrive,
+        address: e.address,
+        startCoords: e.lan,
+        endCoords: e.lat,
+      })
     return acc
   }, [])
   const longDistanceVio = result.reduce((acc, e) => {
     if (e.longDistance > 0)
-      acc.push({ _id: e._id, longDistance: e.longDistance, address: e.address, startCoords:e.lan, endCoords:e.lat })
+      acc.push({
+        _id: e._id,
+        longDistance: e.longDistance,
+        address: e.address,
+        startCoords: e.lan,
+        endCoords: e.lat,
+      })
     return acc
   }, [])
   return {
@@ -649,13 +688,13 @@ async function fatigueQuery(enddate, vehIDs) {
         $group: {
           _id: '$VehicleID',
           Duration: { $sum: '$Duration' },
-          address:{
+          address: {
             $last: {
-              $ifNull:['$Address','No Adress']
-            }
+              $ifNull: ['$Address', 'No Adress'],
+            },
           },
           coord: {
-            $last:'$Coord'
+            $last: '$Coord',
           },
         },
       },
@@ -671,9 +710,9 @@ async function fatigueQuery(enddate, vehIDs) {
               },
             },
           },
-          address:{$first:'$address'},
+          address: { $first: '$address' },
           coords: {
-            $last:'$coord'
+            $last: '$coord',
           },
           fatigueDuration: { $sum: '$Duration' },
         },
@@ -712,14 +751,14 @@ async function fatigueQuery(enddate, vehIDs) {
       .toArray()
     const vehiclesWithFatigue = result.filter((item) => item.fatigue > 0)
     // optimizing vehicle's address & coords to generate sheets
-    const formatedVehs = vehiclesWithFatigue.map((veh) =>{
-      if(typeof veh.address === 'object') {
+    const formatedVehs = vehiclesWithFatigue.map((veh) => {
+      if (typeof veh.address === 'object') {
         // veh.startAdress = veh.address[0]
         // veh.endAdress = veh.address[1]
         // delete veh.address
-        veh.address = veh.address[0] , veh.address[1]
+        ;(veh.address = veh.address[0]), veh.address[1]
       }
-      if(typeof veh.coords === 'object') {
+      if (typeof veh.coords === 'object') {
         veh.startCoords = `(${veh.coords[0]},${veh.coords[1]})`
         veh.endCoords = `(${veh.coords[2]},${veh.coords[3]})`
         delete veh.coords
@@ -1440,19 +1479,19 @@ async function optimizedTrendsQuery(vehIDs, startPeriod, endPeriod) {
 
     // create an array of promises for each date
     let promises = dates.map((date) => queryByDate(date, vehIDs))
-    let fatiguePromises = dates.map((date)=> fatigueQuery(date, vehIDs))
+    let fatiguePromises = dates.map((date) => fatigueQuery(date, vehIDs))
 
     // use Promise.all to run all queries in parallel and wait for them to resolve
     const promisesResult = await Promise.all(promises)
-    const trendsData = berDayCount(promisesResult, dates);
+    const trendsData = berDayCount(promisesResult, dates)
 
-    const fatigueResult = await Promise.all(fatiguePromises);
-    const fatigueData =  fatigueResult.map((item) => item.count);
+    const fatigueResult = await Promise.all(fatiguePromises)
+    const fatigueData = fatigueResult.map((item) => item.count)
     const fatigueObject = {
-      name : "Fatigue",
-      data: fatigueData
+      name: 'Fatigue',
+      data: fatigueData,
     }
-    trendsData.series.push(fatigueObject);
+    trendsData.series.push(fatigueObject)
     return trendsData
   } catch (e) {
     return e.message
@@ -1461,44 +1500,45 @@ async function optimizedTrendsQuery(vehIDs, startPeriod, endPeriod) {
 
 const checkMissingDays = (result) => {
   result.forEach((item, idx) => {
-    if(item.length === 0) {
-      result[idx] = [{
-        OverSpeed: 0,
-        harshAcceleration: 0,
-        SeatBelt: 0,
-        harshBrake: 0,
-        nightDrive: 0,
-        longDistance: 0
-      }]
+    if (item.length === 0) {
+      result[idx] = [
+        {
+          OverSpeed: 0,
+          harshAcceleration: 0,
+          SeatBelt: 0,
+          harshBrake: 0,
+          nightDrive: 0,
+          longDistance: 0,
+        },
+      ]
     }
   })
 
-  const results = result.flat();
+  const results = result.flat()
   return results
-
 }
 const berDayCount = (result, dates) => {
-  let labels = [];
+  let labels = []
 
-  let overSpeed = [];
-  let harshAcceleration = [];
-  let seatBelt = [];
-  let harshBrake = [];
-  let nightDrive = [];
-  let longDistance = [];
+  let overSpeed = []
+  let harshAcceleration = []
+  let seatBelt = []
+  let harshBrake = []
+  let nightDrive = []
+  let longDistance = []
 
   const data = checkMissingDays(result)
 
   data.forEach((item, idx) => {
-    labels.push(moment.utc(dates[idx]).format('ddd'));
+    labels.push(moment.utc(dates[idx]).format('ddd'))
 
-    overSpeed.push(item.OverSpeed);
-    harshAcceleration.push(item.harshAcceleration);
-    seatBelt.push(item.SeatBelt);
-    harshBrake.push(item.harshBrake);
-    nightDrive.push(item.nightDrive);
-    longDistance.push(item.longDistance);
-  });
+    overSpeed.push(item.OverSpeed)
+    harshAcceleration.push(item.harshAcceleration)
+    seatBelt.push(item.SeatBelt)
+    harshBrake.push(item.harshBrake)
+    nightDrive.push(item.nightDrive)
+    longDistance.push(item.longDistance)
+  })
 
   let series = [
     {
@@ -1524,9 +1564,8 @@ const berDayCount = (result, dates) => {
     },
     {
       name: 'Swerving',
-      data: [0,0,0,0,0,0,0],
+      data: [0, 0, 0, 0, 0, 0, 0],
     },
-
   ]
   return { labels, series }
 }
@@ -2061,85 +2100,47 @@ async function getTraineeViolations(strDate, endDate, validVids) {
               lang: 'js',
             },
           },
+          swerving: [ {
+            $function: {
+              body: `function(num, bit) {
+                                    return ((num>>bit) % 2 != 0)
+                                }`,
+              args: ['$StatusCode', 100],
+              lang: 'js',
+            },
+          }]
         },
       },
       {
         $facet: {
           result: [
             {
-              $group: {
-                _id: '$VehicleID',
-                harshAcceleration: {
-                  $sum: {
-                    $cond: {
-                      if: {
-                        $eq: ['$harshAcceleration', true],
-                      },
-                      then: 1,
-                      else: 0,
-                    },
+              $project: {
+                _id: 0,
+                OverSpeed: '$IsOverSpeed',
+                harshAcceleration: 1,
+                SeatBelt: 1,
+                harshBrake: 1,
+                nightDrive: 1,
+                longDistance: 1,
+                swerving: 1,
+                VehicleID: 1,
+                Speed: { $ifNull: ['$Speed', 0] },
+                Latitude: 1,
+                Longitude: 1,
+                Address: { $ifNull: ['$Address', 'No Address Found'] },
+                Distance: 1,
+                ActualWeight: 1,
+                SerialNumber: 1,
+                RecordDateTime: {
+                  $dateToString: {
+                    format: '%Y-%m-%d %H:%M:%S',
+                    date: '$RecordDateTime',
                   },
                 },
-                OverSpeed: {
-                  $sum: {
-                    $cond: {
-                      if: {
-                        $eq: ['$IsOverSpeed', true],
-                      },
-                      then: 1,
-                      else: 0,
-                    },
-                  },
-                },
-                SeatBelt: {
-                  $sum: {
-                    $cond: {
-                      if: {
-                        $eq: ['$SeatBelt', true],
-                      },
-                      then: 1,
-                      else: 0,
-                    },
-                  },
-                },
-                harshBrake: {
-                  $sum: {
-                    $cond: {
-                      if: {
-                        $eq: ['$harshBrake', true],
-                      },
-                      then: 1,
-                      else: 0,
-                    },
-                  },
-                },
-                nightDrive: {
-                  $sum: {
-                    $cond: {
-                      if: {
-                        $eq: ['$nightDrive', true],
-                      },
-                      then: 1,
-                      else: 0,
-                    },
-                  },
-                },
-                longDistance: {
-                  $sum: {
-                    $cond: {
-                      if: {
-                        $eq: ['$longDistance', true],
-                      },
-                      then: 1,
-                      else: 0,
-                    },
-                  },
-                },
-                Mileage: { $max: { $divide: ['$Mileage', 1000] } },
-                SerialNumber: { $addToSet: '$SerialNumber' },
+                Mileage: 1,
               },
             },
-            { $sort: { OverSpeed: 1 } },
           ],
           totalViolation: [
             {
@@ -2211,7 +2212,17 @@ async function getTraineeViolations(strDate, endDate, validVids) {
                     },
                   },
                 },
-                // Mileage: { $sum: { $max: '$Mileage' } },
+                swerving: {
+                  $sum: {
+                    $cond: {
+                      if: {
+                        $eq: ['$swerving', true],
+                      },
+                      then: 1,
+                      else: 0,
+                    },
+                  },
+                }
               },
             },
           ],
@@ -2922,40 +2933,101 @@ const dateFilter = (startDate, endDate) => {
   endDate = endDate ? moment.utc(endDate).format() : moment.utc().format()
   return { startPeriod: startDate, endPeriod: endDate }
 }
-const sheetsFortrainer = (
-  violationsObj,
-  allVehicles,
+// const sheetsFortrainee = (
+//   violationsObj,
+//   userVehicle,
+//   custodyDetails,
+//   divisionDetails,
+//   userId
+// ) => {
+//   const sheets = Object.entries(violationsObj)
+//     .map(([key, value]) => {
+//       if (key === '_id') return // skip the _id key
+//       return {
+//         [key]: [
+//           {
+//             [key]: value,
+//             username: allVehicles[0].username,
+//             vid: allVehicles[0].vid,
+//             phoneNumber: allVehicles[0].phoneNumber,
+//             SerialNumber: allVehicles[0].SerialNumber,
+//             ...(userId && custodyDetails.length > 0
+//               ? { custodyName: custodyDetails[0].custodyName }
+//               : { custodyName: null }),
+//             ...(divisionDetails.length > 0 && {
+//               itdName: divisionDetails[0].divisionName,
+//             }),
+//           },
+//         ],
+//       }
+//     })
+//     .filter((e) => e !== null)
+//     .reduce((acc, curr) => {
+//       return { ...acc, ...curr }
+//     }, {})
+//   return sheets
+// }
+function deleteProperties(obj, toBeModified, neededKey) {
+  // delete other violations from each object to get every violation sperately
+  Object.keys(obj).forEach((key) => {
+    if (key === neededKey) return
+    delete toBeModified[key]
+  })
+}
+const sheetsFortrainee = (
+  result,
+  userDetails,
   custodyDetails,
-  divisionDetails,
-  userId
+  divisionDetails
 ) => {
-  const sheets = Object.entries(violationsObj)
-    .map(([key, value]) => {
-      if (key === '_id') return // skip the _id key
-      return {
-        [key]: [
-          {
-            [key]: value,
-            username: allVehicles[0].username,
-            vid: allVehicles[0].vid,
-            phoneNumber: allVehicles[0].phoneNumber,
-            SerialNumber: allVehicles[0].SerialNumber,
-            ...(userId && custodyDetails.length > 0
-              ? { custodyName: custodyDetails[0].custodyName }
-              : { custodyName: null }),
-            ...(divisionDetails.length > 0 && {
-              itdName: divisionDetails[0].divisionName,
-            }),
-          },
-        ],
-      }
-    })
-    .filter((e) => e !== null)
-    .reduce((acc, curr) => {
-      return { ...acc, ...curr }
-    }, {})
+  const user = {
+    userName:userDetails[0].userName,
+    vid: userDetails[0].vid,
+    phoneNumber: userDetails[0].phoneNumber,
+    SerialNumber: userDetails[0].SerialNumber,
+    custodyName: custodyDetails[0].custodyName ?? 'Not Assigned',
+    itdName: divisionDetails[0].divisionName ?? 'Not Assigned'
+  }
+  const acc = {
+    OverSpeed: [],
+    harshAcceleration: [],
+    harshBrake: [],
+    nightDrive: [],
+    longDistance: [],
+    SeatBelt: [],
+    swerving: [],
+  }
+
+  const sheets = result.reduce((acc, curr) => {
+    if (curr.OverSpeed === true) {
+      deleteProperties(acc, curr,'OverSpeed')
+      acc.OverSpeed.push({...curr,...user})
+    }
+    if (curr.SeatBelt === true) {
+      deleteProperties(acc, curr, 'SeatBelt')
+      acc.seatBelt.push({...curr,...user})
+    }
+    if (curr.harshAcceleration === true) {
+      deleteProperties(acc, curr, 'harshAcceleration')
+      acc.harshAcceleration.push({...curr,...user})
+    }
+    if (curr.harshBrake === true) {
+      deleteProperties(acc, curr,'harshBrake')
+      acc.harshBrake.push({...curr,...user})
+    }
+    if (curr.nightDrive === true) {
+      deleteProperties(acc, curr, 'nightDrive')
+      acc.nightDrive.push({...curr,...user})
+    }
+    if (curr.longDistance === true) {
+      deleteProperties(acc, curr,'longDistance')
+      acc.longDistance.push({...curr,...user})
+    }
+    return acc
+  }, acc)
   return sheets
 }
+
 module.exports = {
   harshAccelerationQuery,
   HarshBreakingQuery,
@@ -2979,6 +3051,6 @@ module.exports = {
   dateFilter,
   getMillageForUsers,
   getMillageFortrainer,
-  sheetsFortrainer,
+  sheetsFortrainee,
   getVehicleDataFromFireBase,
 }

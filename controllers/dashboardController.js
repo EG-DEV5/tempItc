@@ -26,7 +26,7 @@ const {
   weeklyTrendsQuery,
   optimizedTrendsQuery,
   custodyFilter,
-  sheetsFortrainer,
+  sheetsFortrainee,
   dateFilter,
 } = require('../helpers/helper')
 const moment = require('moment')
@@ -412,33 +412,32 @@ const requestsHandler = (SerialNumbers) => {
 const trainerHandler = async (userId, endDate, startDate, res) => {
   startDate = startDate
     ? moment.utc(startDate).format()
-    : moment.utc().subtract(24, 'hours').format()
+    : moment.utc().subtract(1, 'hours').format()
   endDate = endDate ? moment.utc(endDate).format() : moment.utc().format()
   if (startDate > endDate) return res.status(400).send('Invalid date range')
 
-  const allVehicles = await User.find(
+  const userVehicle = await User.find(
     { _id: userId, vid: { $ne: null, $exists: true } },
     { password: 0 }
-  )
+  ).lean()
  
-  const custodyDetails = await Group.find({ _id: allVehicles[0].custodyId }) 
+  const custodyDetails = await Group.find({ _id: userVehicle[0].custodyId }) 
   const divisionDetails = await Division.find({
-    itcs: { $in: allVehicles[0].custodyId },
+    itcs: { $in: userVehicle[0].custodyId },
   }).select('divisionName')
 
-  const validVids = allVehicles.map((vehicle) => vehicle.vid)
-  const trainerSerial = allVehicles.map((vehicle) => vehicle.SerialNumber)
+  const validVids = userVehicle.map((vehicle) => vehicle.vid)
+  const traineeSerial = userVehicle.map((vehicle) => vehicle.SerialNumber)
 
   const queryResult = await getTraineeViolations(startDate, endDate, validVids)
   const result = queryResult.result
   const totalViolation = queryResult.totalViolation
-  const fatigue = await fatigueQuery(endDate, validVids)
   const violationsObj = totalViolation[0]
 
   let sumViolations = 0;
   let sheets = [];
 
-  if(result.length > 0) {
+  if(result.length > 0 ) {
     sumViolations = 
     violationsObj.harshAcceleration +
     violationsObj.harshBrake +
@@ -446,31 +445,29 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
     violationsObj.SeatBelt +
     violationsObj.nightDrive +
     violationsObj.longDistance +
-    fatigue.count
+    violationsObj.swerving
         
-    sheets = sheetsFortrainer(
-      violationsObj,
-      allVehicles,
+    sheets = sheetsFortrainee(
+      result,
+      userVehicle,
       custodyDetails,
       divisionDetails,
-      userId
-      )
+    )
   }
 
-  if (!totalViolation) {
+  if (totalViolation.length === 0) {
     throw new CustomError.BadRequestError(
       '{"enMessage" : "there is no data in this period", "arMessage" :"لا توجد بيانات فى هذه الفترة"}'
     )
   }
   let online = 0
   let offline = 0
-  let mileage = 0
-  if (trainerSerial[0] != null) {
-    const requests = requestsHandler(trainerSerial)
+  if (traineeSerial[0] != null) {
+    const requests = requestsHandler(traineeSerial)
     Promise.all(requests)
       .then((responses) => {
         responses.forEach((response) => {
-          const vehicle = trainerSerial.find(
+          const vehicle = traineeSerial.find(
             (vehicle) => vehicle == response.data.SerialNumber
           )
           const status = vehStatus(response.data)
@@ -478,7 +475,6 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
             if (status !== 'offline') ++online
             else ++offline
             vehicle.EngineStatus = response.data.EngineStatus
-            mileage += response.data.Mileage
           }
         })
       })
@@ -488,38 +484,30 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
       })
       .finally(() => {
         res.status(StatusCodes.OK).json({
-          result,
-          ...(userId && custodyDetails.length > 0
-            ? { custodyName: custodyDetails[0].custodyName }
-            : { custodyName: null }),
-          ...(userId ? { users: allVehicles } : []),
-          ...(divisionDetails.length > 0 && {
-            itdName: divisionDetails[0].divisionName,
-          }),
+          custodyName: custodyDetails[0].custodyName ?? 'Not Assigned',
+          itdName: divisionDetails[0].divisionName ?? 'Not Assigned',
           totalViolation: {
             sumViolations,
             ...totalViolation[0],
             online,
             offline,
-            Mileage: mileage,
-            fatigue: fatigue.count,
+            Mileage: 100,
+            incentivePoints: 100,
             sheets,
           },
+          users: userVehicle ?? [],
         })
       })
   } else {
     offline = 1
     res.status(StatusCodes.OK).json({
-      result,
-      ...(userId && custodyDetails.length > 0
-        ? { custodyName: custodyDetails[0].custodyName }
-        : { custodyName: null }),
-      ...(userId ? { users: allVehicles } : []),
+      custodyName: custodyDetails[0].custodyName ?? 'Not Assigned',
+      itdName: divisionDetails[0].divisionName ?? 'Not Assigned',
+      users: userVehicle ?? [],
       totalViolation: {
         ...totalViolation[0],
         online,
         offline,
-        fatigue,
       },
     })
   }
