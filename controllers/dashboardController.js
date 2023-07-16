@@ -245,7 +245,6 @@ const mainDashboard = async (req, res) => {
           mileage,
           tampering,
           users: [],
-          fatigue: 0,
           incentivePoints : 0
         })
   } catch (error) {
