@@ -321,6 +321,13 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
               lang: 'js',
             },
           },
+          swerving: {
+            $function: {
+              body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
+              args: ['$StatusCode', 100],
+              lang: 'js',
+            },
+          }
         },
       },
       {
@@ -406,6 +413,17 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
           lat: {
             $last: '$Latitude',
           },
+          swerving: {
+            $sum: {
+              $cond: {
+                if: {
+                  $eq: ['$swerving', true],
+                },
+                then: 1,
+                else: 0,
+              },
+            },
+          }
         },
       },
     ]
@@ -430,6 +448,7 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
       SeatBeltVio,
       nightDriveVio,
       longDistanceVio,
+      swervingVio,
     } = splitViolations(result)
 
     // merging the user details with vehicle details to generate sheets
@@ -455,13 +474,13 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
       userDetails,
       formatedDuration
     )
-
+    const swerving = mergeDetails(swervingVio, userDetails,formatedDuration)
     const violationCount = violationsCount(result) // counting how many vehicles did certain violation
-    let fatigue = await fatigueQuery(endDate, vehIDs)
-    const users = getUsersWithViolations(userDetails, result, fatigue)
+    // let fatigue = await fatigueQuery(endDate, vehIDs)
+    const users = getUsersWithViolations(userDetails, result)
     return {
       violationCount,
-      fatigue: fatigue.count,
+      // fatigue: fatigue.count,
       users,
       sheets: {
         overSpeed,
@@ -470,28 +489,35 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
         SeatBelt,
         nightDrive,
         longDistance,
-        fatigue: fatigue.fatigueDetails,
+        swerving
       },
     }
   } catch (e) {
+    console.log({errorMsg: e.message, stack: e.stack});
     return e.message
   }
 }
-function getUsersWithViolations(userDetails, result, fatigue) {
+function getUsersWithViolations(userDetails, result) {
   const vehicleData = {}
+  const violationKeys = [
+    'OverSpeed',
+    'harshAcceleration',
+    'harshBrake',
+    'SeatBelt',
+    'nightDrive',
+    'longDistance',
+    'swerving' ]
+  const vehiclesWithViolaions = result.filter((veh) => {
+    // loop over violation keys and check if any vehicle has at least one key > 0
+    return violationKeys.some((violation) => {
+      return veh[violation] > 0
+    })
+  })
   // returning users with there violations
-  result.forEach((veh) => {
+  vehiclesWithViolaions.forEach((veh) => {
     const vehicleId = veh._id.VehicleID
     vehicleData[vehicleId] = {
       ...veh,
-    }
-  })
-
-  fatigue.vehiclesWithFatigue.forEach((f) => {
-    const vehicleId = f._id
-    vehicleData[vehicleId] = {
-      ...vehicleData[vehicleId],
-      ...f,
     }
   })
 
@@ -556,71 +582,82 @@ function mergeDetails(violation, userDetails, formatedDuration, isFatigue) {
 }
 function splitViolations(result) {
   const overSpeedVio = result.reduce((acc, e) => {
-    if (e.OverSpeed > 0)
-      acc.push({
+    if (e.OverSpeed > 0) { 
+        acc.push({
         _id: e._id,
         OverSpeed: e.OverSpeed,
         address: e.address,
         startCoords: e.lan,
         endCoords: e.lat,
-      })
+      }) }
     return acc
   }, [])
   const harshAccelerationVio = result.reduce((acc, e) => {
-    if (e.harshAcceleration > 0)
+    if (e.harshAcceleration > 0) {
       acc.push({
         _id: e._id,
         harshAcceleration: e.harshAcceleration,
         address: e.address,
         startCoords: e.lan,
         endCoords: e.lat,
-      })
+      })}
     return acc
   }, [])
   const harshBrakeVio = result.reduce((acc, e) => {
-    if (e.harshAcceleration > 0)
+    if (e.harshAcceleration > 0) {
       acc.push({
         _id: e._id,
         harshBrake: e.harshBrake,
         address: e.address,
         startCoords: e.lan,
         endCoords: e.lat,
-      })
+      })}
     return acc
   }, [])
   const SeatBeltVio = result.reduce((acc, e) => {
-    if (e.SeatBelt > 0)
+    if (e.SeatBelt > 0) {
       acc.push({
         _id: e._id,
         SeatBelt: e.SeatBelt,
         address: e.address,
         startCoords: e.lan,
         endCoords: e.lat,
-      })
+      })}
     return acc
   }, [])
   const nightDriveVio = result.reduce((acc, e) => {
-    if (e.nightDrive > 0)
+    if (e.nightDrive > 0) {
       acc.push({
         _id: e._id,
         nightDrive: e.nightDrive,
         address: e.address,
         startCoords: e.lan,
         endCoords: e.lat,
-      })
+      })}
     return acc
   }, [])
   const longDistanceVio = result.reduce((acc, e) => {
-    if (e.longDistance > 0)
+    if (e.longDistance > 0) {
       acc.push({
         _id: e._id,
         longDistance: e.longDistance,
         address: e.address,
         startCoords: e.lan,
         endCoords: e.lat,
-      })
+      })}
     return acc
   }, [])
+  const swervingVio = result.reduce((acc, e) => {
+    if (e.swerving > 0) {
+      acc.push({
+        _id: e._id,
+        swerving: e.swerving,
+        address: e.address,
+        startCoords: e.lan,
+        endCoords: e.lat,
+      })}
+    return acc
+  },[])
   return {
     overSpeedVio,
     harshAccelerationVio,
@@ -628,6 +665,7 @@ function splitViolations(result) {
     SeatBeltVio,
     nightDriveVio,
     longDistanceVio,
+    swervingVio,
   }
 }
 function violationsCount(result) {
@@ -639,6 +677,7 @@ function violationsCount(result) {
     harshBrake: 0,
     nightDrive: 0,
     longDistance: 0,
+    swerving:0,
     lowSpeed: 0,
     mediumSpeed: 0,
     highSpeed: 0,
@@ -658,6 +697,7 @@ function violationsCount(result) {
       nightDrive: item.nightDrive > 0 ? acc.nightDrive + 1 : acc.nightDrive,
       longDistance:
         item.longDistance > 0 ? acc.longDistance + 1 : acc.longDistance,
+      swerving: item.swerving > 0 ? acc.swerving + 1 : acc.swerving,
       lowSpeed:
         item.OverSpeed < 120 && item.OverSpeed > 0
           ? acc.lowSpeed + 1
