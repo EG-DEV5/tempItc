@@ -1288,8 +1288,8 @@ async function optimizedTrendsQuery(vehIDs, startPeriod, endPeriod) {
     // define a function that returns a promise for a query
     function queryByDate(endDate, vehIDs) {
       // create a date range for the query
-      let start = moment.utc(endDate).startOf('day').toDate()
-      let end = moment.utc(endDate).endOf('day').toDate()
+      let start = moment.utc(endDate).subtract(10, 'minutes').toDate()
+      let end = moment.utc(endDate).toDate()
       // return a promise that resolves with the query result
       return stageDBConnection
         .collection('LiveLocations')
@@ -1513,25 +1513,31 @@ async function optimizedTrendsQuery(vehIDs, startPeriod, endPeriod) {
     // create an array of dates for the last 7 days
     let dates = []
     for (let i = 0; i < 7; i++) {
-      let date = moment.utc(endPeriod).subtract(i, 'days').format()
+      let date = moment.utc(endPeriod).subtract(i, 'hours').format()
       dates.push(date)
+    }
+    let labels = []
+    for (let i = 0; i < 7; i++) {
+      let date = moment.utc(endPeriod).subtract(i, 'days').format()
+      labels.push(moment.utc(date).format('ddd'))
     }
 
     // create an array of promises for each date
     let promises = dates.map((date) => queryByDate(date, vehIDs))
-    let fatiguePromises = dates.map((date) => fatigueQuery(date, vehIDs))
+    // let fatiguePromises = dates.map((date) => fatigueQuery(date, vehIDs))
 
     // use Promise.all to run all queries in parallel and wait for them to resolve
     const promisesResult = await Promise.all(promises)
     const trendsData = berDayCount(promisesResult, dates)
 
-    const fatigueResult = await Promise.all(fatiguePromises)
-    const fatigueData = fatigueResult.map((item) => item.count)
-    const fatigueObject = {
-      name: 'Fatigue',
-      data: fatigueData,
-    }
-    trendsData.series.push(fatigueObject)
+    // const fatigueResult = await Promise.all(fatiguePromises)
+    // const fatigueData = fatigueResult.map((item) => item.count)
+    // const fatigueObject = {
+    //   name: 'Fatigue',
+    //   data: fatigueData,
+    // }
+    // trendsData.series.push(fatigueObject)
+    trendsData.labels = labels
     return trendsData
   } catch (e) {
     return e.message
