@@ -270,10 +270,12 @@ function finalResult(result,online,offline,mileage,tampering,acctiveUsers,offlin
    const onlineVeh =  vehicles.find((vehicle) => vehicle.SerialNumber === serial)
    if (typeof onlineVeh == 'object') {
      delete onlineVeh.password
-     delete onlineVeh.__V
+     delete onlineVeh.__v
      delete onlineVeh.isOnline
      delete onlineVeh.GroupID
      delete onlineVeh.GroupName
+     delete onlineVeh.custodyId
+     delete onlineVeh._id
     active.push({...onlineVeh, status : 'online'})
   }
   })
@@ -281,9 +283,11 @@ function finalResult(result,online,offline,mileage,tampering,acctiveUsers,offlin
    const offlineVeh =  vehicles.find((vehicle) => vehicle.SerialNumber === serial)
    if (typeof offlineVeh == 'object') {
      delete offlineVeh.password
-     delete offlineVeh.__V
+     delete offlineVeh.__v
      delete offlineVeh.isOnline
      delete offlineVeh.GroupID
+     delete offlineVeh.custodyId
+     delete offlineVeh._id
      delete offlineVeh.GroupName
     unActive.push( {...offlineVeh, status : 'offline'} )
   }
