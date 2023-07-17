@@ -189,8 +189,6 @@ const mainDashboard = async (req, res) => {
     // const nullSerials = vehicles.length - serials.length
 
     let result = await mainDashboardQuery(startPeriod, endPeriod, validVids)
-    // let fatigue = await fatigueQuery(endPeriod, validVids)
-    // result.sheets['fatigue'] = fatigue.fatigueDetails
 
     const requests =
       serials.length > 0 &&
@@ -206,47 +204,59 @@ const mainDashboard = async (req, res) => {
     let acctiveUsers = []
     let offlineUsers = []
 
-    requests
-      ? Promise.all(requests)
-          .then((responses) => {
-            responses.forEach((response) => {
-              const status = vehStatus(response.data)
-              if (status !== 'offline') ++online , acctiveUsers.push(response.data.SerialNumber)
-              else ++offline , offlineUsers.push(response.data.SerialNumber)
-              mileage += response.data.Mileage
-              if (response.data.IsPowerCutOff) ++tampering
-              // if (response.data.EngineStatus) ++online
-              // else ++offline
-            })
-          })
-          .catch((error) => {
-            res.status(500).send('An error occurred')
-          })
-          .finally(() => {
-            const finalResponse = finalResult(
-              result,
-              online,
-              offline,
-              mileage,
-              tampering,
-              acctiveUsers,
-              offlineUsers,
-              vehicles
-              // fatigue
-            )
-            res.status(200).json(finalResponse)
-          })
-      : res.status(200).json({
-          // if there is no data
-          ...result.violationCount,
-          allItd: 0,
-          online,
-          offline,
-          mileage,
-          tampering,
-          users: [],
-          incentivePoints : 0
-        })
+    const firebaseResponses = await Promise.all(requests)    
+    firebaseResponses.forEach((response) => {
+      const status = vehStatus(response.data)
+      if (status !== 'offline') ++online , acctiveUsers.push(response.data.SerialNumber)
+      else ++offline , offlineUsers.push(response.data.SerialNumber)
+      mileage += response.data.Mileage
+      if (response.data.IsPowerCutOff) ++tampering
+    })
+    const finalResponse = finalResult(
+      result, online, offline, mileage, tampering, acctiveUsers, offlineUsers, vehicles
+    )
+    res.status(200).json(finalResponse)
+    // requests
+    //   ? Promise.all(requests)
+    //       .then((responses) => {
+            // responses.forEach((response) => {
+            //   const status = vehStatus(response.data)
+            //   if (status !== 'offline') ++online , acctiveUsers.push(response.data.SerialNumber)
+            //   else ++offline , offlineUsers.push(response.data.SerialNumber)
+            //   mileage += response.data.Mileage
+            //   if (response.data.IsPowerCutOff) ++tampering
+            //   // if (response.data.EngineStatus) ++online
+            //   // else ++offline
+            // })
+    //       })
+    //       .catch((error) => {
+    //         res.status(500).send('An error occurred')
+    //       })
+    //       .finally(() => {
+    //         const finalResponse = finalResult(
+    //           result,
+    //           online,
+    //           offline,
+    //           mileage,
+    //           tampering,
+    //           acctiveUsers,
+    //           offlineUsers,
+    //           vehicles
+    //           // fatigue
+    //         )
+    //         res.status(200).json(finalResponse)
+    //       })
+    //   : res.status(200).json({
+    //       // if there is no data
+    //       ...result.violationCount,
+    //       allItd: 0,
+    //       online,
+    //       offline,
+    //       mileage,
+    //       tampering,
+    //       users: [],
+    //       incentivePoints : 0
+    //     })
   } catch (error) {
     return res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
@@ -303,7 +313,6 @@ function finalResult(result,online,offline,mileage,tampering,acctiveUsers,offlin
     final?.harshBrake,
     final?.nightDrive,
     final?.longDistance,
-    final?.fatigue,
     final?.tampering
   )
   final.allItd = allItd
@@ -400,7 +409,7 @@ const vehicleViolations = async (req, res, next) => {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json()
   }
 }
-const requestsHandler = (SerialNumbers) => {
+ function requestsHandler(SerialNumbers)  {
   const requests = SerialNumbers.map((SerialNumber) => {
     const url = `https://saferoad-srialfb.firebaseio.com/${SerialNumber}.json`
     return axios.get(url)
@@ -463,40 +472,66 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
   let offline = 0
   if (traineeSerial[0] != null) {
     const requests = requestsHandler(traineeSerial)
-    Promise.all(requests)
-      .then((responses) => {
-        responses.forEach((response) => {
-          const vehicle = traineeSerial.find(
-            (vehicle) => vehicle == response.data.SerialNumber
-          )
-          const status = vehStatus(response.data)
-          if (vehicle) {
-            if (status !== 'offline') ++online
-            else ++offline
-            vehicle.EngineStatus = response.data.EngineStatus
-          }
-        })
-      })
-      .catch((error) => {
-        console.error(error)
-        res.status(500).send('An error occurred')
-      })
-      .finally(() => {
-        res.status(StatusCodes.OK).json({
-          custodyName: custodyDetails[0].custodyName ?? 'Not Assigned',
-          itdName: divisionDetails[0].divisionName ?? 'Not Assigned',
-          totalViolation: {
-            sumViolations,
-            ...totalViolation[0],
-            online,
-            offline,
-            Mileage: 100,
-            incentivePoints: 100,
-            sheets,
-          },
-          users: userVehicle ?? [],
-        })
-      })
+    const firebaseResponses = await Promise.all(requests)
+    firebaseResponses.forEach((response) => {
+      const vehicle = traineeSerial.find(
+        (vehicle) => vehicle == response.data.SerialNumber
+      )
+      const status = vehStatus(response.data)
+      if (vehicle) {
+        if (status !== 'offline') ++online
+        else ++offline
+        vehicle.EngineStatus = response.data.EngineStatus
+      }
+    })
+    res.status(StatusCodes.OK).json({
+      custodyName: custodyDetails[0].custodyName ?? 'Not Assigned',
+      itdName: divisionDetails[0].divisionName ?? 'Not Assigned',
+      totalViolation: {
+        sumViolations,
+        ...totalViolation[0],
+        online,
+        offline,
+        Mileage: 100,
+        incentivePoints: 100,
+        sheets,
+      },
+      users: userVehicle ?? [],
+    })
+    // Promise.all(requests)
+    //   .then((responses) => {
+    //     responses.forEach((response) => {
+    //       const vehicle = traineeSerial.find(
+    //         (vehicle) => vehicle == response.data.SerialNumber
+    //       )
+    //       const status = vehStatus(response.data)
+    //       if (vehicle) {
+    //         if (status !== 'offline') ++online
+    //         else ++offline
+    //         vehicle.EngineStatus = response.data.EngineStatus
+    //       }
+    //     })
+    //   })
+    //   .catch((error) => {
+    //     console.error(error)
+    //     res.status(500).send('An error occurred')
+    //   })
+    //   .finally(() => {
+        // res.status(StatusCodes.OK).json({
+        //   custodyName: custodyDetails[0].custodyName ?? 'Not Assigned',
+        //   itdName: divisionDetails[0].divisionName ?? 'Not Assigned',
+        //   totalViolation: {
+        //     sumViolations,
+        //     ...totalViolation[0],
+        //     online,
+        //     offline,
+        //     Mileage: 100,
+        //     incentivePoints: 100,
+        //     sheets,
+        //   },
+        //   users: userVehicle ?? [],
+        // })
+    //   })
   } else {
     offline = 1
     res.status(StatusCodes.OK).json({
