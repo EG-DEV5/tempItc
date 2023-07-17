@@ -272,6 +272,8 @@ function finalResult(result,online,offline,mileage,tampering,acctiveUsers,offlin
      delete onlineVeh.password
      delete onlineVeh.__V
      delete onlineVeh.isOnline
+     delete onlineVeh.GroupID
+     delete onlineVeh.GroupName
     active.push({...onlineVeh, status : 'online'})
   }
   })
@@ -281,6 +283,8 @@ function finalResult(result,online,offline,mileage,tampering,acctiveUsers,offlin
      delete offlineVeh.password
      delete offlineVeh.__V
      delete offlineVeh.isOnline
+     delete offlineVeh.GroupID
+     delete offlineVeh.GroupName
     unActive.push( {...offlineVeh, status : 'offline'} )
   }
   })
