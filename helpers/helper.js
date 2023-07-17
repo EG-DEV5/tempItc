@@ -2374,6 +2374,7 @@ async function getUserDetails(ids) {
           idNumber: 1,
           vid: 1,
           image: 1,
+          insentivePoints: 1,
           harshAcceleration: 1,
           harshBrake: 1,
           SeatBelt: 1,
