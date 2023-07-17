@@ -651,7 +651,7 @@ const bestDrivers = async (req, res, next) => {
     let { endDate, startDate, itd, itc } = req.query
     startDate = startDate
       ? moment.utc(startDate).format()
-      : moment.utc().subtract(24, 'hours').format()
+      : moment.utc().subtract(1, 'hours').format()
     endDate = endDate ? moment.utc(endDate).format() : moment.utc().format()
     if (startDate > endDate) return res.status(400).send('Invalid date range')
     let vehicles = await custodyFilter(itd, itc)

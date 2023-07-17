@@ -2344,14 +2344,43 @@ async function getUserDetails(ids) {
         $match: { vid: { $in: ids } },
       },
       {
+        $lookup: {
+          from:'groups',
+          localField: 'custodyId',
+          foreignField: '_id',
+          as: 'custodyId'
+        }
+      },
+      {
+        $addFields: {
+          custodyName: {$arrayElemAt:[ '$custodyId.custodyName',0 ]},
+          insentivePoints: 100,
+          harshAcceleration:0,
+          harshBrake:0,
+          SeatBelt:0,
+          OverSpeed:0,
+          nightDrive:0,
+          longDistance:0,
+          swerving:0
+        }
+      },
+      {
         $project: {
           _id: 0,
           username: 1,
+          custodyName: 1,
           phoneNumber: 1,
           email: 1,
           idNumber: 1,
           vid: 1,
           image: 1,
+          harshAcceleration: 1,
+          harshBrake: 1,
+          SeatBelt: 1,
+          OverSpeed: 1,
+          nightDrive: 1,
+          longDistance: 1,
+          swerving: 1
         },
       },
     ]
@@ -2362,7 +2391,7 @@ async function getUserDetails(ids) {
       .toArray()
     return result
   } catch (error) {
-    await configConnection.close()
+    return error
   }
 }
 
