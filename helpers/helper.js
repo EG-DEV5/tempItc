@@ -526,6 +526,7 @@ function getUsersWithViolations(userDetails, result) {
   for (let key in vehicleData) {
     const user = userDetails.find((u) => u.vid == +key)
     const userObject = { ...user, ...vehicleData[key] }
+    userObject.custodyName = userObject.custodyId.custodyName,
     delete userObject.address
     delete userObject.endCoords
     delete userObject.startCoords
@@ -535,6 +536,8 @@ function getUsersWithViolations(userDetails, result) {
     delete userObject.custodyId
     delete userObject.lat
     delete userObject.lan
+    delete userObject.GroupID
+    delete userObject.GroupName
     users.push(userObject)
   }
   return users

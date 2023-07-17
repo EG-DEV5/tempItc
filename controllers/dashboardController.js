@@ -462,7 +462,7 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
       divisionDetails,
     )
   }
-  
+
   let online = 0
   let offline = 0
 
@@ -471,7 +471,7 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
     //   '{"enMessage" : "there is no data in this period", "arMessage" :"لا توجد بيانات فى هذه الفترة"}'
     // )
     offline = 1
-    res.status(StatusCodes.NO_CONTENT).json({
+    res.status(StatusCodes.OK).json({
       custodyName: custodyDetails[0].custodyName ?? 'Not Assigned',
       itdName: divisionDetails[0].divisionName ?? 'Not Assigned',
       users: userVehicle ?? [],
