@@ -478,6 +478,7 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
       totalViolation: {
         ...totalViolation[0],
       incentivePoints: 100,
+      Mileage: 100,
         online,
         offline,
       },
