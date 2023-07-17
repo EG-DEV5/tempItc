@@ -464,9 +464,21 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
   }
 
   if (totalViolation.length === 0) {
-    throw new CustomError.BadRequestError(
-      '{"enMessage" : "there is no data in this period", "arMessage" :"لا توجد بيانات فى هذه الفترة"}'
-    )
+    // throw new CustomError.BadRequestError(
+    //   '{"enMessage" : "there is no data in this period", "arMessage" :"لا توجد بيانات فى هذه الفترة"}'
+    // )
+    offline = 1
+    res.status(StatusCodes.NO_CONTENT).json({
+      custodyName: custodyDetails[0].custodyName ?? 'Not Assigned',
+      itdName: divisionDetails[0].divisionName ?? 'Not Assigned',
+      users: userVehicle ?? [],
+      totalViolation: {
+        ...totalViolation[0],
+        online,
+        offline,
+      },
+    })
+  
   }
   let online = 0
   let offline = 0
@@ -533,17 +545,7 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
         // })
     //   })
   } else {
-    offline = 1
-    res.status(StatusCodes.OK).json({
-      custodyName: custodyDetails[0].custodyName ?? 'Not Assigned',
-      itdName: divisionDetails[0].divisionName ?? 'Not Assigned',
-      users: userVehicle ?? [],
-      totalViolation: {
-        ...totalViolation[0],
-        online,
-        offline,
-      },
-    })
+    res.status(StatusCodes.NO_CONTENT).json('no data user has no serial number')
   }
 }
 const custodyHandler = async (custodyId, res) => {
