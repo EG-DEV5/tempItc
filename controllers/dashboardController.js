@@ -462,6 +462,9 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
       divisionDetails,
     )
   }
+  
+  let online = 0
+  let offline = 0
 
   if (totalViolation.length === 0) {
     // throw new CustomError.BadRequestError(
@@ -480,8 +483,7 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
     })
   
   }
-  let online = 0
-  let offline = 0
+ 
   if (traineeSerial[0] != null) {
     const requests = requestsHandler(traineeSerial)
     const firebaseResponses = await Promise.all(requests)
