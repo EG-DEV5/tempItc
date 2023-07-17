@@ -531,7 +531,7 @@ const CustodyDetails = async (req, res, next) => {
               in: {
                 _id: '$$user._id',
                 username: '$$user.username',
-                phoneNumber: '$$user.phoneNumber',
+                incentivePoints: 100,
                 email: '$$user.email',
                 role: '$$user.role',
                 idNumber: '$$user.idNumber',
