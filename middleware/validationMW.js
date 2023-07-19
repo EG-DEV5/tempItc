@@ -1,13 +1,11 @@
-const { validationResult } = require("express-validator");
+const { validationResult } = require('express-validator')
 module.exports = (req, res, next) => {
-    let result = validationResult(req);
-    if (!result.isEmpty()) {
-        let message = result.errors.reduce((current, error) => current + error.msg + "  ", "")
-        let error = new Error(message);
-        error.status = 422;
-        error.name = "validError"
-        throw error;
-    }
-    else
-        next();
+  let result = validationResult(req)
+  if (!result.isEmpty()) {
+    let message = result.errors.reduce((current, error) => current + error.msg + '  ', '')
+    let error = new Error(message)
+    error.status = 422
+    error.name = 'validError'
+    throw error
+  } else next()
 }

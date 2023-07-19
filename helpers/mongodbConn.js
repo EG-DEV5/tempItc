@@ -9,12 +9,8 @@ const options = {
   connectTimeoutMS: 60000, // 30 seconds
 }
 
-var stageDBConnection = mongoose.createConnection(
-  process.env.MONGO_LIVELOCS,
-  options
-)
-if (stageDBConnection.readyState == 1)
-  console.log('mongodb connected, to StageDB')
+var stageDBConnection = mongoose.createConnection(process.env.MONGO_LIVELOCS, options)
+if (stageDBConnection.readyState == 1) console.log('mongodb connected, to StageDB')
 stageDBConnection.on('error', (err) => {
   console.log('Error in StageDB connection: '.bgRed + err)
 })

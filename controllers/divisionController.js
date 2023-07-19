@@ -52,11 +52,10 @@ const getDivision = async (req, res) => {
           return axios.get(url)
         })
 
-       const fireResult = await Promise.all(requests)
-      .catch((error) => {
-        res.status(500).send('An error occurred')
-      })
-      millage = fireResult.reduce((a, b) => a + b.data.Mileage, 0)
+        const fireResult = await Promise.all(requests).catch((error) => {
+          res.status(500).send('An error occurred')
+        })
+        millage = fireResult.reduce((a, b) => a + b.data.Mileage, 0)
         return {
           ...division,
           safetyAdvisorsCount: safetyAdvisors.reduce((a, b) => a + b, 0),
@@ -110,11 +109,10 @@ const getDivisionById = async (req, res) => {
           return axios.get(url)
         })
 
-       const fireResult = await Promise.all(requests)
-      .catch((error) => {
-        res.status(500).send('An error occurred')
-      })
-      millage = fireResult.reduce((a, b) => a + b.data.Mileage, 0)
+        const fireResult = await Promise.all(requests).catch((error) => {
+          res.status(500).send('An error occurred')
+        })
+        millage = fireResult.reduce((a, b) => a + b.data.Mileage, 0)
 
         return {
           ...itc,

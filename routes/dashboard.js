@@ -1,11 +1,9 @@
 /** @format */
 
 const express = require('express')
+
 const router = express.Router()
-const {
-  authenticateUser,
-  authorizeRoles,
-} = require('../middleware/authentication')
+const { authenticateUser } = require('../middleware/authentication')
 const {
   mainDashboard,
   harshAcceleration,

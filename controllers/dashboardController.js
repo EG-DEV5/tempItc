@@ -172,8 +172,7 @@ const mainDashboard = async (req, res) => {
   try {
     let { endDate, startDate, itd, itc } = req.query
     let { startPeriod, endPeriod } = dateFilter(startDate, endDate)
-    if (startPeriod > endPeriod)
-      return res.status(400).send('Invalid date range')
+    if (startPeriod > endPeriod) return res.status(400).send('Invalid date range')
 
     let vehicles = await custodyFilter(itd, itc)
     const validVids = vehicles.reduce((acc, vehicle) => {
@@ -204,30 +203,37 @@ const mainDashboard = async (req, res) => {
     let acctiveUsers = []
     let offlineUsers = []
 
-    const firebaseResponses = await Promise.all(requests)    
+    const firebaseResponses = await Promise.all(requests)
     firebaseResponses.forEach((response) => {
       const status = vehStatus(response.data)
-      if (status !== 'offline') ++online , acctiveUsers.push(response.data.SerialNumber)
-      else ++offline , offlineUsers.push(response.data.SerialNumber)
+      if (status !== 'offline') ++online, acctiveUsers.push(response.data.SerialNumber)
+      else ++offline, offlineUsers.push(response.data.SerialNumber)
       mileage += response.data.Mileage
       if (response.data.IsPowerCutOff) ++tampering
     })
     const finalResponse = finalResult(
-      result, online, offline, mileage, tampering, acctiveUsers, offlineUsers, vehicles
+      result,
+      online,
+      offline,
+      mileage,
+      tampering,
+      acctiveUsers,
+      offlineUsers,
+      vehicles
     )
     res.status(200).json(finalResponse)
     // requests
     //   ? Promise.all(requests)
     //       .then((responses) => {
-            // responses.forEach((response) => {
-            //   const status = vehStatus(response.data)
-            //   if (status !== 'offline') ++online , acctiveUsers.push(response.data.SerialNumber)
-            //   else ++offline , offlineUsers.push(response.data.SerialNumber)
-            //   mileage += response.data.Mileage
-            //   if (response.data.IsPowerCutOff) ++tampering
-            //   // if (response.data.EngineStatus) ++online
-            //   // else ++offline
-            // })
+    // responses.forEach((response) => {
+    //   const status = vehStatus(response.data)
+    //   if (status !== 'offline') ++online , acctiveUsers.push(response.data.SerialNumber)
+    //   else ++offline , offlineUsers.push(response.data.SerialNumber)
+    //   mileage += response.data.Mileage
+    //   if (response.data.IsPowerCutOff) ++tampering
+    //   // if (response.data.EngineStatus) ++online
+    //   // else ++offline
+    // })
     //       })
     //       .catch((error) => {
     //         res.status(500).send('An error occurred')
@@ -258,39 +264,46 @@ const mainDashboard = async (req, res) => {
     //       incentivePoints : 0
     //     })
   } catch (error) {
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ message: 'Something went wrong' })
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Something went wrong' })
   }
 }
-function finalResult(result,online,offline,mileage,tampering,acctiveUsers,offlineUsers,vehicles) {
+function finalResult(
+  result,
+  online,
+  offline,
+  mileage,
+  tampering,
+  acctiveUsers,
+  offlineUsers,
+  vehicles
+) {
   let active = []
   let unActive = []
   acctiveUsers.forEach((serial) => {
-   const onlineVeh =  vehicles.find((vehicle) => vehicle.SerialNumber === serial)
-   if (typeof onlineVeh == 'object') {
-     delete onlineVeh.password
-     delete onlineVeh.__v
-     delete onlineVeh.isOnline
-     delete onlineVeh.GroupID
-     delete onlineVeh.GroupName
-     delete onlineVeh.custodyId
-     delete onlineVeh._id
-    active.push({...onlineVeh, status : 'online'})
-  }
+    const onlineVeh = vehicles.find((vehicle) => vehicle.SerialNumber === serial)
+    if (typeof onlineVeh == 'object') {
+      delete onlineVeh.password
+      delete onlineVeh.__v
+      delete onlineVeh.isOnline
+      delete onlineVeh.GroupID
+      delete onlineVeh.GroupName
+      delete onlineVeh.custodyId
+      delete onlineVeh._id
+      active.push({ ...onlineVeh, status: 'online' })
+    }
   })
   offlineUsers.forEach((serial) => {
-   const offlineVeh =  vehicles.find((vehicle) => vehicle.SerialNumber === serial)
-   if (typeof offlineVeh == 'object') {
-     delete offlineVeh.password
-     delete offlineVeh.__v
-     delete offlineVeh.isOnline
-     delete offlineVeh.GroupID
-     delete offlineVeh.custodyId
-     delete offlineVeh._id
-     delete offlineVeh.GroupName
-    unActive.push( {...offlineVeh, status : 'offline'} )
-  }
+    const offlineVeh = vehicles.find((vehicle) => vehicle.SerialNumber === serial)
+    if (typeof offlineVeh == 'object') {
+      delete offlineVeh.password
+      delete offlineVeh.__v
+      delete offlineVeh.isOnline
+      delete offlineVeh.GroupID
+      delete offlineVeh.custodyId
+      delete offlineVeh._id
+      delete offlineVeh.GroupName
+      unActive.push({ ...offlineVeh, status: 'offline' })
+    }
   })
   let final = {
     harshAcceleration: result.violationCount.harshAcceleration,
@@ -307,21 +320,21 @@ function finalResult(result,online,offline,mileage,tampering,acctiveUsers,offlin
     mileage,
     online,
     offline,
-    incentivePoints : (online + offline) * 100,
-    onlineUsers : active,
-    offlineUsers : unActive,
+    incentivePoints: (online + offline) * 100,
+    onlineUsers: active,
+    offlineUsers: unActive,
     tampering,
     sheets: result.sheets,
   }
   // get the max value from violations to get the ITD
   const allItd = Math.max(
-    final?.harshAcceleration,
-    final?.overSpeed,
-    final?.seatBelt,
-    final?.harshBrake,
-    final?.nightDrive,
-    final?.longDistance,
-    final?.tampering
+    final.harshAcceleration,
+    final.overSpeed,
+    final.seatBelt,
+    final.harshBrake,
+    final.nightDrive,
+    final.longDistance,
+    final.tampering
   )
   final.allItd = allItd
   return final
@@ -330,8 +343,7 @@ const weeklyTrends = async (req, res) => {
   try {
     let { endDate, startDate, itd, itc } = req.query
     let { startPeriod, endPeriod } = dateFilter(startDate, endDate)
-    if (startPeriod > endPeriod)
-      return res.status(400).send('Invalid date range')
+    if (startPeriod > endPeriod) return res.status(400).send('Invalid date range')
 
     let vehicles = await custodyFilter(itd, itc)
     const validVids = vehicles.reduce((acc, vehicle) => {
@@ -346,9 +358,7 @@ const weeklyTrends = async (req, res) => {
 
     res.status(200).json({ Trends })
   } catch (error) {
-    return res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ message: 'Something went wrong' })
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Something went wrong' })
   }
 }
 
@@ -379,11 +389,7 @@ const vehicleViolations = async (req, res, next) => {
       vehIDs = JSON.parse(vehIDs)
     }
 
-    let [{ result, totalViolation }] = await vehicleViolationsQuery(
-      strDate,
-      endDate,
-      vehIDs
-    )
+    let [{ result, totalViolation }] = await vehicleViolationsQuery(strDate, endDate, vehIDs)
 
     if (!result) {
       throw new CustomError.BadRequestError(
@@ -410,14 +416,12 @@ const vehicleViolations = async (req, res, next) => {
       }
     })
 
-    return res
-      .status(StatusCodes.OK)
-      .json({ result, totalViolation: totalViolation[0] })
+    return res.status(StatusCodes.OK).json({ result, totalViolation: totalViolation[0] })
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json()
   }
 }
- function requestsHandler(SerialNumbers)  {
+function requestsHandler(SerialNumbers) {
   const requests = SerialNumbers.map((SerialNumber) => {
     const url = `https://saferoad-srialfb.firebaseio.com/${SerialNumber}.json`
     return axios.get(url)
@@ -436,8 +440,8 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
     { _id: userId, vid: { $ne: null, $exists: true } },
     { password: 0 }
   ).lean()
- 
-  const custodyDetails = await Group.find({ _id: userVehicle[0].custodyId }) 
+
+  const custodyDetails = await Group.find({ _id: userVehicle[0].custodyId })
   const divisionDetails = await Division.find({
     itcs: { $in: userVehicle[0].custodyId },
   }).select('divisionName')
@@ -450,25 +454,20 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
   const totalViolation = queryResult.totalViolation
   const violationsObj = totalViolation[0]
 
-  let sumViolations = 0;
-  let sheets = [];
+  let sumViolations = 0
+  let sheets = []
 
-  if(result.length > 0 ) {
-    sumViolations = 
-    violationsObj.harshAcceleration +
-    violationsObj.harshBrake +
-    violationsObj.OverSpeed +
-    violationsObj.SeatBelt +
-    violationsObj.nightDrive +
-    violationsObj.longDistance +
-    violationsObj.swerving
-        
-    sheets = sheetsFortrainee(
-      result,
-      userVehicle,
-      custodyDetails,
-      divisionDetails,
-    )
+  if (result.length > 0) {
+    sumViolations =
+      violationsObj.harshAcceleration +
+      violationsObj.harshBrake +
+      violationsObj.OverSpeed +
+      violationsObj.SeatBelt +
+      violationsObj.nightDrive +
+      violationsObj.longDistance +
+      violationsObj.swerving
+
+    sheets = sheetsFortrainee(result, userVehicle, custodyDetails, divisionDetails)
   }
 
   let online = 0
@@ -485,22 +484,19 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
       users: userVehicle ?? [],
       totalViolation: {
         ...totalViolation[0],
-      incentivePoints: 100,
-      Mileage: 100,
+        incentivePoints: 100,
+        Mileage: 100,
         online,
         offline,
       },
     })
-  
   }
- 
+
   if (traineeSerial[0] != null) {
     const requests = requestsHandler(traineeSerial)
     const firebaseResponses = await Promise.all(requests)
     firebaseResponses.forEach((response) => {
-      const vehicle = traineeSerial.find(
-        (vehicle) => vehicle == response.data.SerialNumber
-      )
+      const vehicle = traineeSerial.find((vehicle) => vehicle == response.data.SerialNumber)
       const status = vehStatus(response.data)
       if (vehicle) {
         if (status !== 'offline') ++online
@@ -541,20 +537,20 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
     //     res.status(500).send('An error occurred')
     //   })
     //   .finally(() => {
-        // res.status(StatusCodes.OK).json({
-        //   custodyName: custodyDetails[0].custodyName ?? 'Not Assigned',
-        //   itdName: divisionDetails[0].divisionName ?? 'Not Assigned',
-        //   totalViolation: {
-        //     sumViolations,
-        //     ...totalViolation[0],
-        //     online,
-        //     offline,
-        //     Mileage: 100,
-        //     incentivePoints: 100,
-        //     sheets,
-        //   },
-        //   users: userVehicle ?? [],
-        // })
+    // res.status(StatusCodes.OK).json({
+    //   custodyName: custodyDetails[0].custodyName ?? 'Not Assigned',
+    //   itdName: divisionDetails[0].divisionName ?? 'Not Assigned',
+    //   totalViolation: {
+    //     sumViolations,
+    //     ...totalViolation[0],
+    //     online,
+    //     offline,
+    //     Mileage: 100,
+    //     incentivePoints: 100,
+    //     sheets,
+    //   },
+    //   users: userVehicle ?? [],
+    // })
     //   })
   } else {
     res.status(StatusCodes.NO_CONTENT).json('no data user has no serial number')
@@ -608,9 +604,7 @@ const custodyHandler = async (custodyId, res) => {
   Promise.all(requests)
     .then((responses) => {
       responses.forEach((response) => {
-        const vehicle = serials.find(
-          (vehicle) => vehicle == response.data.SerialNumber
-        )
+        const vehicle = serials.find((vehicle) => vehicle == response.data.SerialNumber)
         const status = vehStatus(response.data)
         if (vehicle) {
           if (status !== 'offline') ++online
@@ -716,10 +710,7 @@ const getRatingsById = async (req, res) => {
 }
 const getRatings = async (req, res) => {
   try {
-    const vehicles = await User.find(
-      { vid: { $ne: null, $exists: true } },
-      { vid: 1 }
-    )
+    const vehicles = await User.find({ vid: { $ne: null, $exists: true } }, { vid: 1 })
 
     const validVids = vehicles.map((vehicle) => vehicle.vid)
 

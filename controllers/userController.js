@@ -125,8 +125,7 @@ const updateUser = async (req, res) => {
     const { id } = req.params
 
     if (req.user.role == 'admin') {
-      const { username, SerialNumber, idNumber, custodyId, vid, phoneNumber } =
-        req.body
+      const { username, SerialNumber, idNumber, custodyId, vid, phoneNumber } = req.body
       // const { custodyId } = req.user;
       const account = await User.findOne({
         _id: id,
@@ -162,15 +161,8 @@ const updateUser = async (req, res) => {
         user,
       })
     } else {
-      const {
-        username,
-        memberShipType,
-        vid,
-        idNumber,
-        SerialNumber,
-        custodyId,
-        phoneNumber,
-      } = req.body
+      const { username, memberShipType, vid, idNumber, SerialNumber, custodyId, phoneNumber } =
+        req.body
 
       let image = {}
       const account = await User.findOne({
@@ -249,10 +241,7 @@ const addCustody = async (req, res, next) => {
 
     await User.updateMany(
       {
-        $or: [
-          { _id: { $in: SafetyAdvisor } },
-          { _id: { $in: req.body.trainerIds } },
-        ],
+        $or: [{ _id: { $in: SafetyAdvisor } }, { _id: { $in: req.body.trainerIds } }],
       },
       { $set: { custodyId: custody._id } }
     )
@@ -297,18 +286,10 @@ const updateCustody = async (req, res, next) => {
     }
 
     if (!SafetyAdvisor || SafetyAdvisor.length === 0)
-      return res
-        .status(400)
-        .json({ msg: `Please make sure to select at least '1' SafetyAdvisor` })
+      return res.status(400).json({ msg: `Please make sure to select at least '1' SafetyAdvisor` })
     else {
-      await User.updateMany(
-        { _id: { $in: custody.SafetyAdvisor } },
-        { $set: { custodyId: null } }
-      )
-      await User.updateMany(
-        { _id: { $in: SafetyAdvisor } },
-        { $set: { custodyId: custody._id } }
-      )
+      await User.updateMany({ _id: { $in: custody.SafetyAdvisor } }, { $set: { custodyId: null } })
+      await User.updateMany({ _id: { $in: SafetyAdvisor } }, { $set: { custodyId: custody._id } })
     }
 
     const updatedCustody = await Custody.findOneAndUpdate(
@@ -322,9 +303,7 @@ const updateCustody = async (req, res, next) => {
       { new: true, runValidators: true }
     )
 
-    return res
-      .status(200)
-      .json({ msg: 'Custody updated successfully', updatedCustody })
+    return res.status(200).json({ msg: 'Custody updated successfully', updatedCustody })
   } catch (error) {
     next(error)
   }
@@ -501,7 +480,7 @@ const getAllSafetyAdvisor = async (req, res, next) => {
 }
 const CustodyDetails = async (req, res, next) => {
   try {
-    const custodyID = req.params.id;
+    const custodyID = req.params.id
     let agg = [
       {
         $match: { _id: new ObjectId(custodyID) },
@@ -560,14 +539,14 @@ const CustodyDetails = async (req, res, next) => {
     const userDetails = await Promise.all(
       result[0].users.map(async (user) => {
         // get Mileage from Firebase with user's SerialNumber
-       
-        const res = await getVehicleDataFromFireBase(user.SerialNumber);
-        const millage = res.data.Mileage;        
-       
+
+        const res = await getVehicleDataFromFireBase(user.SerialNumber)
+        const millage = res.data.Mileage
+
         // OLD CODE !
         // const userVid = [user.vid]
         // const millage  = await getMillageFortrainer(userVid)
-       
+
         return {
           ...user,
           millage,
@@ -712,9 +691,7 @@ const resForRequest = async (req, res, next) => {
         _id: trainerId,
       })
       let custody = await Custody.findOne({ _id: custodyId })
-      let findTr = custody.pendingTrainers.findIndex(
-        (e) => e._id.toString() == trainerId
-      )
+      let findTr = custody.pendingTrainers.findIndex((e) => e._id.toString() == trainerId)
       if (findTr > -1) {
         custody.pendingTrainers.splice(findTr, 1)
         trainer.custodyId = custodyId
@@ -726,18 +703,14 @@ const resForRequest = async (req, res, next) => {
       res.status(200).json({ msg: 'accepted req' })
     } else if (responce == 'refuse') {
       let custody = await Custody.findOne({ _id: custodyId })
-      let findTr = custody.pendingTrainers.findIndex(
-        (e) => e._id.toString() == trainerId
-      )
+      let findTr = custody.pendingTrainers.findIndex((e) => e._id.toString() == trainerId)
       if (findTr > -1) {
         custody.pendingTrainers.splice(findTr, 1)
       }
       custody.save()
       res.status(200).json({ msg: 'reject req' })
     } else {
-      throw new Error(
-        '{"enMessage" : "please try again", "arMessage" :"برجاء المحاولة مرة أخرى"}'
-      )
+      throw new Error('{"enMessage" : "please try again", "arMessage" :"برجاء المحاولة مرة أخرى"}')
     }
   } catch (error) {
     next(error)
@@ -756,9 +729,7 @@ const freeSaftey = async (req, res, next) => {
 }
 const getPendingTrainers = async (req, res, next) => {
   const { custodyId } = req.body
-  const data = await Custody.findOne({ _id: custodyId }).populate(
-    'pendingTrainers'
-  )
+  const data = await Custody.findOne({ _id: custodyId }).populate('pendingTrainers')
   res.status(200).json({ data })
 }
 const Vehicle = async (req, res, next) => {
@@ -768,10 +739,7 @@ const Vehicle = async (req, res, next) => {
       Authorization: `Bearer ${token}`,
     },
   }
-  const getAllVech = await User.find(
-    { SerialNumber: { $ne: null } },
-    { SerialNumber: 1, _id: 0 }
-  )
+  const getAllVech = await User.find({ SerialNumber: { $ne: null } }, { SerialNumber: 1, _id: 0 })
   const data = await axios
     .get('https://api.v6.saferoad.net/dashboard/vehicles', config)
     .then((apiResponse) => {
@@ -798,8 +766,7 @@ const deleteUser = async (req, res) => {
       }
     )
 
-    if (!deletedUser)
-      return res.status(404).json({ msg: 'No document found with that ID' })
+    if (!deletedUser) return res.status(404).json({ msg: 'No document found with that ID' })
 
     return res.status(200).json({ msg: 'the user has been deleted' })
   } catch (error) {
@@ -817,8 +784,7 @@ const deleteCustody = async (req, res) => {
       }
     )
 
-    if (!deletedCustody)
-      return res.status(404).json({ msg: 'No document found with that ID' })
+    if (!deletedCustody) return res.status(404).json({ msg: 'No document found with that ID' })
 
     return res.status(200).json({ msg: 'the custody has been deleted' })
   } catch (error) {
@@ -898,9 +864,7 @@ const notifyUser = async (req, res) => {
     const custodyDetailes = await Custody.findOne({ _id: custodyId })
       .populate('SafetyAdvisor')
       .select('SafetyAdvisor -_id')
-    const safteyEmails = custodyDetailes.SafetyAdvisor.map(
-      (saftey) => saftey.email
-    )
+    const safteyEmails = custodyDetailes.SafetyAdvisor.map((saftey) => saftey.email)
     // const allEmails = safteyEmails.concat(userEmail)
     const emailBody = `
     <div style='background-color:#f1f1f1;color:#010101; max-width: 400px; margin:20px auto;
@@ -916,8 +880,7 @@ const notifyUser = async (req, res) => {
       subject: 'ITC Email Warning',
       html: emailBody,
     })
-    if (emails.response.includes('250')) 
-    res.status(200).json('email sent successfully')
+    if (emails.response.includes('250')) res.status(200).json('email sent successfully')
   } catch (error) {
     res.status(500).json({ error: error.message, msg: 'Something went wrong' })
   }
