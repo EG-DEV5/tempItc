@@ -9,11 +9,10 @@ const UserSchema = new mongoose.Schema(
   {
     username: {
       type: String,
-      minlength: [3,'must be at least 3 characters'],
-      maxlength: [50,'must be at most 50 characters'],
+      minlength: [3, 'must be at least 3 characters'],
+      maxlength: [50, 'must be at most 50 characters'],
       unique: true,
       required: true,
-      
     },
     phoneNumber: {
       type: String,
@@ -118,10 +117,7 @@ UserSchema.methods.comparePassword = async function (canditatePassword) {
 
 UserSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
   if (this.passwordChangedAt) {
-    const changedTimestamp = parseInt(
-      this.passwordChangedAt.getTime() / 1000,
-      10
-    )
+    const changedTimestamp = parseInt(this.passwordChangedAt.getTime() / 1000, 10)
 
     return JWTTimestamp < changedTimestamp
   }
@@ -133,10 +129,7 @@ UserSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
 UserSchema.methods.createPasswordResetToken = function () {
   const resetToken = crypto.randomBytes(32).toString('hex')
 
-  this.passwordResetToken = crypto
-    .createHash('sha256')
-    .update(resetToken)
-    .digest('hex')
+  this.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex')
 
   console.log({ resetToken }, this.passwordResetToken)
 

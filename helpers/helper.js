@@ -36,10 +36,7 @@ async function harshAccelerationQuery(strDate, endDate, vehIDs) {
 
       { $sort: { _id: 1 } },
     ]
-    const result = await stageDBConnection
-      .collection('LiveLocations')
-      .aggregate(agg)
-      .toArray()
+    const result = await stageDBConnection.collection('LiveLocations').aggregate(agg).toArray()
     return result
   } catch (e) {
     return e.message
@@ -79,10 +76,7 @@ async function HarshBreakingQuery(strDate, endDate, vehIDs) {
       { $sort: { _id: 1 } },
     ]
 
-    const result = await stageDBConnection
-      .collection('LiveLocations')
-      .aggregate(agg)
-      .toArray()
+    const result = await stageDBConnection.collection('LiveLocations').aggregate(agg).toArray()
     return result
   } catch (e) {
     return e.message
@@ -120,10 +114,7 @@ async function IsOverSpeedQuery(strDate, endDate, vehIDs) {
 
       { $sort: { _id: 1 } },
     ]
-    const result = await stageDBConnection
-      .collection('LiveLocations')
-      .aggregate(agg)
-      .toArray()
+    const result = await stageDBConnection.collection('LiveLocations').aggregate(agg).toArray()
     return result
   } catch (e) {
     return e.message
@@ -161,10 +152,7 @@ async function seatBeltQuery(strDate, endDate, vehIDs) {
 
       { $sort: { _id: 1 } },
     ]
-    const result = await stageDBConnection
-      .collection('LiveLocations')
-      .aggregate(agg)
-      .toArray()
+    const result = await stageDBConnection.collection('LiveLocations').aggregate(agg).toArray()
     return result
   } catch (e) {
     return e.message
@@ -181,10 +169,7 @@ async function nightDriveQuery(strDate, endDate, vehIDs) {
         $match: {
           VehicleID: { $in: vehIDs },
           RecordDateTime: { $gte: new Date(strDate), $lte: new Date(endDate) },
-          $or: [
-            { AlarmCode: { $bitsAnySet: [0, 1, 2] } },
-            { StatusCode: { $bitsAllSet: [3] } },
-          ],
+          $or: [{ AlarmCode: { $bitsAnySet: [0, 1, 2] } }, { StatusCode: { $bitsAllSet: [3] } }],
         },
       },
 
@@ -238,10 +223,7 @@ async function nightDriveQuery(strDate, endDate, vehIDs) {
       },
       { $sort: { _id: 1 } },
     ]
-    const result = await stageDBConnection
-      .collection('LiveLocations')
-      .aggregate(agg)
-      .toArray()
+    const result = await stageDBConnection.collection('LiveLocations').aggregate(agg).toArray()
     return result
   } catch (e) {
     return e.message
@@ -327,7 +309,7 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
               args: ['$StatusCode', 100],
               lang: 'js',
             },
-          }
+          },
         },
       },
       {
@@ -423,14 +405,11 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
                 else: 0,
               },
             },
-          }
+          },
         },
       },
     ]
-    const result = await stageDBConnection
-      .collection('LiveLocations')
-      .aggregate(agg)
-      .toArray()
+    const result = await stageDBConnection.collection('LiveLocations').aggregate(agg).toArray()
     // const vehiclesIds = result.map((e) => e._id.VehicleID)
     const userDetails = await User.find({ vid: { $in: vehIDs } })
       .populate({
@@ -453,28 +432,12 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
 
     // merging the user details with vehicle details to generate sheets
     const overSpeed = mergeDetails(overSpeedVio, userDetails, formatedDuration)
-    const harshAcceleration = mergeDetails(
-      harshAccelerationVio,
-      userDetails,
-      formatedDuration
-    )
-    const harshBrake = mergeDetails(
-      harshBrakeVio,
-      userDetails,
-      formatedDuration
-    )
+    const harshAcceleration = mergeDetails(harshAccelerationVio, userDetails, formatedDuration)
+    const harshBrake = mergeDetails(harshBrakeVio, userDetails, formatedDuration)
     const SeatBelt = mergeDetails(SeatBeltVio, userDetails, formatedDuration)
-    const nightDrive = mergeDetails(
-      nightDriveVio,
-      userDetails,
-      formatedDuration
-    )
-    const longDistance = mergeDetails(
-      longDistanceVio,
-      userDetails,
-      formatedDuration
-    )
-    const swerving = mergeDetails(swervingVio, userDetails,formatedDuration)
+    const nightDrive = mergeDetails(nightDriveVio, userDetails, formatedDuration)
+    const longDistance = mergeDetails(longDistanceVio, userDetails, formatedDuration)
+    const swerving = mergeDetails(swervingVio, userDetails, formatedDuration)
     const violationCount = violationsCount(result) // counting how many vehicles did certain violation
     // let fatigue = await fatigueQuery(endDate, vehIDs)
     const users = getUsersWithViolations(userDetails, result)
@@ -489,11 +452,11 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
         SeatBelt,
         nightDrive,
         longDistance,
-        swerving
+        swerving,
       },
     }
   } catch (e) {
-    console.log({errorMsg: e.message, stack: e.stack});
+    console.log({ errorMsg: e.message, stack: e.stack })
     return e.message
   }
 }
@@ -506,7 +469,8 @@ function getUsersWithViolations(userDetails, result) {
     'SeatBelt',
     'nightDrive',
     'longDistance',
-    'swerving' ]
+    'swerving',
+  ]
   const vehiclesWithViolaions = result.filter((veh) => {
     // loop over violation keys and check if any vehicle has at least one key > 0
     return violationKeys.some((violation) => {
@@ -526,8 +490,7 @@ function getUsersWithViolations(userDetails, result) {
   for (let key in vehicleData) {
     const user = userDetails.find((u) => u.vid == +key)
     const userObject = { ...user, ...vehicleData[key] }
-    userObject.custodyName = userObject.custodyId.custodyName,
-    delete userObject.address
+    ;(userObject.custodyName = userObject.custodyId.custodyName), delete userObject.address
     delete userObject.endCoords
     delete userObject.startCoords
     delete userObject.startAdress
@@ -585,14 +548,15 @@ function mergeDetails(violation, userDetails, formatedDuration, isFatigue) {
 }
 function splitViolations(result) {
   const overSpeedVio = result.reduce((acc, e) => {
-    if (e.OverSpeed > 0) { 
-        acc.push({
+    if (e.OverSpeed > 0) {
+      acc.push({
         _id: e._id,
         OverSpeed: e.OverSpeed,
         address: e.address,
         startCoords: e.lan,
         endCoords: e.lat,
-      }) }
+      })
+    }
     return acc
   }, [])
   const harshAccelerationVio = result.reduce((acc, e) => {
@@ -603,7 +567,8 @@ function splitViolations(result) {
         address: e.address,
         startCoords: e.lan,
         endCoords: e.lat,
-      })}
+      })
+    }
     return acc
   }, [])
   const harshBrakeVio = result.reduce((acc, e) => {
@@ -614,7 +579,8 @@ function splitViolations(result) {
         address: e.address,
         startCoords: e.lan,
         endCoords: e.lat,
-      })}
+      })
+    }
     return acc
   }, [])
   const SeatBeltVio = result.reduce((acc, e) => {
@@ -625,7 +591,8 @@ function splitViolations(result) {
         address: e.address,
         startCoords: e.lan,
         endCoords: e.lat,
-      })}
+      })
+    }
     return acc
   }, [])
   const nightDriveVio = result.reduce((acc, e) => {
@@ -636,7 +603,8 @@ function splitViolations(result) {
         address: e.address,
         startCoords: e.lan,
         endCoords: e.lat,
-      })}
+      })
+    }
     return acc
   }, [])
   const longDistanceVio = result.reduce((acc, e) => {
@@ -647,7 +615,8 @@ function splitViolations(result) {
         address: e.address,
         startCoords: e.lan,
         endCoords: e.lat,
-      })}
+      })
+    }
     return acc
   }, [])
   const swervingVio = result.reduce((acc, e) => {
@@ -658,9 +627,10 @@ function splitViolations(result) {
         address: e.address,
         startCoords: e.lan,
         endCoords: e.lat,
-      })}
+      })
+    }
     return acc
-  },[])
+  }, [])
   return {
     overSpeedVio,
     harshAccelerationVio,
@@ -680,7 +650,7 @@ function violationsCount(result) {
     harshBrake: 0,
     nightDrive: 0,
     longDistance: 0,
-    swerving:0,
+    swerving: 0,
     lowSpeed: 0,
     mediumSpeed: 0,
     highSpeed: 0,
@@ -691,24 +661,16 @@ function violationsCount(result) {
     return {
       ...acc,
       harshAcceleration:
-        item.harshAcceleration > 0
-          ? acc.harshAcceleration + 1
-          : acc.harshAcceleration,
+        item.harshAcceleration > 0 ? acc.harshAcceleration + 1 : acc.harshAcceleration,
       OverSpeed: item.OverSpeed > 0 ? acc.OverSpeed + 1 : acc.OverSpeed,
       SeatBelt: item.SeatBelt > 0 ? acc.SeatBelt + 1 : acc.SeatBelt,
       harshBrake: item.harshBrake > 0 ? acc.harshBrake + 1 : acc.harshBrake,
       nightDrive: item.nightDrive > 0 ? acc.nightDrive + 1 : acc.nightDrive,
-      longDistance:
-        item.longDistance > 0 ? acc.longDistance + 1 : acc.longDistance,
+      longDistance: item.longDistance > 0 ? acc.longDistance + 1 : acc.longDistance,
       swerving: item.swerving > 0 ? acc.swerving + 1 : acc.swerving,
-      lowSpeed:
-        item.OverSpeed < 120 && item.OverSpeed > 0
-          ? acc.lowSpeed + 1
-          : acc.lowSpeed,
+      lowSpeed: item.OverSpeed < 120 && item.OverSpeed > 0 ? acc.lowSpeed + 1 : acc.lowSpeed,
       mediumSpeed:
-        item.OverSpeed >= 120 && item.OverSpeed < 140
-          ? acc.mediumSpeed + 1
-          : acc.mediumSpeed,
+        item.OverSpeed >= 120 && item.OverSpeed < 140 ? acc.mediumSpeed + 1 : acc.mediumSpeed,
       highSpeed: item.OverSpeed >= 140 ? acc.highSpeed + 1 : acc.highSpeed,
       SerialNumber: [...new Set([...acc.SerialNumber, ...item.SerialNumbers])],
       // Mileage: acc.Mileage + item.Mileage,
@@ -788,10 +750,7 @@ async function fatigueQuery(enddate, vehIDs) {
     //   },
     // },
 
-    const result = await stageDBConnection
-      .collection('WorkSteps')
-      .aggregate(agg)
-      .toArray()
+    const result = await stageDBConnection.collection('WorkSteps').aggregate(agg).toArray()
     const vehiclesWithFatigue = result.filter((item) => item.fatigue > 0)
     // optimizing vehicle's address & coords to generate sheets
     const formatedVehs = vehiclesWithFatigue.map((veh) => {
@@ -816,12 +775,7 @@ async function fatigueQuery(enddate, vehIDs) {
     )
     const formatedDuration = formatDuration(strDate, endDate) // duration of the violations
     // merging the user details with vehicle details to generate sheets
-    const fatigueDetails = mergeDetails(
-      formatedVehs,
-      userDetails,
-      formatedDuration,
-      true
-    )
+    const fatigueDetails = mergeDetails(formatedVehs, userDetails, formatedDuration, true)
     return {
       count: vehiclesWithFatigue.length > 0 ? vehiclesWithFatigue.length : 0,
       vehiclesWithFatigue,
@@ -1275,10 +1229,7 @@ async function weeklyTrendsQuery(vehIDs) {
         $sort: { _id: -1 },
       },
     ]
-    const result = await stageDBConnection
-      .collection('LiveLocations')
-      .aggregate(agg)
-      .toArray()
+    const result = await stageDBConnection.collection('LiveLocations').aggregate(agg).toArray()
     const vioCount = berDayCount(result)
     return vioCount
   } catch (e) {
@@ -1834,10 +1785,7 @@ async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
         },
       },
     ]
-    const result = await stageDBConnection
-      .collection('LiveLocations')
-      .aggregate(agg)
-      .toArray()
+    const result = await stageDBConnection.collection('LiveLocations').aggregate(agg).toArray()
     return result
   } catch (e) {
     return e.message
@@ -2149,15 +2097,17 @@ async function getTraineeViolations(strDate, endDate, validVids) {
               lang: 'js',
             },
           },
-          swerving: [ {
-            $function: {
-              body: `function(num, bit) {
+          swerving: [
+            {
+              $function: {
+                body: `function(num, bit) {
                                     return ((num>>bit) % 2 != 0)
                                 }`,
-              args: ['$StatusCode', 100],
-              lang: 'js',
+                args: ['$StatusCode', 100],
+                lang: 'js',
+              },
             },
-          }]
+          ],
         },
       },
       {
@@ -2271,7 +2221,7 @@ async function getTraineeViolations(strDate, endDate, validVids) {
                       else: 0,
                     },
                   },
-                }
+                },
               },
             },
           ],
@@ -2325,10 +2275,7 @@ async function topDriversQuery(startDate, endDate, validVids) {
         },
       },
     ]
-    const result = await stageDBConnection
-      .collection('LiveLocations')
-      .aggregate(agg)
-      .toArray()
+    const result = await stageDBConnection.collection('LiveLocations').aggregate(agg).toArray()
     // take the top drivers
     const topDrivers = result.filter((driver) => driver.count === 0)
     return topDrivers
@@ -2345,24 +2292,24 @@ async function getUserDetails(ids) {
       },
       {
         $lookup: {
-          from:'groups',
+          from: 'groups',
           localField: 'custodyId',
           foreignField: '_id',
-          as: 'custodyId'
-        }
+          as: 'custodyId',
+        },
       },
       {
         $addFields: {
-          custodyName: {$arrayElemAt:[ '$custodyId.custodyName',0 ]},
+          custodyName: { $arrayElemAt: ['$custodyId.custodyName', 0] },
           insentivePoints: 100,
-          harshAcceleration:0,
-          harshBrake:0,
-          SeatBelt:0,
-          OverSpeed:0,
-          nightDrive:0,
-          longDistance:0,
-          swerving:0
-        }
+          harshAcceleration: 0,
+          harshBrake: 0,
+          SeatBelt: 0,
+          OverSpeed: 0,
+          nightDrive: 0,
+          longDistance: 0,
+          swerving: 0,
+        },
       },
       {
         $project: {
@@ -2381,15 +2328,12 @@ async function getUserDetails(ids) {
           OverSpeed: 1,
           nightDrive: 1,
           longDistance: 1,
-          swerving: 1
+          swerving: 1,
         },
       },
     ]
 
-    const result = await configConnection
-      .collection('users')
-      .aggregate(agg)
-      .toArray()
+    const result = await configConnection.collection('users').aggregate(agg).toArray()
     return result
   } catch (error) {
     return error
@@ -2409,10 +2353,7 @@ async function getRatingsQuery(vehicles) {
         $match: {
           VehicleID: { $in: vehicles },
           RecordDateTime: { $gte: strDate, $lte: endDateTime },
-          $or: [
-            { AlarmCode: { $bitsAnySet: [0, 1, 2] } },
-            { StatusCode: { $bitsAllSet: [3] } },
-          ],
+          $or: [{ AlarmCode: { $bitsAnySet: [0, 1, 2] } }, { StatusCode: { $bitsAllSet: [3] } }],
         },
       },
       {
@@ -2461,10 +2402,7 @@ async function getRatingsQuery(vehicles) {
             day: {
               $cond: [
                 {
-                  $eq: [
-                    { $dayOfMonth: '$RecordDateTime' },
-                    { $dayOfMonth: '$RecordDateTime' },
-                  ],
+                  $eq: [{ $dayOfMonth: '$RecordDateTime' }, { $dayOfMonth: '$RecordDateTime' }],
                 },
                 {
                   $dateToString: {
@@ -2542,12 +2480,7 @@ async function getRatingsQuery(vehicles) {
           harshBrake: { $sum: '$harshBrake' },
           total: {
             $sum: {
-              $add: [
-                '$harshAcceleration',
-                '$OverSpeed',
-                '$SeatBelt',
-                '$harshBrake',
-              ],
+              $add: ['$harshAcceleration', '$OverSpeed', '$SeatBelt', '$harshBrake'],
             },
           },
         },
@@ -2560,24 +2493,14 @@ async function getRatingsQuery(vehicles) {
               VehicleID: '$_id.VehicleID',
               value: {
                 $sum: {
-                  $add: [
-                    '$harshAcceleration',
-                    '$OverSpeed',
-                    '$SeatBelt',
-                    '$harshBrake',
-                  ],
+                  $add: ['$harshAcceleration', '$OverSpeed', '$SeatBelt', '$harshBrake'],
                 },
               },
             },
           },
           total: {
             $sum: {
-              $add: [
-                '$harshAcceleration',
-                '$OverSpeed',
-                '$SeatBelt',
-                '$harshBrake',
-              ],
+              $add: ['$harshAcceleration', '$OverSpeed', '$SeatBelt', '$harshBrake'],
             },
           },
         },
@@ -2631,10 +2554,7 @@ async function getRatingsQuery(vehicles) {
       },
     ]
 
-    const result = await stageDBConnection
-      .collection('LiveLocations')
-      .aggregate(agg)
-      .toArray()
+    const result = await stageDBConnection.collection('LiveLocations').aggregate(agg).toArray()
     return result
   } catch (e) {
     return e.message
@@ -2670,10 +2590,7 @@ async function getMillageForUsers(ids) {
         },
       },
     ]
-    const [result] = await stageDBConnection
-      .collection('LiveLocations')
-      .aggregate(agg)
-      .toArray()
+    const [result] = await stageDBConnection.collection('LiveLocations').aggregate(agg).toArray()
     return result.Mileage
   } catch (e) {
     return e.message
@@ -2702,10 +2619,7 @@ async function getMillageFortrainer(vid) {
         },
       },
     ]
-    const [result] = await stageDBConnection
-      .collection('LiveLocations')
-      .aggregate(agg)
-      .toArray()
+    const [result] = await stageDBConnection.collection('LiveLocations').aggregate(agg).toArray()
     return result.Mileage
   } catch (e) {
     return e.message
@@ -2713,9 +2627,7 @@ async function getMillageFortrainer(vid) {
 }
 
 const getVehicleDataFromFireBase = (serialNumber) => {
-  return axios.get(
-    `https://saferoad-srialfb.firebaseio.com/${serialNumber}.json`
-  )
+  return axios.get(`https://saferoad-srialfb.firebaseio.com/${serialNumber}.json`)
 }
 
 async function getRatingsQueryById(id) {
@@ -2783,10 +2695,7 @@ async function getRatingsQueryById(id) {
             day: {
               $cond: [
                 {
-                  $eq: [
-                    { $dayOfMonth: '$RecordDateTime' },
-                    { $dayOfMonth: '$RecordDateTime' },
-                  ],
+                  $eq: [{ $dayOfMonth: '$RecordDateTime' }, { $dayOfMonth: '$RecordDateTime' }],
                 },
                 {
                   $dateToString: {
@@ -2864,12 +2773,7 @@ async function getRatingsQueryById(id) {
           harshBrake: { $sum: '$harshBrake' },
           total: {
             $sum: {
-              $add: [
-                '$harshAcceleration',
-                '$OverSpeed',
-                '$SeatBelt',
-                '$harshBrake',
-              ],
+              $add: ['$harshAcceleration', '$OverSpeed', '$SeatBelt', '$harshBrake'],
             },
           },
         },
@@ -2882,24 +2786,14 @@ async function getRatingsQueryById(id) {
               VehicleID: '$_id.VehicleID',
               value: {
                 $sum: {
-                  $add: [
-                    '$harshAcceleration',
-                    '$OverSpeed',
-                    '$SeatBelt',
-                    '$harshBrake',
-                  ],
+                  $add: ['$harshAcceleration', '$OverSpeed', '$SeatBelt', '$harshBrake'],
                 },
               },
             },
           },
           total: {
             $sum: {
-              $add: [
-                '$harshAcceleration',
-                '$OverSpeed',
-                '$SeatBelt',
-                '$harshBrake',
-              ],
+              $add: ['$harshAcceleration', '$OverSpeed', '$SeatBelt', '$harshBrake'],
             },
           },
         },
@@ -2953,10 +2847,7 @@ async function getRatingsQueryById(id) {
       },
     ]
 
-    const result = await stageDBConnection
-      .collection('LiveLocations')
-      .aggregate(agg)
-      .toArray()
+    const result = await stageDBConnection.collection('LiveLocations').aggregate(agg).toArray()
     return result
   } catch (e) {
     return e.message
@@ -3053,19 +2944,14 @@ function deleteProperties(obj, toBeModified, neededKey) {
     delete toBeModified[key]
   })
 }
-const sheetsFortrainee = (
-  result,
-  userDetails,
-  custodyDetails,
-  divisionDetails
-) => {
+const sheetsFortrainee = (result, userDetails, custodyDetails, divisionDetails) => {
   const user = {
-    userName:userDetails[0].userName,
+    userName: userDetails[0].userName,
     vid: userDetails[0].vid,
     phoneNumber: userDetails[0].phoneNumber,
     SerialNumber: userDetails[0].SerialNumber,
     custodyName: custodyDetails[0].custodyName ?? 'Not Assigned',
-    itdName: divisionDetails[0].divisionName ?? 'Not Assigned'
+    itdName: divisionDetails[0].divisionName ?? 'Not Assigned',
   }
   const acc = {
     OverSpeed: [],
@@ -3079,28 +2965,28 @@ const sheetsFortrainee = (
 
   const sheets = result.reduce((acc, curr) => {
     if (curr.OverSpeed === true) {
-      deleteProperties(acc, curr,'OverSpeed')
-      acc.OverSpeed.push({...curr,...user})
+      deleteProperties(acc, curr, 'OverSpeed')
+      acc.OverSpeed.push({ ...curr, ...user })
     }
     if (curr.SeatBelt === true) {
       deleteProperties(acc, curr, 'SeatBelt')
-      acc.seatBelt.push({...curr,...user})
+      acc.seatBelt.push({ ...curr, ...user })
     }
     if (curr.harshAcceleration === true) {
       deleteProperties(acc, curr, 'harshAcceleration')
-      acc.harshAcceleration.push({...curr,...user})
+      acc.harshAcceleration.push({ ...curr, ...user })
     }
     if (curr.harshBrake === true) {
-      deleteProperties(acc, curr,'harshBrake')
-      acc.harshBrake.push({...curr,...user})
+      deleteProperties(acc, curr, 'harshBrake')
+      acc.harshBrake.push({ ...curr, ...user })
     }
     if (curr.nightDrive === true) {
       deleteProperties(acc, curr, 'nightDrive')
-      acc.nightDrive.push({...curr,...user})
+      acc.nightDrive.push({ ...curr, ...user })
     }
     if (curr.longDistance === true) {
-      deleteProperties(acc, curr,'longDistance')
-      acc.longDistance.push({...curr,...user})
+      deleteProperties(acc, curr, 'longDistance')
+      acc.longDistance.push({ ...curr, ...user })
     }
     return acc
   }, acc)

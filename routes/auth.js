@@ -1,10 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const uploadPhoto = require('../utils/multer')
-const {
-  authenticateUser,
-  authorizeRoles,
-} = require('../middleware/authentication')
+const { authenticateUser, authorizeRoles } = require('../middleware/authentication')
 
 const {
   addAdmin,

@@ -1,14 +1,9 @@
 /** @format */
 
-const User = require('../models/User')
 const { StatusCodes } = require('http-status-codes')
+const User = require('../models/User')
 const CustomError = require('../errors')
-const {
-  createTokenUser,
-  extractUrl,
-  createJWT,
-  sendEmail,
-} = require('../utils')
+const { createTokenUser, extractUrl, createJWT, sendEmail } = require('../utils')
 
 const addAdmin = async (req, res, next) => {
   try {
@@ -29,7 +24,7 @@ const addAdmin = async (req, res, next) => {
     await User.create({
       username,
       password,
-      image: image,
+      image,
       email,
       phoneNumber,
       role: 'admin',
@@ -45,13 +40,11 @@ const login = async (req, res, next) => {
   try {
     const { username, password } = req.body
     if (!username || !password) {
-      throw new CustomError.BadRequestError(
-        'Please provide username and password'
-      )
+      throw new CustomError.BadRequestError('Please provide username and password')
     }
     const admin = await User.findOne({ username, role: 'admin' })
     const safety = await User.findOne({
-      username: username,
+      username,
       role: 'safety-advisor',
     })
     if (safety) {
@@ -114,9 +107,7 @@ const forgotPassword = async (req, res, next) => {
     user.passwordResetExpires = undefined
     await user.save({ validateBeforeSave: false })
 
-    return res
-      .status(500)
-      .json({ msg: 'There was an error sending the email. Try again later!' })
+    return res.status(500).json({ msg: 'There was an error sending the email. Try again later!' })
   }
 }
 
