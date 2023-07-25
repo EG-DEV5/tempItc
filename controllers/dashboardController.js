@@ -232,7 +232,7 @@ const mainDashboard = async (req, res) => {
       offlineUsers,
       vehicles
     )
-    res.status(200).json({ finalResponse })
+    res.status(200).json(finalResponse)
     // requests
     //   ? Promise.all(requests)
     //       .then((responses) => {
