@@ -1,8 +1,9 @@
-const { configConnection, stageDBConnection } = require('./mongodbConn')
+const { configConnection, stageDBConnection, itcViolationDB } = require('./mongodbConn')
 const User = require('../models/User')
 const axios = require('axios')
 const moment = require('moment')
 const Division = require('../models/Division')
+const { BadRequestError } = require('../errors')
 function bit_test(num, bit) {
   return (num >> bit) % 2 != 0
 }
@@ -306,7 +307,7 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
           swerving: {
             $function: {
               body: `function(num, bit) { return ((num>>bit) % 2 != 0) }`,
-              args: ['$StatusCode', 100],
+              args: ['$StatusCode', 100], // dummy
               lang: 'js',
             },
           },
@@ -460,6 +461,25 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
     return e.message
   }
 }
+async function newDashboardQuery(strDate, endDate, vehIDs) {
+  try {
+    const strDate = moment(endDate).subtract(2, 'days')
+    let agg = [
+      {
+        $match : {
+          VehicleID: { $in: vehIDs },
+          StrDate: { $gte: new Date(strDate)},
+          EndDate: { $lte: new Date(endDate)}
+        }
+      }
+    ]
+    const result = await itcViolationDB.collection('viol_wind_t12h').aggregate(agg).toArray()
+    return result
+  } catch (error) {
+    console.log({ errorMsg: error.message, stack: error.stack })
+    next(error)
+  }
+}
 function getUsersWithViolations(userDetails, result) {
   const vehicleData = {}
   const violationKeys = [
@@ -473,9 +493,10 @@ function getUsersWithViolations(userDetails, result) {
   ]
   const vehiclesWithViolaions = result.filter((veh) => {
     // loop over violation keys and check if any vehicle has at least one key > 0
-    return violationKeys.some((violation) => {
+    const hasViolation = violationKeys.some((violation) => {
       return veh[violation] > 0
     })
+    return hasViolation
   })
   // returning users with there violations
   vehiclesWithViolaions.forEach((veh) => {
@@ -490,7 +511,8 @@ function getUsersWithViolations(userDetails, result) {
   for (let key in vehicleData) {
     const user = userDetails.find((u) => u.vid == +key)
     const userObject = { ...user, ...vehicleData[key] }
-    ;(userObject.custodyName = userObject.custodyId.custodyName), delete userObject.address
+    userObject.custodyName = userObject.custodyId.custodyName
+    delete userObject.address
     delete userObject.endCoords
     delete userObject.startCoords
     delete userObject.startAdress
@@ -2853,7 +2875,7 @@ async function getRatingsQueryById(id) {
     return e.message
   }
 }
-const custodyFilter = async (itd, itc) => {
+ async function custodyFilter(itd, itc) {
   if (itd) itd = itd.split(',')
   if (itc) itc = itc.split(',')
   let vehicles
@@ -2861,14 +2883,14 @@ const custodyFilter = async (itd, itc) => {
     const itcVehicles = await User.find({
       custodyId: { $in: itc },
       role: 'trainer',
-    }).lean()
+    }).select('-password -__v').lean()
     const itdItcs = await Division.find({ _id: { $in: itd } })
     const itdItcIds = itdItcs.flatMap((itd) => [...itd.itcs])
 
     const itdVehicles = await User.find({
       custodyId: { $in: itdItcIds },
       role: 'trainer',
-    }).lean()
+    }).select('-_id -password -__v').lean()
     vehicles = itdVehicles.concat(itcVehicles)
     return vehicles
   } else if (itd && itd.length > 0 && !itc) {
@@ -2878,29 +2900,32 @@ const custodyFilter = async (itd, itc) => {
     const itdVehicles = await User.find({
       custodyId: { $in: itdItcIds },
       role: 'trainer',
-    }).lean()
+    }).select('-_id -password -__v').lean()
     const vehicles = itdVehicles
     return vehicles
   } else if (!itd && itc && itc.length > 0) {
     const itcVehicles = await User.find({
       custodyId: { $in: itc },
       role: 'trainer',
-    }).lean()
+    }).select('-_id -password -__v').lean()
     const vehicles = itcVehicles
     return vehicles
   } else if (!itd && !itc) {
     const vehicles = await User.find({
       vid: { $ne: null, $exists: true },
       role: 'trainer',
-    }).lean()
+    }).select('-_id -password -__v').lean()
     return vehicles
   }
 }
-const dateFilter = (startDate, endDate) => {
+function dateFilter(startDate, endDate) {
   startDate = startDate
     ? moment.utc(startDate).format()
     : moment.utc().subtract(1, 'hours').format()
   endDate = endDate ? moment.utc(endDate).format() : moment.utc().format()
+  if (startDate > endDate) {
+    throw new BadRequestError('Invalid date range')
+  }
   return { startPeriod: startDate, endPeriod: endDate }
 }
 // const sheetsFortrainee = (
@@ -3018,4 +3043,5 @@ module.exports = {
   getMillageFortrainer,
   sheetsFortrainee,
   getVehicleDataFromFireBase,
+  newDashboardQuery
 }

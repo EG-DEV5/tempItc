@@ -28,6 +28,7 @@ const {
   custodyFilter,
   sheetsFortrainee,
   dateFilter,
+  newDashboardQuery,
 } = require('../helpers/helper')
 const moment = require('moment')
 const Division = require('../models/Division')
@@ -188,6 +189,7 @@ const mainDashboard = async (req, res) => {
     // const nullSerials = vehicles.length - serials.length
 
     let result = await mainDashboardQuery(startPeriod, endPeriod, validVids)
+    // let test = await newDashboardQuery(startPeriod, endPeriod, validVids)
 
     const requests =
       serials.length > 0 &&
@@ -203,11 +205,20 @@ const mainDashboard = async (req, res) => {
     let acctiveUsers = []
     let offlineUsers = []
 
-    const firebaseResponses = await Promise.all(requests)
+    const firebaseResponses = await Promise.all(requests).catch((error) => {
+      res.status(500).send('An error occurred')
+    })
     firebaseResponses.forEach((response) => {
       const status = vehStatus(response.data)
-      if (status !== 'offline') ++online, acctiveUsers.push(response.data.SerialNumber)
-      else ++offline, offlineUsers.push(response.data.SerialNumber)
+      if (status !== 'offline') {
+        const veh = vehicles.find((vehicle) => vehicle.SerialNumber == response.data.SerialNumber)
+        acctiveUsers.push(veh)
+        ++online
+      } else {
+        const veh = vehicles.find((vehicle) => vehicle.SerialNumber == response.data.SerialNumber)
+        offlineUsers.push(veh)
+        ++offline
+      }
       mileage += response.data.Mileage
       if (response.data.IsPowerCutOff) ++tampering
     })
@@ -221,7 +232,7 @@ const mainDashboard = async (req, res) => {
       offlineUsers,
       vehicles
     )
-    res.status(200).json(finalResponse)
+    res.status(200).json({ finalResponse })
     // requests
     //   ? Promise.all(requests)
     //       .then((responses) => {
@@ -267,6 +278,26 @@ const mainDashboard = async (req, res) => {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Something went wrong' })
   }
 }
+async function newDashboard(req, res) {
+  try {
+    let { endDate, startDate, itd, itc } = req.query
+    let { startPeriod, endPeriod } = dateFilter(startDate, endDate)
+
+    let vehicles = await custodyFilter(itd, itc)
+    const validVids = vehicles.reduce((acc, vehicle) => {
+      if (vehicle.vid !== null || vehicle.vid !== undefined) {
+        acc.push(vehicle.vid)
+      }
+      return acc
+    })
+
+    let result = await newDashboardQuery(startPeriod, endPeriod, validVids)
+
+    res.status(200).json({ message: 'Dashboard' })
+  } catch (error) {
+    next(error)
+  }
+}
 function finalResult(
   result,
   online,
@@ -277,34 +308,6 @@ function finalResult(
   offlineUsers,
   vehicles
 ) {
-  let active = []
-  let unActive = []
-  acctiveUsers.forEach((serial) => {
-    const onlineVeh = vehicles.find((vehicle) => vehicle.SerialNumber === serial)
-    if (typeof onlineVeh == 'object') {
-      delete onlineVeh.password
-      delete onlineVeh.__v
-      delete onlineVeh.isOnline
-      delete onlineVeh.GroupID
-      delete onlineVeh.GroupName
-      delete onlineVeh.custodyId
-      delete onlineVeh._id
-      active.push({ ...onlineVeh, status: 'online' })
-    }
-  })
-  offlineUsers.forEach((serial) => {
-    const offlineVeh = vehicles.find((vehicle) => vehicle.SerialNumber === serial)
-    if (typeof offlineVeh == 'object') {
-      delete offlineVeh.password
-      delete offlineVeh.__v
-      delete offlineVeh.isOnline
-      delete offlineVeh.GroupID
-      delete offlineVeh.custodyId
-      delete offlineVeh._id
-      delete offlineVeh.GroupName
-      unActive.push({ ...offlineVeh, status: 'offline' })
-    }
-  })
   let final = {
     harshAcceleration: result.violationCount.harshAcceleration,
     overSpeed: result.violationCount.OverSpeed,
@@ -320,9 +323,9 @@ function finalResult(
     mileage,
     online,
     offline,
+    acctiveUsers,
+    offlineUsers,
     incentivePoints: (online + offline) * 100,
-    onlineUsers: active,
-    offlineUsers: unActive,
     tampering,
     sheets: result.sheets,
   }
@@ -494,7 +497,9 @@ const trainerHandler = async (userId, endDate, startDate, res) => {
 
   if (traineeSerial[0] != null) {
     const requests = requestsHandler(traineeSerial)
-    const firebaseResponses = await Promise.all(requests)
+    const firebaseResponses = await Promise.all(requests).catch((error) => {
+      res.status(500).send('An error occurred')
+    })
     firebaseResponses.forEach((response) => {
       const vehicle = traineeSerial.find((vehicle) => vehicle == response.data.SerialNumber)
       const status = vehStatus(response.data)
