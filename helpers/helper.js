@@ -807,6 +807,7 @@ async function fatigueQuery(enddate, vehIDs) {
     return e.message
   }
 }
+// !Depricated
 async function weeklyTrendsQuery(vehIDs) {
   try {
     let startDate = moment.utc().subtract(6, 'days').format()
@@ -1258,6 +1259,7 @@ async function weeklyTrendsQuery(vehIDs) {
     return e.message
   }
 }
+// ! Depricated
 async function optimizedTrendsQuery(vehIDs, startPeriod, endPeriod) {
   try {
     let result
@@ -1520,6 +1522,28 @@ async function optimizedTrendsQuery(vehIDs, startPeriod, endPeriod) {
   }
 }
 
+function weeklyTrendsViolationsQuery(endDate,validVids) {
+
+  let startDate = moment.utc(endDate).subtract(1, "days").format()
+  // console.log(startDate, endDate)
+
+  const agg = [
+    {$match: { 
+      VehicleID: {$in:validVids},
+      StrDate : {$gte: new Date(startDate)},
+      EndDate : {$lte: new Date(endDate)},
+    }},
+
+    { $group: { _id: { VehicleID: "$VehicleID", ViolType: "$ViolType" } } },
+
+    {$group: { _id: "$_id.ViolType", violatedCarsCount: { $count: {} } }  
+  }];
+
+  // console.log("agg", agg);
+  return itcViolationDB.collection("viol_record").aggregate(agg).toArray();
+}
+
+// ! Depricated
 const checkMissingDays = (result) => {
   result.forEach((item, idx) => {
     if (item.length === 0) {
@@ -1539,6 +1563,7 @@ const checkMissingDays = (result) => {
   const results = result.flat()
   return results
 }
+// ! Depricated
 const berDayCount = (result, dates) => {
   let labels = []
 
@@ -1591,6 +1616,79 @@ const berDayCount = (result, dates) => {
   ]
   return { labels, series }
 }
+
+
+function checkMissingViolation(day) {
+  const requiredKeys = ["brake", "seatbelt", "temper", "drift", "accel", "speed", "fatigue", "nightdrive"];
+
+  requiredKeys.forEach(key => {
+    if(!(day.find(violation => violation?._id == key))) {
+      day.push({_id: key, violatedCarsCount: 0});
+    }
+  })
+}
+
+function changeViolationsFormat(day, data) {
+  day.forEach(violation => {
+    // console.log(violation)
+    const violationKey = violation["_id"];
+    const violationCount = violation["violatedCarsCount"];
+    if(!data[violationKey]) data[violationKey] = [];
+    data[violationKey].push(violationCount);
+  })
+}
+
+function weeklyTrendsFrontendFormat(violations) {
+  const series = [
+    {
+      name: 'Over Speed',
+      data: violations.speed,
+    },
+    {
+      name: 'Harsh Brake',
+      data: violations.brake,
+    },
+    { name: 'Tampering', data: violations.temper },
+    {
+      name: 'Seat Belt',
+      data: violations.seatbelt,
+    },
+    {
+      name: 'Night Drive',
+      data: violations.nightdrive,
+    },
+    {
+      name: 'Harsh Acceleration',
+      data: violations.accel,
+    },
+    {
+      name: 'Swerving',
+      data: violations.drift,
+    },
+    {
+      name: 'Fatigue',
+      data: violations.fatigue
+    }
+  ]
+  return series;
+}
+
+function newBerDayCount (days, labels) {
+  const data = {}
+  
+  days.forEach(day => { // 7 days loop
+    // console.log(day);
+    checkMissingViolation(day);
+    changeViolationsFormat(day, data);  
+  });
+
+  
+  const series = weeklyTrendsFrontendFormat(data);
+
+  return {series, labels};
+}
+
+
 async function vehicleViolationsQuery(strDate, endDate, vehIDs) {
   try {
     // await connect()
@@ -3043,5 +3141,7 @@ module.exports = {
   getMillageFortrainer,
   sheetsFortrainee,
   getVehicleDataFromFireBase,
-  newDashboardQuery
+  newDashboardQuery,
+  weeklyTrendsViolationsQuery,
+  newBerDayCount
 }
