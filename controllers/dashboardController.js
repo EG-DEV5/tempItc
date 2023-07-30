@@ -29,6 +29,8 @@ const {
   sheetsFortrainee,
   dateFilter,
   newDashboardQuery,
+  weeklyTrendsViolationsQuery,
+  newBerDayCount
 } = require('../helpers/helper')
 const moment = require('moment')
 const Division = require('../models/Division')
@@ -342,26 +344,63 @@ function finalResult(
   final.allItd = allItd
   return final
 }
-const weeklyTrends = async (req, res) => {
+// const weeklyTrends = async (req, res) => {
+//   try {
+//     let { endDate, startDate, itd, itc } = req.query
+//     let { startPeriod, endPeriod } = dateFilter(startDate, endDate)
+//     if (startPeriod > endPeriod) return res.status(400).send('Invalid date range')
+
+//     let vehicles = await custodyFilter(itd, itc)
+//     const validVids = vehicles.reduce((acc, vehicle) => {
+//       if (vehicle.vid !== null && vehicle.vid !== undefined) {
+//         acc.push(vehicle.vid)
+//       }
+//       return acc
+//     }, [])
+
+    // let Trends = await weeklyTrendsQuery(validVids)
+//     let Trends = await optimizedTrendsQuery(validVids, startPeriod, endPeriod)
+
+//     res.status(200).json({ Trends })
+//   } catch (error) {
+//     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Something went wrong' })
+//   }
+// }
+
+
+function generateLastWeek(endPeriod) {
+  let dates = []
+  let labels = []
+  for (let i = 0; i < 7; i++) {
+    let date = moment.utc(endPeriod).subtract(i, 'days').format()
+    dates.push(date)
+    labels.push(moment.utc(date).format('ddd'))
+  }
+  
+  return {dates, labels};
+}
+
+async function newWeeklyTrends (req, res, next) {
   try {
     let { endDate, startDate, itd, itc } = req.query
-    let { startPeriod, endPeriod } = dateFilter(startDate, endDate)
-    if (startPeriod > endPeriod) return res.status(400).send('Invalid date range')
+    let { endPeriod } = dateFilter(startDate, endDate)
 
     let vehicles = await custodyFilter(itd, itc)
     const validVids = vehicles.reduce((acc, vehicle) => {
       if (vehicle.vid !== null && vehicle.vid !== undefined) {
         acc.push(vehicle.vid)
-      }
+      }  
       return acc
     }, [])
-
-    // let Trends = await weeklyTrendsQuery(validVids)
-    let Trends = await optimizedTrendsQuery(validVids, startPeriod, endPeriod)
-
-    res.status(200).json({ Trends })
+    // console.log("validVids", validVids)
+    const lastweekDates = generateLastWeek(endPeriod);
+    const promises = lastweekDates.dates.map(day => weeklyTrendsViolationsQuery(day, validVids));
+    const daysResult = await Promise.all(promises);
+    // console.log("daysResult", daysResult);
+    const result = newBerDayCount(daysResult, lastweekDates.labels);
+    res.status(200).send({Trends: result});
   } catch (error) {
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Something went wrong' })
+    next(error);
   }
 }
 
@@ -746,5 +785,5 @@ module.exports = {
   bestDrivers,
   getRatings,
   getRatingsById,
-  weeklyTrends,
+  newWeeklyTrends
 }
