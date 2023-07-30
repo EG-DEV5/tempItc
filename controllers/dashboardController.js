@@ -29,6 +29,8 @@ const {
   sheetsFortrainee,
   dateFilter,
   newDashboardQuery,
+  vehStatus,
+  firebaseQuery,
   weeklyTrendsViolationsQuery,
   newBerDayCount
 } = require('../helpers/helper')
@@ -114,63 +116,63 @@ const seatBelt = async (req, res) => {
 //   return { startPeriod: startDate, endPeriod: endDate }
 // }
 
-const isOffline = (data) => {
-  let targetDate = moment.utc(data.RecordDateTime).toDate()
+// const isOffline = (data) => {
+//   let targetDate = moment.utc(data.RecordDateTime).toDate()
 
-  var current = new Date(new Date().toUTCString())
-  let diffInMinutes = Math.ceil((current - targetDate) / 60000)
-  // console.log({ targetDate, current, diffInMinutes, fire: data.RecordDateTime })
+//   var current = new Date(new Date().toUTCString())
+//   let diffInMinutes = Math.ceil((current - targetDate) / 60000)
+//   // console.log({ targetDate, current, diffInMinutes, fire: data.RecordDateTime })
 
-  return (
-    (!data.EngineStatus && diffInMinutes / 60 >= 48) ||
-    (data.EngineStatus && diffInMinutes / 60 > 12)
-  )
-}
-const isSleep = (data) => {
-  let targetDate = moment.utc(data.RecordDateTime).toDate()
+//   return (
+//     (!data.EngineStatus && diffInMinutes / 60 >= 48) ||
+//     (data.EngineStatus && diffInMinutes / 60 > 12)
+//   )
+// }
+// const isSleep = (data) => {
+//   let targetDate = moment.utc(data.RecordDateTime).toDate()
 
-  var current = new Date(new Date().toUTCString())
-  let diffInMinutes = Math.ceil((current - targetDate) / 60000)
-  return !data.EngineStatus && diffInMinutes / 60 < 48 && diffInMinutes / 60 > 4
-}
-const isStopped = (data) => {
-  let targetDate = moment.utc(data.RecordDateTime).toDate()
+//   var current = new Date(new Date().toUTCString())
+//   let diffInMinutes = Math.ceil((current - targetDate) / 60000)
+//   return !data.EngineStatus && diffInMinutes / 60 < 48 && diffInMinutes / 60 > 4
+// }
+// const isStopped = (data) => {
+//   let targetDate = moment.utc(data.RecordDateTime).toDate()
 
-  var current = new Date(new Date().toUTCString())
-  let diffInMinutes = Math.ceil((current - targetDate) / 60000)
-  return !data.EngineStatus && diffInMinutes / 60 < 4
-}
-const vehStatus = (data) => {
-  let vehicleStatus = {
-    offline: 'offline',
-    sleep: 'sleep',
-    stopped: 'stopped',
-    idling: 'idling',
-    overSpeed: 'overSpeed',
-    running: 'running',
-    invalidLocation: 'invalidLocation',
-  }
-  if (isOffline(data)) {
-    return vehicleStatus.offline
-  } else if (isSleep(data)) {
-    return vehicleStatus.sleep
-  } else if (isStopped(data)) {
-    return vehicleStatus.stopped
-  } else if (data.IsFuelCutOff || data.IsPowerCutOff) {
-    return vehicleStatus.invalidLocation
-  } else if (data.EngineStatus && data.Speed <= 5) {
-    return vehicleStatus.idling
-  } else if (data.EngineStatus && data.Speed > 120) {
-    return vehicleStatus.overSpeed
-  } else if (data.EngineStatus && data.Speed < 120 && data.Speed > 5) {
-    return vehicleStatus.running
-  } else if (!data.EngineStatus && data.Speed > 0) {
-    return vehicleStatus.invalidLocation
-  } else if (!data.EngineStatus) {
-    return vehicleStatus.stopped
-  }
-  return vehicleStatus.offline
-}
+//   var current = new Date(new Date().toUTCString())
+//   let diffInMinutes = Math.ceil((current - targetDate) / 60000)
+//   return !data.EngineStatus && diffInMinutes / 60 < 4
+// }
+// const vehStatus = (data) => {
+//   let vehicleStatus = {
+//     offline: 'offline',
+//     sleep: 'sleep',
+//     stopped: 'stopped',
+//     idling: 'idling',
+//     overSpeed: 'overSpeed',
+//     running: 'running',
+//     invalidLocation: 'invalidLocation',
+//   }
+//   if (isOffline(data)) {
+//     return vehicleStatus.offline
+//   } else if (isSleep(data)) {
+//     return vehicleStatus.sleep
+//   } else if (isStopped(data)) {
+//     return vehicleStatus.stopped
+//   } else if (data.IsFuelCutOff || data.IsPowerCutOff) {
+//     return vehicleStatus.invalidLocation
+//   } else if (data.EngineStatus && data.Speed <= 5) {
+//     return vehicleStatus.idling
+//   } else if (data.EngineStatus && data.Speed > 120) {
+//     return vehicleStatus.overSpeed
+//   } else if (data.EngineStatus && data.Speed < 120 && data.Speed > 5) {
+//     return vehicleStatus.running
+//   } else if (!data.EngineStatus && data.Speed > 0) {
+//     return vehicleStatus.invalidLocation
+//   } else if (!data.EngineStatus) {
+//     return vehicleStatus.stopped
+//   }
+//   return vehicleStatus.offline
+// }
 const mainDashboard = async (req, res) => {
   try {
     let { endDate, startDate, itd, itc } = req.query
@@ -280,7 +282,7 @@ const mainDashboard = async (req, res) => {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Something went wrong' })
   }
 }
-async function newDashboard(req, res) {
+async function newDashboard(req, res, next) {
   try {
     let { endDate, startDate, itd, itc } = req.query
     let { startPeriod, endPeriod } = dateFilter(startDate, endDate)
@@ -291,11 +293,54 @@ async function newDashboard(req, res) {
         acc.push(vehicle.vid)
       }
       return acc
-    })
+    }, [])
 
     let result = await newDashboardQuery(startPeriod, endPeriod, validVids)
+    if (Object.keys(result).length === 0) {
+      res.status(StatusCodes.OK).json({
+        overSpeed: 0,
+        harshAcceleration: 0,
+        harshBrake: 0,
+        seatBelt: 0,
+        nightDrive: 0,
+        fatigue: 0,
+        swerving: 0,
+        tampering: 0,
+        sheets: {
+          overSpeed: [],
+          harshAcceleration: [],
+          harshBrake: [],
+          seatBelt: [],
+          nightDrive: [],
+          fatigue: [],
+          swerving: [],
+        },
+        users: [],
+        incentivePoints: 0,
+      })
+    }
 
-    res.status(200).json({ message: 'Dashboard' })
+    res.status(StatusCodes.OK).json(result)
+  } catch (error) {
+    next(error)
+  }
+}
+async function getTotalUsers(req, res, next) {
+  try {
+    let { itd, itc } = req.query
+    let vehicles = await custodyFilter(itd, itc)
+    let serials = []
+    const vehiclesMap = new Map()
+    vehicles.reduce((acc, vehicle) => {
+      if (vehicle.vid !== null || vehicle.vid !== undefined) {
+        acc.push(vehicle.vid)
+        serials.push(vehicle.SerialNumber)
+        vehiclesMap.set(vehicle.SerialNumber, vehicle)
+      }
+      return acc
+    }, [])
+    const result = await firebaseQuery(vehiclesMap, serials)
+    res.status(StatusCodes.OK).json(result)
   } catch (error) {
     next(error)
   }
@@ -311,25 +356,25 @@ function finalResult(
   vehicles
 ) {
   let final = {
-    harshAcceleration: result.violationCount.harshAcceleration,
-    overSpeed: result.violationCount.OverSpeed,
-    lowSpeed: result.violationCount.lowSpeed,
-    mediumSpeed: result.violationCount.mediumSpeed,
-    highSpeed: result.violationCount.highSpeed,
-    seatBelt: result.violationCount.SeatBelt,
-    harshBrake: result.violationCount.harshBrake,
-    nightDrive: result.violationCount.nightDrive,
-    longDistance: result.violationCount.longDistance,
-    users: result.users,
-    fatigue: result.fatigue,
-    mileage,
-    online,
-    offline,
-    onlineUsers: acctiveUsers,
-    offlineUsers,
-    incentivePoints: (online + offline) * 100,
-    tampering,
-    sheets: result.sheets,
+    harshAcceleration: result.violationCount.harshAcceleration, // D
+    overSpeed: result.violationCount.OverSpeed, // D
+    lowSpeed: result.violationCount.lowSpeed, // D
+    mediumSpeed: result.violationCount.mediumSpeed, // D
+    highSpeed: result.violationCount.highSpeed, // D
+    seatBelt: result.violationCount.SeatBelt, // D
+    harshBrake: result.violationCount.harshBrake, // D
+    nightDrive: result.violationCount.nightDrive, // D
+    longDistance: result.violationCount.longDistance, // D
+    users: result.users, // D
+    fatigue: result.fatigue, // D
+    mileage, // D
+    online, // D
+    offline, // D
+    onlineUsers: acctiveUsers, // D
+    offlineUsers, // D
+    incentivePoints: (online + offline) * 100, // D
+    tampering, // D
+    sheets: result.sheets, // D
   }
   // get the max value from violations to get the ITD
   const allItd = Math.max(
@@ -695,41 +740,38 @@ const vehicleViolationsById = async (req, res, next) => {
 const bestDrivers = async (req, res, next) => {
   try {
     let { endDate, startDate, itd, itc } = req.query
-    startDate = startDate
-      ? moment.utc(startDate).format()
-      : moment.utc().subtract(1, 'hours').format()
-    endDate = endDate ? moment.utc(endDate).format() : moment.utc().format()
-    if (startDate > endDate) return res.status(400).send('Invalid date range')
-    let vehicles = await custodyFilter(itd, itc)
+    let { startPeriod, endPeriod } = dateFilter(startDate, endDate)
 
+    let vehicles = await custodyFilter(itd, itc)
+    const vehiclesMap = new Map()
     const validVids = vehicles.reduce((acc, vehicle) => {
       if (vehicle.vid !== null || vehicle.vid !== undefined) {
         acc.push(vehicle.vid)
+        vehiclesMap.set(vehicle.vid, vehicle)
       }
       return acc
     }, [])
 
-    let result = await topDriversQuery(startDate, endDate, validVids)
+    let result = await topDriversQuery(startPeriod, endPeriod, validVids, vehiclesMap)
 
     if (result.length === 0) {
       throw new CustomError.BadRequestError(
         '{"enMessage" : "there is no data", "arMessage" :"لا توجد بيانات "}'
       )
     }
-    //  extract top drivers ids
-    const topArray = result.map((vehs) => {
-      return vehs._id
-    })
-    // get top drivers details
-    const usersDetails = await getUserDetails(topArray)
+    // //  extract top drivers ids
+    // const topArray = result.map((vehs) => {
+    //   return vehs._id
+    // })
+    // // get top drivers details
+    // const usersDetails = await getUserDetails(topArray)
 
-    if (usersDetails.length === 0) {
-      throw new CustomError.BadRequestError(
-        '{"enMessage" : "there is no data", "arMessage" :"لا توجد بيانات "}'
-      )
-    }
-
-    return res.status(200).json({ result: usersDetails })
+    // if (usersDetails.length === 0) {
+    //   throw new CustomError.BadRequestError(
+    //     '{"enMessage" : "there is no data", "arMessage" :"لا توجد بيانات "}'
+    //   )
+    // }
+    return res.status(200).json({ result: Array.from(result.values()) })
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(error.message)
   }
@@ -785,5 +827,7 @@ module.exports = {
   bestDrivers,
   getRatings,
   getRatingsById,
-  newWeeklyTrends
+  newWeeklyTrends,
+  newDashboard,
+  getTotalUsers,
 }
