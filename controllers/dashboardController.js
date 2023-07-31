@@ -214,11 +214,11 @@ const mainDashboard = async (req, res) => {
       const status = vehStatus(response.data)
       if (status !== 'offline') {
         const veh = vehicles.find((vehicle) => vehicle.SerialNumber == response.data.SerialNumber)
-        acctiveUsers.push(veh)
+        acctiveUsers.push({...veh, mileage: response.data.Mileage, points: 100})
         ++online
       } else {
         const veh = vehicles.find((vehicle) => vehicle.SerialNumber == response.data.SerialNumber)
-        offlineUsers.push(veh)
+        offlineUsers.push({...veh, mileage: response.data.Mileage, points: 100})
         ++offline
       }
       mileage += response.data.Mileage
