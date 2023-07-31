@@ -413,7 +413,10 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
     const result = await stageDBConnection.collection('LiveLocations').aggregate(agg).toArray()
     // const vehiclesIds = result.map((e) => e._id.VehicleID)
     const userDetails = await User.find({ vid: { $in: vehIDs } })
-      .populate({ path: 'custodyId', select: 'custodyName' })
+      .populate({
+        path: 'custodyId',
+        select: 'custodyName',
+      })
       .select('-password -__v ')
       .lean()
     const formatedDuration = formatDuration(strDate, endDate) // duration of the violations
@@ -460,264 +463,22 @@ async function mainDashboardQuery(strDate, endDate, vehIDs) {
 }
 async function newDashboardQuery(strDate, endDate, vehIDs) {
   try {
+    const strDate = moment(endDate).subtract(2, 'days')
     let agg = [
       {
-        $match: {
+        $match : {
           VehicleID: { $in: vehIDs },
-          UpdateDate: { $gte: new Date(strDate), $lte: new Date(endDate) },
-          // StrDate: { $gte: new Date(strDate) },
-          // EndDate: { $lte: new Date(endDate) },
-        },
-      },
-      {
-        $project: {
-          _id: 0,
-        },
-      },
-    ]
-    const result = await itcViolationDB.collection('viol_veh_points').aggregate(agg).toArray()
-
-    const violations = getViolations(result)
-    violations.users = result
-    return violations
-  } catch (error) {
-    console.log({ errorMsg: error.message, stack: error.stack })
-    throw new BadRequestError(
-      '{"enMessage" : "Error quering the database", "arMessage" : "خطأ في قراءة البيانات"}'
-    )
-  }
-}
-/**
- * Deletes unwanted keys from an object.
- *
- * @param {Array<string>} keys - The keys to be deleted.
- * @param {Object} toBeModified - The object to be modified.
- * @param {Array<string>} neededKeys - The key that should not be deleted.
- * @returns {Object} The modified object.
- */
-function deleteUnWantedKeys(keys, toBeModified, neededKeys) {
-  // delete other violations from each object to get every violation sperately
-  const objCopy = { ...toBeModified }
-  for (const key of keys) {
-    if (!neededKeys.includes(key)) {
-      delete objCopy[key]
-    }
-  }
-  return objCopy
-}
-function getViolations(result) {
-  let violationsObj = {
-    overSpeed: 0,
-    harshAcceleration: 0,
-    harshBrake: 0,
-    seatBelt: 0,
-    nightDrive: 0,
-    fatigue: 0,
-    swerving: 0,
-    tampering: 0,
-  }
-  let sheetsObj = {
-    overSpeed: [],
-    harshAcceleration: [],
-    harshBrake: [],
-    seatBelt: [],
-    nightDrive: [],
-    fatigue: [],
-    swerving: [],
-    tampering: [],
-  }
-  const violations = result.reduce((acc, curr) => {
-    const keys = [
-      'SpeedCount',
-      'SpeedDate',
-      'SpeedPoints',
-      'BrakeCount',
-      'BrakeDate',
-      'BrakePoints',
-      'AccelCount',
-      'AccelDate',
-      'AccelPoints',
-      'SeatBCount',
-      'SeatBDate',
-      'SeatBPoints',
-      'NightDriveCount',
-      'NightDriveDate',
-      'NightDrivePoints',
-      'FatigCount',
-      'FatigPoints',
-      'FatigDate',
-      'DriftCount',
-      'DriftDate',
-      'DriftPoints',
-      'TemprCount',
-      'TemprPoints',
-      'TemprDate',
-    ]
-    if (curr.SpeedCount > 0) {
-      acc.overSpeed += 1
-      const modifiedObj = deleteUnWantedKeys(keys, curr, ['SpeedCount', 'SpeedDate', 'SpeedPoints'])
-      sheetsObj.overSpeed.push(modifiedObj)
-    }
-    if (curr.BrakeCount > 0) {
-      acc.harshBrake += 1
-      const modifiedObj = deleteUnWantedKeys(keys, curr, ['BrakeCount', 'BrakeDate', 'BrakePoints'])
-      sheetsObj.harshBrake.push(modifiedObj)
-    }
-    if (curr.AccelCount > 0) {
-      acc.harshAcceleration += 1
-      const modifiedObj = deleteUnWantedKeys(keys, curr, ['AccelCount', 'AccelDate', 'AccelPoints'])
-      sheetsObj.harshAcceleration.push(modifiedObj)
-    }
-    if (curr.SeatBCount > 0) {
-      acc.seatBelt += 1
-      const modifiedObj = deleteUnWantedKeys(keys, curr, ['SeatBCount', 'SeatBDate', 'SeatBPoints'])
-      sheetsObj.seatBelt.push(modifiedObj)
-    }
-    if (curr.NightDriveCount > 0) {
-      acc.nightDrive += 1
-      const modifiedObj = deleteUnWantedKeys(keys, curr, [
-        'NightDriveCount',
-        'NightDriveDate',
-        'NightDrivePoints',
-      ])
-      sheetsObj.nightDrive.push(modifiedObj)
-    }
-    if (curr.FatigCount > 0) {
-      acc.fatigue += 1
-      const modifiedObj = deleteUnWantedKeys(keys, curr, ['FatigCount', 'FatigPoints', 'FatigDate'])
-      sheetsObj.fatigue.push(modifiedObj)
-    }
-    if (curr.DriftCount > 0) {
-      acc.swerving += 1
-      const modifiedObj = deleteUnWantedKeys(keys, curr, ['DriftCount', 'DriftDate', 'DriftPoints'])
-      sheetsObj.swerving.push(modifiedObj)
-    }
-    if (curr.TemprCount > 0) {
-      acc.tampering += 1
-      const modifiedObj = deleteUnWantedKeys(keys, curr, [
-        'TemprCount',
-        'TemprPoints',
-        'TemprDate',
-      ])
-      sheetsObj.tampering.push(modifiedObj)
-    }
-    return acc
-  }, violationsObj)
-  violations.sheets = sheetsObj
-  violations.lowSpeed = Math.ceil(violationsObj.overSpeed / .6)
-  violations.mediumSpeed = Math.ceil(violationsObj.overSpeed / 5)
-  violations.highSpeed = Math.ceil(violationsObj.overSpeed / 5)
-   // get the max value from violations to get the ITD
-   const allItd = Math.max(
-    violations.harshAcceleration,
-    violations.overSpeed,
-    violations.seatBelt,
-    violations.harshBrake,
-    violations.nightDrive,
-    violations.fatigue,
-    violations.swerving,
-    violations.tampering
-  )
-  violations.allItd = allItd
-
-  return violations
-}
-async function firebaseQuery(vehiclesMap, serials) {
-  try {
-    let online = 0
-    let offline = 0
-    let mileage = 0
-    let activeUsers = []
-    let offlineUsers = []
-    const requests = serials.map((serial) => {
-      return axios.get(`https://saferoad-srialfb.firebaseio.com/${serial}.json`)
-    })
-    const result = await Promise.all(requests)
-    result.forEach((response) => {
-      const status = vehStatus(response.data)
-      const veh = vehiclesMap.get(response.data.SerialNumber)
-      if (status !== 'offline') {
-        ++online
-        activeUsers.push(veh)
-      } else {
-        ++offline
-        offlineUsers.push(veh)
+          StrDate: { $gte: new Date(strDate)},
+          EndDate: { $lte: new Date(endDate)}
+        }
       }
-      mileage += response.data.Mileage
-    })
-    return {
-      online,
-      offline,
-      mileage,
-      incentivePoints: (online + offline) * 100,
-      activeUsers,
-      offlineUsers,
-    }
+    ]
+    const result = await itcViolationDB.collection('viol_wind_t12h').aggregate(agg).toArray()
+    return result
   } catch (error) {
     console.log({ errorMsg: error.message, stack: error.stack })
-    throw new BadRequestError(
-      '{"enMessage" : "Error querying the latest data", "arMessage" : "خطأ في قراءة احدث البيانات"}'
-    )
+    next(error)
   }
-}
-function isOffline(data) {
-  let targetDate = moment.utc(data.RecordDateTime).toDate()
-
-  var current = new Date(new Date().toUTCString())
-  let diffInMinutes = Math.ceil((current - targetDate) / 60000)
-  // console.log({ targetDate, current, diffInMinutes, fire: data.RecordDateTime })
-
-  return (
-    (!data.EngineStatus && diffInMinutes / 60 >= 48) ||
-    (data.EngineStatus && diffInMinutes / 60 > 12)
-  )
-}
-function isSleep(data) {
-  let targetDate = moment.utc(data.RecordDateTime).toDate()
-
-  var current = new Date(new Date().toUTCString())
-  let diffInMinutes = Math.ceil((current - targetDate) / 60000)
-  return !data.EngineStatus && diffInMinutes / 60 < 48 && diffInMinutes / 60 > 4
-}
-function isStopped(data) {
-  let targetDate = moment.utc(data.RecordDateTime).toDate()
-
-  var current = new Date(new Date().toUTCString())
-  let diffInMinutes = Math.ceil((current - targetDate) / 60000)
-  return !data.EngineStatus && diffInMinutes / 60 < 4
-}
-function vehStatus(data) {
-  let vehicleStatus = {
-    offline: 'offline',
-    sleep: 'sleep',
-    stopped: 'stopped',
-    idling: 'idling',
-    overSpeed: 'overSpeed',
-    running: 'running',
-    invalidLocation: 'invalidLocation',
-  }
-  if(!data) return vehicleStatus.offline
-
-  if (isOffline(data)) {
-    return vehicleStatus.offline
-  } else if (isSleep(data)) {
-    return vehicleStatus.sleep
-  } else if (isStopped(data)) {
-    return vehicleStatus.stopped
-  } else if (data.IsFuelCutOff || data.IsPowerCutOff) {
-    return vehicleStatus.invalidLocation
-  } else if (data.EngineStatus && data.Speed <= 5) {
-    return vehicleStatus.idling
-  } else if (data.EngineStatus && data.Speed > 120) {
-    return vehicleStatus.overSpeed
-  } else if (data.EngineStatus && data.Speed < 120 && data.Speed > 5) {
-    return vehicleStatus.running
-  } else if (!data.EngineStatus && data.Speed > 0) {
-    return vehicleStatus.invalidLocation
-  } else if (!data.EngineStatus) {
-    return vehicleStatus.stopped
-  }
-  return vehicleStatus.offline
 }
 function getUsersWithViolations(userDetails, result) {
   const vehicleData = {}
@@ -2598,73 +2359,49 @@ async function getTraineeViolations(strDate, endDate, validVids) {
     // await close()
   }
 }
-async function topDriversQuery(startDate, endDate, validVids, vehiclesMap) {
+async function topDriversQuery(startDate, endDate, validVids) {
   try {
-    // let agg = [
-    //   {
-    //     $match: {
-    //       VehicleID: { $in: validVids },
-    //       RecordDateTime: {
-    //         $gte: new Date(startDate),
-    //         $lte: new Date(endDate),
-    //       },
-    //     },
-    //   },
-    //   {
-    //     $group: {
-    //       _id: '$VehicleID',
-    //       count: {
-    //         $sum: {
-    //           $cond: {
-    //             if: {
-    //               $gte: ['$AlarmCode', 0],
-    //             },
-    //             then: 1,
-    //             else: 0,
-    //           },
-    //         },
-    //       },
-    //       Duration: { $sum: '$Duration' },
-    //     },
-    //   },
-    //   {
-    //     $sort: {
-    //       count: 1,
-    //       Duration: -1,
-    //     },
-    //   },
-    // ]
-    // const result = await stageDBConnection.collection('LiveLocations').aggregate(agg).toArray()
     let agg = [
       {
         $match: {
           VehicleID: { $in: validVids },
-          UpdateDate: { $gte: new Date(startDate), $lte: new Date(endDate) },
+          RecordDateTime: {
+            $gte: new Date(startDate),
+            $lte: new Date(endDate),
+          },
         },
       },
       {
         $group: {
-          _id: null,
-          violatedIDs: { $push: '$VehicleID' },
+          _id: '$VehicleID',
+          count: {
+            $sum: {
+              $cond: {
+                if: {
+                  $gte: ['$AlarmCode', 0],
+                },
+                then: 1,
+                else: 0,
+              },
+            },
+          },
+          Duration: { $sum: '$Duration' },
         },
       },
       {
-        $project: {
-          _id: 0,
-          violatedIDs: 1,
+        $sort: {
+          count: 1,
+          Duration: -1,
         },
       },
     ]
-    const [result] = await itcViolationDB.collection('viol_veh_points').aggregate(agg).toArray()
-    const violatedIDs = new Set(result.violatedIDs)
+    const result = await stageDBConnection.collection('LiveLocations').aggregate(agg).toArray()
     // take the top drivers
-    for (const vid of violatedIDs)  vehiclesMap.delete(vid)
-    return vehiclesMap
+    const topDrivers = result.filter((driver) => driver.count === 0)
+    return topDrivers
   } catch (e) {
-    console.log({ errorMsg: error.message, stack: error.stack })
-    throw new BadRequestError(
-      '{"enMessage" : "Error querying the topDrivers", "arMessage" : "حدث خطا فى البحث عن المتفوقين"}'
-    )
+    console.log(e)
+    return e.message
   }
 }
 async function getUserDetails(ids) {
@@ -2945,7 +2682,7 @@ async function getRatingsQuery(vehicles) {
     // await close()
   }
 }
-// ! deprecated
+// ! review
 async function getMillageForUsers(ids) {
   try {
     const strDate = moment.utc().subtract(1, 'days').format('YYYY-MM-DD')
@@ -2979,7 +2716,7 @@ async function getMillageForUsers(ids) {
     return e.message
   }
 }
-// ! deprecated
+// ! review
 async function getMillageFortrainer(vid) {
   try {
     const strDate = moment.utc().subtract(1, 'days').format('YYYY-MM-DD')
@@ -3236,28 +2973,23 @@ async function getRatingsQueryById(id) {
     return e.message
   }
 }
-async function custodyFilter(itd, itc) {
+ async function custodyFilter(itd, itc) {
   if (itd) itd = itd.split(',')
   if (itc) itc = itc.split(',')
   let vehicles
   if (itd && itd.length > 0 && itc && itc.length > 0) {
-    // const itcVehicles = await User.find({
-    //   custodyId: { $in: itc },
-    //   role: 'trainer',
-    // })
-    //   .select('-_id -password -__v')
-    //   .lean()
+    const itcVehicles = await User.find({
+      custodyId: { $in: itc },
+      role: 'trainer',
+    }).select('-password -__v').lean()
     const itdItcs = await Division.find({ _id: { $in: itd } })
     const itdItcIds = itdItcs.flatMap((itd) => [...itd.itcs])
 
-    const allVehicles = await User.find({
-      custodyId: { $in: [...itdItcIds,...itc] },
+    const itdVehicles = await User.find({
+      custodyId: { $in: itdItcIds },
       role: 'trainer',
-    })
-      .select('-_id -password -__v')
-      .lean()
-    // vehicles = itdVehicles.concat(itcVehicles)
-    vehicles = allVehicles
+    }).select('-_id -password -__v').lean()
+    vehicles = itdVehicles.concat(itcVehicles)
     return vehicles
   } else if (itd && itd.length > 0 && !itc) {
     const itdItcs = await Division.find({ _id: { $in: itd } })
@@ -3266,34 +2998,28 @@ async function custodyFilter(itd, itc) {
     const itdVehicles = await User.find({
       custodyId: { $in: itdItcIds },
       role: 'trainer',
-    })
-      .select('-_id -password -__v')
-      .lean()
+    }).select('-_id -password -__v').lean()
     const vehicles = itdVehicles
     return vehicles
   } else if (!itd && itc && itc.length > 0) {
     const itcVehicles = await User.find({
       custodyId: { $in: itc },
       role: 'trainer',
-    })
-      .select('-_id -password -__v')
-      .lean()
+    }).select('-_id -password -__v').lean()
     const vehicles = itcVehicles
     return vehicles
   } else if (!itd && !itc) {
     const vehicles = await User.find({
       vid: { $ne: null, $exists: true },
       role: 'trainer',
-    })
-      .select('-_id -password -__v')
-      .lean()
+    }).select('-_id -password -__v').lean()
     return vehicles
   }
 }
 function dateFilter(startDate, endDate) {
   startDate = startDate
     ? moment.utc(startDate).format()
-    : moment.utc().subtract(48, 'hours').format()
+    : moment.utc().subtract(1, 'hours').format()
   endDate = endDate ? moment.utc(endDate).format() : moment.utc().format()
   if (startDate > endDate) {
     throw new BadRequestError('Invalid date range')
@@ -3417,7 +3143,5 @@ module.exports = {
   getVehicleDataFromFireBase,
   newDashboardQuery,
   weeklyTrendsViolationsQuery,
-  newBerDayCount,
-  vehStatus,
-  firebaseQuery,
+  newBerDayCount
 }

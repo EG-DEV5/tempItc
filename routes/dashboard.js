@@ -18,13 +18,10 @@ const {
   getRatingsById,
   vehicleViolationsById,
   weeklyTrends,
-  newWeeklyTrends,
-  newDashboard,
-  getTotalUsers,
+  newWeeklyTrends
 } = require('../controllers/dashboardController')
 
-router.get('/mainDashboard', authenticateUser, newDashboard)
-router.get('/totalUsers', authenticateUser, getTotalUsers)
+router.get('/mainDashboard', authenticateUser, mainDashboard)
 router.get('/weeklyTrends', authenticateUser, newWeeklyTrends)
 router.get('/ratings', authenticateUser, getRatings)
 router.get('/ratings/:id', authenticateUser, getRatingsById)
